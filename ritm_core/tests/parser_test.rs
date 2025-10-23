@@ -20,7 +20,7 @@ fn test_parse_mt_valid() {
     let mut graph = TuringMachineGraph::new(1).unwrap();
 
     let q1 = &String::from("1");
-    graph.add_state(&q1);
+    graph.add_state(q1);
 
     // q_i -> {ç, ç, => R, ç, R} -> q_1
     let mut transition = TuringTransition::create(
@@ -30,7 +30,7 @@ fn test_parse_mt_valid() {
     )
     .unwrap();
     graph
-        .append_rule_state_by_name(&String::from("i"), transition.clone(), &q1)
+        .append_rule_state_by_name(&String::from("i"), transition.clone(), q1)
         .unwrap();
 
     transition = TuringTransition::create(
@@ -40,7 +40,7 @@ fn test_parse_mt_valid() {
     )
     .unwrap();
     graph
-        .append_rule_state_by_name(&q1, transition.clone(), &q1)
+        .append_rule_state_by_name(q1, transition.clone(), q1)
         .unwrap();
 
     transition = TuringTransition::create(
@@ -50,7 +50,7 @@ fn test_parse_mt_valid() {
     )
     .unwrap();
     graph
-        .append_rule_state_by_name(&q1, transition.clone(), &q1)
+        .append_rule_state_by_name(q1, transition.clone(), q1)
         .unwrap();
 
     assert_eq!(parsed_graph.get_k(), graph.get_k());

@@ -211,7 +211,7 @@ impl Display for TuringReadingTape {
 }
 
 /// Turns a character vector into an easy string to read for humans, displaying with an arrow the current char being pointed
-fn tape_to_string(chars_vec: &Vec<char>, pointer: usize, is_inf: bool) -> String {
+fn tape_to_string(chars_vec: &[char], pointer: usize, is_inf: bool) -> String {
     let mut res: String = String::from("[");
     let mut pointing: String = String::from(" ");
 

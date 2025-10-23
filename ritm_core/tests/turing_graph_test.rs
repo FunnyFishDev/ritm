@@ -364,7 +364,12 @@ fn delete_node() {
 
     // check that it was removed
     expect_unk_name_error(graph.get_state_from_name(&String::from("t")));
-    if let Some(_) = graph.get_name_index_hashmap().get(&String::from("t")) {
+
+    if graph
+        .get_name_index_hashmap()
+        .get(&String::from("t"))
+        .is_some()
+    {
         panic!("No index should have been returned")
     }
 

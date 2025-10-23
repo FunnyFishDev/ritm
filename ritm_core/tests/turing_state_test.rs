@@ -24,7 +24,7 @@ fn transition_creation_test() {
 
     expect_wrong_args_error(TuringTransition::create(vec!['ç'], vec!['ç'], vec![]));
 
-    if let Some(_) = t1.index_to_state {
+    if t1.index_to_state.is_some() {
         panic!("A none value was expected here");
     }
 
@@ -153,14 +153,14 @@ fn transition_eq() {
 
 #[test]
 fn create_state() {
-    let s = TuringState::new(TuringStateType::Normal, &String::from("test"));
+    let s = TuringState::new(TuringStateType::Normal, String::from("test"));
     // name should be test
     assert_eq!(s.name, String::from("test"));
 
     // It should be false
     assert_eq!(TuringStateType::Normal, s.state_type);
 
-    let s = TuringState::new(TuringStateType::Accepting, &String::from("test2"));
+    let s = TuringState::new(TuringStateType::Accepting, String::from("test2"));
 
     // It should be true
     assert_eq!(TuringStateType::Accepting, s.state_type);
@@ -171,7 +171,7 @@ fn create_state() {
 
 #[test]
 fn rename_state() {
-    let mut s = TuringState::new(TuringStateType::Normal, &String::from("test"));
+    let mut s = TuringState::new(TuringStateType::Normal, String::from("test"));
     s.rename("test2");
     // name should be test2
     assert_eq!(s.name, String::from("test2"));
@@ -179,7 +179,7 @@ fn rename_state() {
 
 #[test]
 fn add_transitions() {
-    let mut s = TuringState::new(TuringStateType::Normal, &String::from("test"));
+    let mut s = TuringState::new(TuringStateType::Normal, String::from("test"));
     let transition = TuringTransition::create(
         vec!['ç', 'ç'],
         vec!['ç'],
@@ -216,7 +216,7 @@ fn add_transitions() {
 
 #[test]
 fn remove_transitions_using_index() {
-    let mut s = TuringState::new(TuringStateType::Normal, &String::from("test"));
+    let mut s = TuringState::new(TuringStateType::Normal, String::from("test"));
     // add transitions
     s.add_transition(
         TuringTransition::create(
@@ -268,7 +268,7 @@ fn remove_transitions_using_index() {
 
 #[test]
 fn remove_transitions_using_ref() {
-    let mut s = TuringState::new(TuringStateType::Normal, &String::from("test"));
+    let mut s = TuringState::new(TuringStateType::Normal, String::from("test"));
     let t1 = TuringTransition::create(
         vec!['ç', 'ç'],
         vec!['ç'],
@@ -304,7 +304,7 @@ fn remove_transitions_using_ref() {
 
 #[test]
 fn get_valid_transitions() {
-    let mut s = TuringState::new(TuringStateType::Normal, &String::from("test"));
+    let mut s = TuringState::new(TuringStateType::Normal, String::from("test"));
     let t1 = TuringTransition::create(
         vec!['ç', 'ç'],
         vec!['ç'],
@@ -340,7 +340,7 @@ fn get_valid_transitions() {
 
 #[test]
 fn update_transitions() {
-    let mut s = TuringState::new(TuringStateType::Normal, &String::from("test"));
+    let mut s = TuringState::new(TuringStateType::Normal, String::from("test"));
     let t1 = TuringTransition::create(
         vec!['ç', 'ç'],
         vec!['ç'],

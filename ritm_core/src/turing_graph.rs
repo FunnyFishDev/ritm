@@ -32,9 +32,9 @@ impl TuringMachineGraph {
             });
         }
         // Add the default states
-        let init_state = TuringState::new(TuringStateType::Normal, &String::from("i"));
-        let accepting_state = TuringState::new(TuringStateType::Accepting, &String::from("a"));
-        let rejecting_state = TuringState::new(TuringStateType::Rejecting, &String::from("r"));
+        let init_state = TuringState::new(TuringStateType::Normal, String::from("i"));
+        let accepting_state = TuringState::new(TuringStateType::Accepting, String::from("a"));
+        let rejecting_state = TuringState::new(TuringStateType::Rejecting, String::from("r"));
 
         // Create the hash map with the already known states
         let mut name_index_hashmap: HashMap<String, usize> = HashMap::new();
@@ -140,7 +140,7 @@ impl TuringMachineGraph {
             None => {
                 // Pushes in the vector of states a new state with the given name
                 self.states
-                    .push(TuringState::new(TuringStateType::Normal, name));
+                    .push(TuringState::new(TuringStateType::Normal, name.to_string()));
                 // Adds the index of this state to the hashmap
                 self.name_index_hashmap
                     .insert(name.to_string(), self.states.len() - 1);
@@ -209,7 +209,10 @@ impl TuringMachineGraph {
     }
 
     /// Returns the **mutable** state (*node*) that has the given name.
-    fn get_state_from_name_mut(&mut self, name: &String) -> Result<&mut TuringState, TuringError> {
+    pub fn get_state_from_name_mut(
+        &mut self,
+        name: &String,
+    ) -> Result<&mut TuringState, TuringError> {
         match self.name_index_hashmap.get(name) {
             Some(index) => self.get_state_mut(*index),
             None => Err(TuringError::UnknownStateError {

@@ -46,11 +46,11 @@ pub struct TuringState {
 
 impl TuringState {
     /// Creates a new [TuringState]
-    pub fn new(state_type: TuringStateType, name: &String) -> Self {
+    pub fn new(state_type: TuringStateType, name: String) -> Self {
         Self {
             state_type,
             transitions: vec![],
-            name: name.clone(),
+            name,
         }
     }
 
