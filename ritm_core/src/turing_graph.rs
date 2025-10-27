@@ -32,9 +32,9 @@ impl TuringMachineGraph {
             });
         }
         // Add the default states
-        let init_state = TuringState::new(TuringStateType::Normal, String::from("i"));
-        let accepting_state = TuringState::new(TuringStateType::Accepting, String::from("a"));
-        let rejecting_state = TuringState::new(TuringStateType::Rejecting, String::from("r"));
+        let init_state = TuringState::new(TuringStateType::Normal, "i");
+        let accepting_state = TuringState::new(TuringStateType::Accepting, "a");
+        let rejecting_state = TuringState::new(TuringStateType::Rejecting, "r");
 
         // Create the hash map with the already known states
         let mut name_index_hashmap: HashMap<String, usize> = HashMap::new();

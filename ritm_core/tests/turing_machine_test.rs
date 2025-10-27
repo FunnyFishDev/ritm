@@ -31,7 +31,6 @@ q_i {ç, ç -> N, ç, N} q_i;";
 #[test]
 fn save_all_accept() {
     let tm_graph = get_test_non_deter_graph();
-    //println!("{:?}", tm_graph);
 
     // let mut turing_machine = TuringMachine::new(tm_graph, String::from("010"), Mode::SaveAll).unwrap();
 

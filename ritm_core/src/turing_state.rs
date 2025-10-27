@@ -15,7 +15,7 @@ pub enum TuringStateType {
     Normal,
     /// Accepts the given input.
     Accepting,
-    /// Rejects the given input.
+    /// Immediatly rejects the given input.
     Rejecting,
 }
 
@@ -46,11 +46,11 @@ pub struct TuringState {
 
 impl TuringState {
     /// Creates a new [TuringState]
-    pub fn new(state_type: TuringStateType, name: String) -> Self {
+    pub fn new(state_type: TuringStateType, name: impl Into<String>) -> Self {
         Self {
             state_type,
             transitions: vec![],
-            name,
+            name: name.into(),
         }
     }
 
