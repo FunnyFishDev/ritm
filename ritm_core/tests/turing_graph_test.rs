@@ -10,7 +10,6 @@ fn create_graph_test() {
 
     assert_eq!(*graph.get_name_index_hashmap().get("i").unwrap(), 0);
     assert_eq!(*graph.get_name_index_hashmap().get("a").unwrap(), 1);
-    assert_eq!(*graph.get_name_index_hashmap().get("r").unwrap(), 2);
 
     assert!(matches!(
         TuringMachineGraph::new(0),
@@ -20,10 +19,6 @@ fn create_graph_test() {
     assert_eq!(
         TuringStateType::Accepting,
         graph.get_state_from_name("a").unwrap().state_type
-    );
-    assert_eq!(
-        TuringStateType::Rejecting,
-        graph.get_state_from_name("r").unwrap().state_type
     );
     assert_eq!(
         TuringStateType::Normal,
@@ -46,11 +41,6 @@ fn delete_init_nodes_test() {
         graph.remove_state_with_name("a"),
         Err(TuringGraphError::ImmutableStateError { state: _ })
     ));
-
-    assert!(matches!(
-        graph.remove_state_with_name("r"),
-        Err(TuringGraphError::ImmutableStateError { state: _ })
-    ));
 }
 
 #[test]
@@ -60,30 +50,29 @@ fn add_nodes() {
     // Check they already exists
     assert_eq!(graph.add_state("i"), 0);
     assert_eq!(graph.add_state("a"), 1);
-    assert_eq!(graph.add_state("r"), 2);
 
     // Add new ones
-    assert_eq!(graph.add_state("b"), 3);
-    assert_eq!(graph.add_state("c"), 4);
-    assert_eq!(graph.add_state("d"), 5);
+    assert_eq!(graph.add_state("b"), 2);
+    assert_eq!(graph.add_state("c"), 3);
+    assert_eq!(graph.add_state("d"), 4);
     // Check they got the correct index
-    assert_eq!(graph.add_state("b"), 3);
-    assert_eq!(graph.add_state("c"), 4);
-    assert_eq!(graph.add_state("d"), 5);
+    assert_eq!(graph.add_state("b"), 2);
+    assert_eq!(graph.add_state("c"), 3);
+    assert_eq!(graph.add_state("d"), 4);
 }
 
 #[test]
 fn get_nodes_test() {
     let mut graph = TuringMachineGraph::new(1).unwrap();
     // Add new nodes
-    assert_eq!(graph.add_state("b"), 3);
-    assert_eq!(graph.add_state("c"), 4);
-    assert_eq!(graph.add_state("d"), 5);
+    assert_eq!(graph.add_state("b"), 2);
+    assert_eq!(graph.add_state("c"), 3);
+    assert_eq!(graph.add_state("d"), 4);
 
     // check they get be obtained
-    assert_eq!(graph.get_state(3).unwrap().name.clone(), "b");
-    assert_eq!(graph.get_state(4).unwrap().name.clone(), "c");
-    assert_eq!(graph.get_state(5).unwrap().name.clone(), "d");
+    assert_eq!(graph.get_state(2).unwrap().name.clone(), "b");
+    assert_eq!(graph.get_state(3).unwrap().name.clone(), "c");
+    assert_eq!(graph.get_state(4).unwrap().name.clone(), "d");
 
     // check they get be obtained
     assert_eq!(graph.get_state_from_name("b").unwrap().name.clone(), "b");
@@ -327,8 +316,11 @@ fn delete_node() {
         .append_rule_state_by_name("t", t1.clone(), "a")
         .unwrap(); // t -> a
     graph
-        .append_rule_state_by_name("r", t2.clone(), "t")
-        .unwrap(); // r -> t
+        .append_rule_state_by_name("a", t2.clone(), "t")
+        .unwrap(); // a -> t
+    graph
+        .append_rule_state_by_name("p", t2.clone(), "t")
+        .unwrap(); // a -> t
     graph
         .append_rule_state_by_name("q", t3.clone(), "t")
         .unwrap(); // q -> t
@@ -357,7 +349,7 @@ fn delete_node() {
     // Check all the related transitions to 't' are also gone
     assert!(
         graph
-            .get_state_from_name("r")
+            .get_state_from_name("p")
             .unwrap()
             .get_valid_transitions(&vec!('ç', 'ç'))
             .is_empty()
