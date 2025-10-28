@@ -4,7 +4,7 @@ use egui::{
     Modal, RichText, ScrollArea, Shadow, Stroke, TextEdit, Ui, Vec2b, include_image,
     scroll_area::ScrollBarVisibility, style::WidgetVisuals, vec2,
 };
-use ritm_core::turing_state::{TuringDirection, TuringTransition};
+use ritm_core::turing_transition::{TuringDirection, TuringTransition};
 
 use crate::{
     App,

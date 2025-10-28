@@ -85,7 +85,7 @@ fn create_tm(rl: &mut Editor<(), FileHistory>) -> Result<TuringMachineGraph, Rip
 
     let tm = TuringMachineGraph::new(res);
     if let Err(e) = tm {
-        return Err(RiplError::EncounteredTuringError { error: e });
+        return Err(RiplError::EncounteredTuringError { error: e.into() });
     }
 
     Ok(tm.unwrap())

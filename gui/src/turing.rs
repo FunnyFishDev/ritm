@@ -1,6 +1,6 @@
 use egui::{Color32, Pos2, accesskit::Invalid};
 use rand::random_range;
-use ritm_core::turing_state::{TuringDirection, TuringTransition};
+use ritm_core::turing_transition::{TuringDirection, TuringTransition};
 
 use crate::App;
 
