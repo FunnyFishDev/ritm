@@ -15,7 +15,7 @@ use ritm_core::{
     turing_graph::TuringMachineGraph,
     turing_machine::{Mode, TuringExecutionSteps, TuringMachines},
     turing_parser::{graph_to_string, parse_turing_graph_string},
-    turing_state::{TuringDirection, TuringStateType, TuringTransition},
+    turing_state::TuringStateType, turing_transition::{TuringDirection, TuringTransition},
 };
 
 use crate::{
