@@ -11,3 +11,4 @@ homepage = "https://github.com/PizzaManStarted/ritm"
 [dependencies]
 pest = "2.7.15"
 pest_derive = "2.7.15"
+thiserror = "2.0.17"

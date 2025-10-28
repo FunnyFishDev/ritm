@@ -2,8 +2,9 @@ use ritm_core::{
     turing_graph::TuringMachineGraph,
     turing_machine::{Mode, TuringExecutionSteps, TuringMachines},
     turing_parser::parse_turing_graph_string,
-    turing_state::{TuringDirection, TuringStateType, TuringTransition},
+    turing_state::TuringStateType,
     turing_tape::TuringTape,
+    turing_transition::{TuringDirection, TuringTransition},
 };
 
 const TM_ACCEPT_XX: &str = "// Turing machine that only accepts words of the form : xx
@@ -192,7 +193,7 @@ fn _get_smaller_non_deter_graph() -> TuringMachineGraph {
     )
     .unwrap();
     graph
-        .append_rule_state_by_name(&String::from("i"), transition.clone(), q2)
+        .append_rule_state_by_name("i", transition.clone(), q2)
         .unwrap();
 
     transition = TuringTransition::create(
@@ -212,7 +213,7 @@ fn _get_smaller_non_deter_graph() -> TuringMachineGraph {
     )
     .unwrap();
     graph
-        .append_rule_state_by_name(q2, transition.clone(), &String::from("a"))
+        .append_rule_state_by_name(q2, transition.clone(), "a")
         .unwrap();
 
     graph
@@ -236,7 +237,7 @@ fn get_test_non_deter_graph() -> TuringMachineGraph {
     )
     .unwrap();
     graph
-        .append_rule_state_by_name(&String::from("i"), transition.clone(), q1)
+        .append_rule_state_by_name("i", transition.clone(), q1)
         .unwrap();
 
     // q_1 -> {0, _ => R, a, R} -> q_1
@@ -301,7 +302,7 @@ fn get_test_non_deter_graph() -> TuringMachineGraph {
     )
     .unwrap();
     graph
-        .append_rule_state_by_name(q2, transition.clone(), &String::from("a"))
+        .append_rule_state_by_name(q2, transition.clone(), "a")
         .unwrap();
 
     graph
@@ -321,7 +322,7 @@ fn get_small_inf_machine(mode: Mode) -> TuringMachines {
     )
     .unwrap();
     graph
-        .append_rule_state_by_name(&String::from("i"), transition.clone(), q1)
+        .append_rule_state_by_name("i", transition.clone(), q1)
         .unwrap();
 
     // q_1 -> {1, _, => N, _, N} -> q_1
@@ -335,7 +336,7 @@ fn get_small_inf_machine(mode: Mode) -> TuringMachines {
         .append_rule_state_by_name(q1, transition.clone(), q1)
         .unwrap();
 
-    TuringMachines::new(graph, String::from("1"), mode).unwrap()
+    TuringMachines::new(graph,String::from("1"), mode).unwrap()
 }
 
 #[test]

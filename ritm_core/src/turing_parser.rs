@@ -1,12 +1,83 @@
 use pest::{Parser, error::Error, iterators::Pair};
 use pest_derive::Parser;
-use std::fs;
+use std::{fmt::Display, fs, io};
+use thiserror::Error;
 
 use crate::{
-    turing_errors::{TuringError, TuringParserError},
     turing_graph::TuringMachineGraph,
-    turing_state::{TuringDirection, TuringTransition},
+    turing_machine::TuringMachineError,
+    turing_transition::{TuringDirection, TuringTransition},
 };
+
+#[derive(Debug, Error)]
+pub enum TuringParserError {
+    FileError {
+        given_path: String,
+        error: io::Error,
+    },
+    /// Error when failing to parse a given string value
+    ParsingError {
+        line_col_pos: Option<(usize, usize)>,
+        value: String,
+        missing_value: Option<String>,
+    },
+    /// Error when a [`TuringMachineError`] was encountered **while** parsing a string value
+    TuringError {
+        line_col_pos: Option<(usize, usize)>,
+        turing_error: TuringMachineError,
+        value: String,
+    },
+}
+
+impl Display for TuringParserError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", {
+            match self {
+                TuringParserError::FileError { given_path, error } => format!(
+                    "Ran into an error trying to open the file at \"{}\". The reason being : {}",
+                    given_path, error
+                ),
+                TuringParserError::ParsingError {
+                    line_col_pos,
+                    value,
+                    missing_value,
+                } => format!(
+                    "Impossible to parse the given input.\n{}{}",
+                    get_arrow_under(value, line_col_pos),
+                    {
+                        if let Some(token) = missing_value {
+                            format!("\nThis token might be missing : \"{}\"", token)
+                        } else {
+                            String::new()
+                        }
+                    }
+                ),
+                TuringParserError::TuringError {
+                    line_col_pos,
+                    turing_error,
+                    value,
+                } => format!(
+                    "Encountered an error at the following line: \n{}\nReason: {}",
+                    get_arrow_under(value, line_col_pos),
+                    turing_error
+                ),
+            }
+        })
+    }
+}
+
+fn get_arrow_under(value: &String, line_col_pos: &Option<(usize, usize)>) -> String {
+    if let Some((line, col)) = line_col_pos {
+        let line_str = (line).to_string();
+        format!(
+            "{line_str}: {value}\n{}{}^",
+            String::from(" ").repeat(line_str.len() + 2),
+            String::from("-").repeat(col - 1)
+        )
+    } else {
+        value.to_string()
+    }
+}
 
 #[derive(Parser)]
 #[grammar = "turing_machine.pest"]
@@ -14,7 +85,7 @@ pub struct TuringGrammar;
 
 /// Parses a turing machine graph from the content of a file.
 ///
-/// Important to note that if the given string is empty, then an empty [TuringMachineGraph] with a *k* of 1 is returned.
+/// Important to note that if the given string is empty, then an empty [`TuringMachineGraph`] with a *k* of 1 is returned.
 pub fn parse_turing_graph_file_path(
     file_path: String,
 ) -> Result<TuringMachineGraph, TuringParserError> {
@@ -22,9 +93,9 @@ pub fn parse_turing_graph_file_path(
         match TuringMachineGraph::new(1) {
             Ok(tm) => return Ok(tm),
             Err(e) => {
-                return Err(TuringParserError::EncounteredTuringError {
+                return Err(TuringParserError::TuringError {
                     line_col_pos: None,
-                    turing_error: e,
+                    turing_error: e.into(),
                     value: String::new(),
                 });
             }
@@ -32,9 +103,9 @@ pub fn parse_turing_graph_file_path(
     }
     match fs::read_to_string(&file_path) {
         Ok(unparsed_file) => parse_turing_graph_string(unparsed_file),
-        Err(e) => Err(TuringParserError::FileError {
+        Err(error) => Err(TuringParserError::FileError {
             given_path: file_path,
-            error_reason: e.to_string(),
+            error,
         }),
     }
 }
@@ -79,9 +150,9 @@ pub fn parse_turing_graph_string(
                     );
 
                     if let Err(e) = tm {
-                        return Err(TuringParserError::EncounteredTuringError {
+                        return Err(TuringParserError::TuringError {
                             line_col_pos: Some(rule_cp.line_col()),
-                            turing_error: e,
+                            turing_error: e.into(),
                             value: rule_cp.as_str().to_string(),
                         });
                     }
@@ -96,9 +167,9 @@ pub fn parse_turing_graph_string(
                     // Adds all the collected transitions for these states
                     for transition in transitions {
                         if let Err(e) = mt.append_rule_state(var1, transition, var2) {
-                            return Err(TuringParserError::EncounteredTuringError {
+                            return Err(TuringParserError::TuringError {
                                 line_col_pos: Some(rule_cp.line_col()),
-                                turing_error: e,
+                                turing_error: e.into(),
                                 value: rule_cp.as_str().to_string(),
                             });
                         }
@@ -186,7 +257,7 @@ fn parse_transition(
                     // explain in this error that we couldn't create the transition
                     // Return the col and line + the string content of the rule
 
-                    return Err(TuringParserError::EncounteredTuringError {
+                    return Err(TuringParserError::TuringError {
                         line_col_pos: Some(rule_cp.line_col()),
                         turing_error: e,
                         value: rule_cp.as_str().to_string(),
@@ -209,7 +280,7 @@ fn parse_str_token(rule: Pair<Rule>) -> String {
     }
 }
 
-fn parse_transition_content(rule: Pair<Rule>) -> Result<TuringTransition, TuringError> {
+fn parse_transition_content(rule: Pair<Rule>) -> Result<TuringTransition, TuringMachineError> {
     let mut chars_read: Vec<char> = vec![];
     let mut directions: Vec<TuringDirection> = vec![];
     let mut chars_written: Vec<char> = vec![];
@@ -247,7 +318,11 @@ fn parse_transition_content(rule: Pair<Rule>) -> Result<TuringTransition, Turing
         }
     }
 
-    TuringTransition::create(chars_read, chars_written, directions)
+    Ok(TuringTransition::create(
+        chars_read,
+        chars_written,
+        directions,
+    )?)
 }
 
 fn get_expected_value(error: &Error<Rule>) -> Option<String> {

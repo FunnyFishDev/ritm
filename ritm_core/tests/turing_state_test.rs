@@ -1,4 +1,7 @@
-use ritm_core::{turing_errors::TuringError, turing_state::*};
+use ritm_core::{
+    turing_state::*,
+    turing_transition::{TuringDirection, TuringTransition, TuringTransitionError},
+};
 
 // ________________________________________ Transitions tests ______________________________
 #[test]
@@ -10,19 +13,20 @@ fn transition_creation_test() {
     )
     .unwrap();
 
-    expect_wrong_args_error(TuringTransition::create(
-        vec!['ç', 'ç'],
-        vec![],
-        vec![TuringDirection::Right],
+    assert!(matches!(
+        TuringTransition::create(vec!['ç', 'ç'], vec![], vec![TuringDirection::Right],),
+        Err(TuringTransitionError::TransitionArgsError(_val))
     ));
 
-    expect_wrong_args_error(TuringTransition::create(
-        vec![],
-        vec!['ç'],
-        vec![TuringDirection::Right],
+    assert!(matches!(
+        TuringTransition::create(vec![], vec!['ç'], vec![TuringDirection::Right],),
+        Err(TuringTransitionError::TransitionArgsError(_val))
     ));
 
-    expect_wrong_args_error(TuringTransition::create(vec!['ç'], vec!['ç'], vec![]));
+    assert!(matches!(
+        TuringTransition::create(vec!['ç'], vec!['ç'], vec![],),
+        Err(TuringTransitionError::TransitionArgsError(_val))
+    ));
 
     if t1.index_to_state.is_some() {
         panic!("A none value was expected here");
@@ -36,50 +40,51 @@ fn transition_creation_test() {
 }
 #[test]
 fn create_ill_transitions() {
-    match TuringTransition::create(
-        vec!['$', '_'],
-        vec!['_'],
-        vec![TuringDirection::Right, TuringDirection::None],
-    ) {
-        Ok(_) => panic!("Expected an error"),
-        Err(te) => expect_ill_action_error(te),
-    }
+    assert!(matches!(
+        TuringTransition::create(
+            vec!['$', '_'],
+            vec!['_'],
+            vec![TuringDirection::Right, TuringDirection::None],
+        ),
+        Err(TuringTransitionError::IllegalActionError(_val))
+    ));
 
-    match TuringTransition::create(
+
+    assert!(matches!(
+        TuringTransition::create(
         vec!['ç', '_'],
         vec!['_'],
         vec![TuringDirection::Left, TuringDirection::None],
-    ) {
-        Ok(_) => panic!("Expected an error"),
-        Err(te) => expect_ill_action_error(te),
-    }
+        ),
+        Err(TuringTransitionError::IllegalActionError(_val))
+    ));
 
-    match TuringTransition::create(
+    assert!(matches!(
+        TuringTransition::create(
         vec!['_', 'ç'],
         vec!['ç'],
         vec![TuringDirection::None, TuringDirection::Left],
-    ) {
-        Ok(_) => panic!("Expected an error"),
-        Err(te) => expect_ill_action_error(te),
-    }
+        ),
+        Err(TuringTransitionError::IllegalActionError(_val))
+    ));
 
-    match TuringTransition::create(
+    assert!(matches!(
+        TuringTransition::create(
         vec!['_', '_'],
         vec!['ç'],
         vec![TuringDirection::None, TuringDirection::Left],
-    ) {
-        Ok(_) => panic!("Expected an error"),
-        Err(te) => expect_ill_action_error(te),
-    }
+        ),
+        Err(TuringTransitionError::IllegalActionError(_val))
+    ));
 
-    match TuringTransition::create(
+    assert!(matches!(
+        TuringTransition::create(
         vec!['_', 'ç'],
         vec!['_'],
         vec![TuringDirection::None, TuringDirection::Left],
-    ) {
-        Ok(_) => panic!("Expected an error"),
-        Err(te) => expect_ill_action_error(te),
-    }
+        ),
+        Err(TuringTransitionError::IllegalActionError(_val))
+    ));
 }
 
 #[test]
@@ -386,32 +391,32 @@ fn update_transitions() {
     assert_eq!(s.get_transitions_to(3), vec!(&t1, &t2, &t3));
 }
 
-fn expect_ill_action_error(te: TuringError) {
-    match te {
-        TuringError::IllegalActionError { cause: _ } => {}
-        _ => panic!(
-            "Exepected an IllegalActionError, but received the following error : {:?}",
-            te
-        ),
-    }
-}
+// fn expect_ill_action_error(te: TuringStateError) {
+//     match te {
+//         TuringStateError::IllegalActionError { cause: _ } => {}
+//         _ => panic!(
+//             "Exepected an IllegalActionError, but received the following error : {:?}",
+//             te
+//         ),
+//     }
+// }
 
-fn expect_wrong_args_error<O>(res: Result<O, TuringError>) {
+// fn expect_wrong_args_error<O>(res: Result<O, TuringStateError>) {
+//     if let Err(e) = res {
+//         match e {
+//             TuringStateError::TransitionArgsError { reason: _ } => (),
+
+//             _ => panic!("Wrong error was returned"),
+//         }
+//     } else {
+//         panic!("Should have thrown an error")
+//     }
+// }
+
+fn expect_incompatible_transition_error<O>(res: Result<O, TuringStateError>) {
     if let Err(e) = res {
         match e {
-            TuringError::TransitionArgsError { reason: _ } => (),
-
-            _ => panic!("Wrong error was returned"),
-        }
-    } else {
-        panic!("Should have thrown an error")
-    }
-}
-
-fn expect_incompatible_transition_error<O>(res: Result<O, TuringError>) {
-    if let Err(e) = res {
-        match e {
-            TuringError::IncompatibleTransitionError {
+            TuringStateError::IncompatibleTransitionError {
                 expected: _,
                 received: _,
             } => (),
@@ -423,10 +428,10 @@ fn expect_incompatible_transition_error<O>(res: Result<O, TuringError>) {
     }
 }
 
-fn expect_out_of_range_transition_error<O>(res: Result<O, TuringError>) {
+fn expect_out_of_range_transition_error<O>(res: Result<O, TuringStateError>) {
     if let Err(e) = res {
         match e {
-            TuringError::OutOfRangeTransitionError {
+            TuringStateError::OutOfRangeTransitionError {
                 accessed_index: _,
                 states_len: _,
             } => (),
