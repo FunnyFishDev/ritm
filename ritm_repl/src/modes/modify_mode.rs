@@ -9,7 +9,7 @@ use ritm_core::{
     turing_graph::TuringMachineGraph,
     turing_machine::TuringMachines,
     turing_parser::{self, parse_transition_string},
-    turing_state::TuringTransition,
+    turing_transition::TuringTransition,
 };
 use rustyline::{Editor, history::FileHistory};
 use strum_macros::EnumIter;
@@ -109,7 +109,7 @@ impl ModeEvent for ModifyTuringMode {
                 } else {
                     let name = &res.unwrap();
                     if let Err(e) = tm.remove_state_with_name(name) {
-                        print_error_help(RiplError::EncounteredTuringError { error: e });
+                        print_error_help(RiplError::EncounteredTuringError { error: e.into() });
                     } else {
                         println!("{}", format!("Successfully removed the state \'q_{}\' and all related transitions.", name.yellow()).green())
                     }
@@ -205,7 +205,7 @@ fn add_transition(
 
     for transition in vec_tm {
         if let Err(e) = turing_graph.append_rule_state_by_name(&q1, transition.clone(), &q2) {
-            print_error_help(RiplError::EncounteredTuringError { error: e });
+            print_error_help(RiplError::EncounteredTuringError { error: e.into() });
         } else {
             println!(
                 "{}{}",
@@ -233,7 +233,7 @@ fn remove_transition(
 
     for transition in vec_tm {
         if let Err(e) = turing_graph.remove_transition(&q1, &transition, &q2) {
-            print_error_help(RiplError::EncounteredTuringError { error: e });
+            print_error_help(RiplError::EncounteredTuringError { error: e.into() });
         } else {
             println!(
                 "{}{}",
