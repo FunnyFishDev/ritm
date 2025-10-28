@@ -46,10 +46,10 @@ Creating a blank graph is as easy as specifying the number of working tapes that
 This is because every transitions will have to respect this value when you will add them later.
 
 > [!NOTE]
-> A blank graph consists of three default states :
+> A blank graph consists of two default states :
 > * $q_i$ : The **initial** state where every execution will start from.
 > * $q_a$ : The **accepting** state where an execution should end to *accept* an input.
-> * $q_r$ : The **rejecting** state. This state can be use to directly *reject* an input.
+<!-- > * $q_r$ : The **rejecting** state. This state can be use to directly *reject* an input. -->
 
 ### Load
 

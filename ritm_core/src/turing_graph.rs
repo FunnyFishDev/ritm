@@ -52,7 +52,6 @@ impl TuringMachineGraph {
     /// Three default states will be created :
     /// * `q_i` : The initial state
     /// * `q_a` : The default accepting state
-    /// * `q_r` : The default rejecting state
     pub fn new(k: usize) -> Result<Self, TuringGraphError> {
         if k == 0 {
             return Err(TuringGraphError::NotEnoughTapesError);
@@ -60,17 +59,15 @@ impl TuringMachineGraph {
         // Add the default states
         let init_state = TuringState::new(TuringStateType::Normal, "i");
         let accepting_state = TuringState::new(TuringStateType::Accepting, "a");
-        let rejecting_state = TuringState::new(TuringStateType::Rejecting, "r");
 
         // Create the hash map with the already known states
         let mut name_index_hashmap: HashMap<String, usize> = HashMap::new();
         name_index_hashmap.insert("i".to_string(), 0); // init
         name_index_hashmap.insert("a".to_string(), 1); // accepting
-        name_index_hashmap.insert("r".to_string(), 2); // rejecting
 
         Ok(Self {
             name_index_hashmap,
-            states: vec![init_state, accepting_state, rejecting_state],
+            states: vec![init_state, accepting_state],
             k,
         })
     }
@@ -404,7 +401,7 @@ impl TuringMachineGraph {
     /// Removes a state and **all** mentions of it in **all** transitions of **all** the other states of the TuringMachine using its index.
     fn remove_state_with_index(&mut self, state_index: usize) -> Result<(), TuringGraphError> {
         // if the node is one of the 3 initial nodes, throw an error
-        if state_index <= 2 {
+        if state_index <= 1 {
             return Err(TuringGraphError::ImmutableStateError {
                 state: self
                     .get_state(state_index)
