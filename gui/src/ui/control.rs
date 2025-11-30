@@ -230,16 +230,14 @@ fn speed_control(app: &mut App, ui: &mut Ui) {
                     .frame(false),
                 )
                 .clicked()
-            {
-                if app.interval < 3 {
+                && app.interval < 3 {
                     app.interval += 1;
                 }
-            }
 
             flex.add(
                 item(),
                 Label::new(
-                    RichText::new(format!("{}X", 2.0_f32.powi(app.interval as i32 * -1)))
+                    RichText::new(format!("{}X", 2.0_f32.powi(-app.interval)))
                         .font(Font::default(Constant::scale(flex.ui(), Font::MEDIUM_SIZE)))
                         .color(app.theme.gray),
                 ),
@@ -256,11 +254,9 @@ fn speed_control(app: &mut App, ui: &mut Ui) {
                     .frame(false),
                 )
                 .clicked()
-            {
-                if app.interval > -5 {
+                && app.interval > -5 {
                     app.interval -= 1;
                 }
-            }
 
             flex.grow()
         });
@@ -301,12 +297,10 @@ fn state(app: &mut App, ui: &mut Ui) {
                 } else {
                     ("Rejected", app.theme.invalid)
                 }
+            } else if app.event.is_running {
+                ("Running", app.theme.gray)
             } else {
-                if app.event.is_running {
-                    ("Running", app.theme.gray)
-                } else {
-                    ("Idle", app.theme.gray)
-                }
+                ("Idle", app.theme.gray)
             };
 
             flex.add(

@@ -33,8 +33,8 @@ pub fn show(app: &mut App, ui: &mut Ui) {
             app.event.is_code_closed = true;
         }
 
-        if app.event.is_code_closed {
-            if !app.event.is_small_window
+        if app.event.is_code_closed
+            && !app.event.is_small_window
                 && ui
                     .add(
                         item(),
@@ -49,7 +49,6 @@ pub fn show(app: &mut App, ui: &mut Ui) {
             {
                 app.event.is_code_closed = false;
             }
-        }
 
         if ui
             .add(
@@ -81,11 +80,9 @@ pub fn show(app: &mut App, ui: &mut Ui) {
                 .frame(false),
             )
             .clicked()
-        {
-            if !app.code.is_empty() {
+            && !app.code.is_empty() {
                 app.file.save("new.tm", app.code.as_bytes().to_vec())
             };
-        }
 
         let res = ui.add(
             item(),

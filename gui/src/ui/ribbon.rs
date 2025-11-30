@@ -1,5 +1,3 @@
-use std::i32;
-
 use egui::{
     Align, Frame, Label, Layout, Margin, RichText, ScrollArea, Sense, Stroke, StrokeKind, Ui, Vec2,
     epaint::PathShape,
@@ -32,7 +30,7 @@ pub fn show(app: &mut App, ui: &mut Ui) {
             let mut square_count = ((ui.available_width() + horizontal_space)
                 / (horizontal_space + square_size)) as usize;
 
-            if square_count % 2 == 0 {
+            if square_count.is_multiple_of(2) {
                 square_count += 1
             }
             let ribbon_size =
@@ -93,13 +91,13 @@ fn ribbon(app: &mut App, ui: &mut Ui, width: f32, ribbon_id: usize) {
             // Get the chars and pointer from reading or writing ribbon
             let (chars, pointer): (&Vec<char>, i32) = if ribbon_id == 0 {
                 (
-                    &app.step.get_reading_tape().get_contents(),
+                    app.step.get_reading_tape().get_contents(),
                     app.step.get_reading_tape().get_pointer() as i32,
                 )
             } else {
-                let write_ribbon = &app.step.get_writing_tapes()[ribbon_id - 1 as usize];
+                let write_ribbon = &app.step.get_writing_tapes()[ribbon_id - 1_usize];
                 (
-                    &write_ribbon.get_contents(),
+                    write_ribbon.get_contents(),
                     write_ribbon.get_pointer() as i32,
                 )
             };
@@ -119,8 +117,8 @@ fn ribbon(app: &mut App, ui: &mut Ui, width: f32, ribbon_id: usize) {
                     as usize
             ]);
 
-            for i in 0..square_count {
-                square(app, ui, ribbon_vec[i as usize], i == ribbon_center as usize);
+            for (i, char) in ribbon_vec.iter().enumerate().take(square_count) {
+                square(app, ui, *char, i == ribbon_center as usize);
             }
         },
     );

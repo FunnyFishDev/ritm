@@ -4,7 +4,7 @@ use ritm_core::turing_state::{TuringDirection, TuringTransition};
 
 use crate::App;
 
-/// State graphical representation
+/// State visual representation
 #[derive(PartialEq, Debug)]
 pub struct State {
     pub id: usize,
@@ -15,17 +15,17 @@ pub struct State {
     pub transitions: Vec<Transition>,
 }
 
-/// Transition are identified by the pair source state/own id
+/// Transition are identified by the pair (source_state_id, own_id)
 pub type TransitionId = (usize, usize);
 
-/// Transition graphical representation
+/// Transition visual representation
 #[derive(Default, PartialEq, Debug)]
 pub struct Transition {
     pub text: String,
     pub id: usize,
     pub parent_id: usize,
     pub target_id: usize,
-    pub identifier: (usize, usize),
+    pub unique_id: TransitionId,
 }
 
 /// Copy of the [`TuringTransition`] but with string to allow empty char
@@ -121,9 +121,9 @@ impl TransitionEdit {
 impl State {
     pub fn new_at_pos(id: usize, name: String, position: Pos2) -> Self {
         State {
-            id: id,
-            name: name,
-            position: position,
+            id,
+            name,
+            position,
             is_pinned: true,
             color: Color32::WHITE,
             transitions: vec![],
@@ -132,8 +132,8 @@ impl State {
 
     pub fn new(id: usize, name: String) -> Self {
         State {
-            id: id,
-            name: name,
+            id,
+            name,
             position: Pos2::new(random_range(0.0..1.0), random_range(0.0..1.0)),
             is_pinned: true,
             color: Color32::WHITE,
@@ -153,16 +153,16 @@ impl State {
 impl Transition {
     pub fn new(text: String, id: usize, parent_id: usize, target_id: usize) -> Self {
         Transition {
-            text: text,
-            id: id,
-            parent_id: parent_id,
-            target_id: target_id,
-            identifier: (parent_id, id),
+            text,
+            id,
+            parent_id,
+            target_id,
+            unique_id: (parent_id, id),
         }
     }
 
     pub fn get(app: &App, identifier: (usize, usize)) -> &Self {
-        &State::get(app, identifier.0)
+        State::get(app, identifier.0)
             .transitions
             .get(identifier.1)
             .unwrap()

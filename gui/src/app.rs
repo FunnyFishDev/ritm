@@ -137,8 +137,8 @@ impl Default for App {
         let step = turing.into_iter().next().unwrap();
 
         let mut sf = Self {
-            turing: turing,
-            step: step,
+            turing,
+            step,
             input: "".to_string(),
             graph_rect: Rect::ZERO,
             states: HashMap::new(),
@@ -211,8 +211,8 @@ impl App {
         self.states.insert(
             id,
             State {
-                id: id,
-                name: name,
+                id,
+                name,
                 position,
                 ..Default::default()
             },
@@ -233,10 +233,10 @@ impl App {
     /// Remove the selected state from the core and the gui structure
     pub fn remove_transitions(&mut self) {
         let (from, to) = self.selected_transition.unwrap();
-        if let Err(_) = self
+        if self
             .turing
             .graph_mut()
-            .remove_transitions_with_index(from, to)
+            .remove_transitions_with_index(from, to).is_err()
         {
             println!("Error occured !")
         }
@@ -257,7 +257,7 @@ impl App {
                 .transitions
                 .push(Transition {
                     id: i,
-                    identifier: (from, i),
+                    unique_id: (from, i),
                     parent_id: from,
                     target_id: to,
                     text: transition.to_string(),
@@ -337,7 +337,7 @@ impl App {
         {
             // Reset the machine to avoid problem when removing transition, especially transition_taken
             // MEMO : maybe block the removing of the last transition taken ?
-            let _ = self.turing.reset();
+            self.turing.reset();
 
             let transitions = &mut self
                 .turing
@@ -426,7 +426,7 @@ impl App {
                 State {
                     id: index,
                     name: state.name.to_string(),
-                    transitions: transitions,
+                    transitions,
                     ..Default::default()
                 },
             );
@@ -465,14 +465,14 @@ impl App {
 
     /// Unpin all states
     pub fn unpin(&mut self) {
-        for (_, state) in &mut self.states {
+        for state in self.states.values_mut() {
             state.is_pinned = false;
         }
     }
 
     /// Pin all states
     pub fn pin(&mut self) {
-        for (_, state) in &mut self.states {
+        for state in self.states.values_mut() {
             state.is_pinned = true;
         }
     }
@@ -486,7 +486,10 @@ impl eframe::App for App {
         ui::show(self, ctx);
 
         if self.event.is_running {
-            if ctx.input(|r| r.time) - self.last_step_time >= 2.0_f32.powi(self.interval) as f64 {
+            fn fun_name(r: &egui::InputState) -> f64 {
+                r.time
+            }
+            if ctx.input(fun_name) - self.last_step_time >= 2.0_f32.powi(self.interval) as f64 {
                 self.next();
                 self.last_step_time = ctx.input(|r| r.time);
             }

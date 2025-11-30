@@ -158,15 +158,9 @@ impl FileDialog {
 use rfd;
 
 #[cfg(not(target_arch = "wasm32"))]
+#[derive(Default)]
 pub struct FileDialog {
     file: Option<FileData>,
-}
-
-#[cfg(not(target_arch = "wasm32"))]
-impl Default for FileDialog {
-    fn default() -> Self {
-        Self { file: None }
-    }
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -179,7 +173,7 @@ impl FileDialog {
     }
 
     pub fn get(&mut self) -> Option<FileData> {
-        std::mem::replace(&mut self.file, None)
+        self.file.take()
     }
 
     pub fn save(&self, filename: &str, file: FileData) {

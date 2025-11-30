@@ -34,7 +34,7 @@ pub fn show(app: &mut App, ui: &mut Ui) {
     let mut neighbors: HashMap<usize, HashSet<usize>> = HashMap::new();
 
     // Extract each keys to avoid borrowing the whole App struct when iterating every state
-    let keys: Vec<usize> = app.states.keys().map(|u| *u).collect::<Vec<usize>>();
+    let keys: Vec<usize> = app.states.keys().copied().collect::<Vec<usize>>();
 
     for i in &keys {
         let state = State::get(app, *i);
@@ -71,10 +71,10 @@ pub fn show(app: &mut App, ui: &mut Ui) {
                     && f == app
                         .turing
                         .graph_ref()
-                        .get_state(*i as usize)
+                        .get_state(*i)
                         .unwrap()
                         .transitions
-                        .get(transition.id as usize)
+                        .get(transition.id)
                         .unwrap()
             });
 
@@ -136,7 +136,7 @@ fn draw_transition(
     target: usize,
     graph_center: Vec2,
     reverse: bool,
-    transitions: &Vec<(TransitionId, bool)>,
+    transitions: &[(TransitionId, bool)],
 ) {
     let source_position = State::get(app, source).position;
     let target_position = State::get(app, target).position;
@@ -217,7 +217,7 @@ fn draw_self_transition(
     ui: &mut Ui,
     state_id: usize,
     transition_vec: Vec2,
-    transitions: &Vec<(TransitionId, bool)>,
+    transitions: &[(TransitionId, bool)],
 ) {
     let state_position = State::get(app, state_id).position;
     // normalize the delta
@@ -294,7 +294,7 @@ fn draw_self_transition(
 fn draw_labels(
     app: &mut App,
     ui: &mut Ui,
-    transitions: &Vec<((usize, usize), bool)>,
+    transitions: &[(TransitionId, bool)],
     placement: (Pos2, Vec2),
 ) {
     // compute the position of the apsis of the curved transition
@@ -324,7 +324,7 @@ fn draw_labels(
     // place each rules
     for (i, (identifier, is_previous)) in transitions.iter().enumerate() {
         let transition = Transition::get(app, *identifier);
-        let text = format!("{}", &transition.text);
+        let text = transition.text.to_string();
 
         let job = LayoutJob::single_section(
             text,
@@ -336,12 +336,10 @@ fn draw_labels(
                 },
                 color: if selected {
                     app.theme.selected
+                } else if *is_previous {
+                    app.theme.highlight
                 } else {
-                    if *is_previous {
-                        app.theme.highlight
-                    } else {
-                        Theme::constrast_color(app.theme.graph)
-                    }
+                    Theme::constrast_color(app.theme.graph)
                 },
                 ..Default::default()
             },
@@ -448,11 +446,11 @@ fn get_cubic_len(points: [Pos2; 4], n: usize) -> Vec<f32> {
 
     let mut origin = cubicbeziercurve(points, 0.0);
     let mut clen = 0.0;
-    for i in 1..n + 1 {
+    for (i, j) in arc_length.iter_mut().enumerate().skip(1).take(n) {
         let pos = cubicbeziercurve(points, i as f32 * (1.0 / n as f32));
         let delta = origin - pos;
         clen += (delta.x.powi(2) + delta.y.powi(2)).sqrt();
-        arc_length[i as usize] = clen;
+        *j = clen;
         origin = pos;
     }
 
@@ -464,25 +462,25 @@ fn get_quadratic_len(points: [Pos2; 3], n: usize) -> Vec<f32> {
 
     let mut origin = quadraticbeziercurve(points, 0.0);
     let mut clen = 0.0;
-    for i in 1..n + 1 {
+    for (i, j) in arc_length.iter_mut().enumerate().skip(1).take(n) {
         let pos = quadraticbeziercurve(points, i as f32 / (n + 1) as f32);
         let delta = origin - pos;
         clen += (delta.x.powi(2) + delta.y.powi(2)).sqrt();
-        arc_length[i as usize] = clen;
+        *j = clen;
         origin = pos;
     }
 
     arc_length
 }
 
-fn map(len: &Vec<f32>, n: usize, t: f32) -> f32 {
+fn map(len: &[f32], n: usize, t: f32) -> f32 {
     let target = t * len[n - 1];
     let mut low = 0;
     let mut high = n;
     let mut i = 0;
 
     while low < high {
-        i = low + ((high - low) / 2 | 0);
+        i = low + ((high - low) / 2);
 
         if len[i] < target {
             low = i + 1;
@@ -500,6 +498,6 @@ fn map(len: &Vec<f32>, n: usize, t: f32) -> f32 {
     if before == target {
         i as f32 / n as f32
     } else {
-        (i as f32 + (target - before) as f32 / (len[i + 1] - before)) / n as f32
+        (i as f32 + (target - before) / (len[i + 1] - before)) / n as f32
     }
 }

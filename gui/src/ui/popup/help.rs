@@ -1,7 +1,7 @@
 use egui::{
-    Align, Atom, AtomExt, AtomLayout, Button, CentralPanel, Color32, Context, Frame, Grid, Id,
+    Align, AtomExt, AtomLayout, Button, CentralPanel, Color32, Context, Frame, Id,
     Image, ImageButton, ImageSource, IntoAtoms, Label, Layout, Margin, Modal, RichText, ScrollArea,
-    Separator, SidePanel, Stroke, Ui, Vec2, Widget, include_image, style::WidgetVisuals, vec2,
+    Separator, SidePanel, Stroke, Ui, Vec2, include_image, style::WidgetVisuals, vec2,
 };
 use egui_flex::{Flex, FlexAlignContent, item};
 
@@ -94,11 +94,9 @@ pub fn show(app: &mut App, ctx: &Context) {
                                             .frame(false),
                                         )
                                         .clicked()
-                                    {
-                                        if app.help_slide_index > 0 {
+                                        && app.help_slide_index > 0 {
                                             app.help_slide_index -= 1;
                                         }
-                                    }
                                 });
                         }
                     });
@@ -132,11 +130,9 @@ pub fn show(app: &mut App, ctx: &Context) {
                                             .frame(false),
                                         )
                                         .clicked()
-                                    {
-                                        if app.help_slide_index < 6 {
+                                        && app.help_slide_index < 6 {
                                             app.help_slide_index += 1;
                                         }
-                                    }
                                 });
                         }
                     });

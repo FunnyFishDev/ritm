@@ -72,13 +72,11 @@ impl Theme {
                 hovered: WidgetVisuals { ..default_widget },
                 inactive: WidgetVisuals { ..default_widget },
                 noninteractive: WidgetVisuals { ..default_widget },
-                open: WidgetVisuals { ..default_widget },
-                ..Default::default()
+                open: WidgetVisuals { ..default_widget }
             },
             selection: Selection {
                 bg_fill: Color32::from_black_alpha(50),
-                stroke: Stroke::new(1.0, theme.highlight),
-                ..Default::default()
+                stroke: Stroke::new(1.0, theme.highlight)
             },
             ..Default::default()
         });

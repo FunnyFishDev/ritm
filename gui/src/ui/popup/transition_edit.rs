@@ -51,7 +51,7 @@ pub fn show(app: &mut App, ctx: &Context) {
                                 .unwrap()
                                 .transitions
                                 .iter()
-                                .map(|transition| TransitionEdit::from(transition))
+                                .map(TransitionEdit::from)
                                 .collect::<Vec<TransitionEdit>>();
                         }
 

@@ -9,7 +9,7 @@ use crate::{
 /// Display every state of the turing machine
 pub fn show(app: &mut App, ui: &mut Ui) {
     // This line copy every keys of the hasmap to avoid borrowing the struct App that we need in each call.
-    let keys: Vec<usize> = app.states.keys().map(|u| *u).collect::<Vec<usize>>();
+    let keys: Vec<usize> = app.states.keys().copied().collect::<Vec<usize>>();
     for i in keys {
         draw_node(app, ui, i);
     }
@@ -33,18 +33,16 @@ fn draw_node(app: &mut App, ui: &mut Ui, state_id: usize) {
         state.color,
         if app.selected_state.is_some_and(|id| id == state_id) {
             Stroke::new(4.0, app.theme.selected)
+        } else if let Some(current_state_id) = app
+            .turing
+            .graph_ref()
+            .get_name_index_hashmap()
+            .get(&app.step.get_current_state().name)
+            && *current_state_id == state_id
+        {
+            Stroke::new(4.0, app.theme.highlight)
         } else {
-            if let Some(current_state_id) = app
-                .turing
-                .graph_ref()
-                .get_name_index_hashmap()
-                .get(&app.step.get_current_state().name)
-                && *current_state_id == state_id
-            {
-                Stroke::new(4.0, app.theme.highlight)
-            } else {
-                Stroke::new(2.0, app.theme.gray)
-            }
+            Stroke::new(2.0, app.theme.gray)
         },
     );
 

@@ -74,8 +74,7 @@ pub fn show(app: &mut App, ui: &mut Ui, rect: Rect) {
                                 // Only possible to add a state if nothing is selected
                                 // IDEA : maybe permit it for state selected, and create a transition directly
                                 if app.selected_state.is_none() && app.selected_transition.is_none()
-                                {
-                                    if ui
+                                    && ui
                                         .add(
                                             ImageButton::new(
                                                 Image::new(include_image!(
@@ -94,12 +93,11 @@ pub fn show(app: &mut App, ui: &mut Ui, rect: Rect) {
                                     {
                                         app.event.is_adding_state ^= true;
                                     }
-                                }
 
                                 // Transition
                                 // Only possible to create transition if a state is selected
-                                if app.selected_state.is_some() {
-                                    if ui
+                                if app.selected_state.is_some()
+                                    && ui
                                         .add(
                                             ImageButton::new(
                                                 Image::new(include_image!(
@@ -118,7 +116,6 @@ pub fn show(app: &mut App, ui: &mut Ui, rect: Rect) {
                                     {
                                         app.event.is_adding_transition ^= true;
                                     }
-                                }
 
                                 // Delete
                                 // If a state or transition is selected, then display the delete button

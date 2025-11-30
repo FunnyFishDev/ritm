@@ -1,11 +1,10 @@
 use egui::{
-    Align, AtomExt, Button, Color32, Context, Frame, Id, Image, Layout, Margin, Modal, Pos2,
+    Align, AtomExt, Button, Color32, Context, Frame, Id, Image, Layout, Margin, Modal,
     RichText, Stroke, TextEdit, Ui, Vec2, include_image, vec2,
 };
 
 use crate::{
     App,
-    turing::State,
     ui::{font::Font, popup::RitmPopup, theme::Theme},
 };
 

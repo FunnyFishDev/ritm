@@ -25,7 +25,7 @@ impl Grid {
         let height = max_rect.height() / (split_row_num as f32);
 
         // Compute the offset for subsequent rects
-        let offset = egui::vec2(width + item_spacing, 0.);
+        let _offset = egui::vec2(width + item_spacing, 0.);
 
         // And set the width of rect
         max_rect.set_width(width);

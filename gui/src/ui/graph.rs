@@ -160,7 +160,7 @@ pub fn apply_force(app: &mut App) {
 
     for (i, state) in app.states.iter_mut().filter(|f| !f.1.is_pinned) {
         // translate the state by the amount of force
-        state.position += *forces.get(&i).unwrap();
+        state.position += *forces.get(i).unwrap();
     }
 
     app.event.is_stable = max_force_applied < Constant::STABILITY_TRESHOLD;

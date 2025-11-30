@@ -15,7 +15,7 @@ impl Font {
     pub fn default(size: f32) -> FontId {
         FontId {
             family: FontFamily::Name("RobotoMono-regular".into()),
-            size: size,
+            size,
         }
     }
 
