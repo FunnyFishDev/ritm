@@ -1,6 +1,6 @@
 use egui::{Color32, Pos2, accesskit::Invalid};
 use rand::random_range;
-use ritm_core::turing_state::{TuringDirection, TuringTransition};
+use ritm_core::turing_transition::{TuringDirection, TuringTransition};
 
 use crate::App;
 
@@ -29,7 +29,7 @@ pub struct Transition {
 }
 
 /// Copy of the [`TuringTransition`] but with string to allow empty char
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Debug)]
 pub struct TuringTransitionString {
     pub chars_read: Vec<String>,
     pub move_read: TuringDirection,
@@ -37,6 +37,7 @@ pub struct TuringTransitionString {
     pub index_to_state: Option<usize>,
 }
 
+#[derive(Debug)]
 pub struct TransitionEdit {
     edit: TuringTransitionString,
     base: TuringTransitionString,

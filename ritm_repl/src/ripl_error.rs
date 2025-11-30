@@ -1,7 +1,7 @@
 use std::fmt::Display;
 
 use colored::{ColoredString, Colorize};
-use ritm_core::turing_errors::{TuringError, TuringParserError};
+use ritm_core::{turing_machine::TuringMachineError, turing_parser::TuringParserError};
 
 #[derive(Debug)]
 pub enum RiplError {
@@ -11,7 +11,7 @@ pub enum RiplError {
     CouldNotParseStringIntError { value: String },
     CouldNotParseStringError { value: String },
     ArgsNumberError { received: usize, expected: usize },
-    EncounteredTuringError { error: TuringError },
+    EncounteredTuringError { error: TuringMachineError },
     EncounteredParsingError { error: TuringParserError },
     FileError { file_path: Option<String> },
     FileNotExistError { file_path: String },

@@ -14,7 +14,7 @@ rustflags = ['--cfg', 'getrandom_backend="wasm_js"']
 eframe = "0.32.0"
 getrandom = { version = "0.3", features = ["wasm_js"] }
 egui = "0.32.0"
-egui_extras = { version = "0.32.0", features = ["all_loaders"] }
+egui_extras = { version = "0.32.0", features = ["svg", "gif"] }
 egui_flex = "0.4.0"
 egui_infinite_scroll = "0.7.0"
 egui_animation = "0.8.0"
@@ -37,6 +37,7 @@ image = {version = "0.25", features = ["png"]}
 profiling = "1.0.17"
 profiling-procmacros = "1.0.17"
 include_directory = "0.1.1"
+serde = "1.0.225"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 env_logger = "0.11"

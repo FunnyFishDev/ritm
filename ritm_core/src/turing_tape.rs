@@ -1,6 +1,8 @@
 use std::fmt::{Debug, Display};
 
-use crate::{turing_errors::TuringError, turing_state::TuringDirection};
+use thiserror::Error;
+
+use crate::turing_transition::TuringDirection;
 
 /// Represents the initial character stored at the start of every tape
 pub const INIT_CHAR: char = 'ç';
@@ -8,8 +10,34 @@ pub const INIT_CHAR: char = 'ç';
 /// Represents the blank character in a tape
 pub const BLANK_CHAR: char = '_';
 
-/// Represents the character placed after the content in a [TuringReadTape]
+/// Represents the character placed after the content in a [`TuringReadingTape`]
 pub const END_CHAR: char = '$';
+
+#[derive(Debug, Error)]
+pub enum TuringTapeError {
+    #[error(
+        "Tried to replace the special character \'{special_char}\' with a normal character \'{replacement_char}\'"
+    )]
+    SpecialCharReplacementError {
+        special_char: char,
+        replacement_char: char,
+    },
+    #[error(
+        "Tried to replace the character \'{og_char}\' with a special character \'{special_char}\'"
+    )]
+    SpecialCharPlacementError { og_char: char, special_char: char },
+    #[error(
+        "The given input \"{word}\" contains the following illegal character : \'{illegal_char}\'"
+    )]
+    IllegalInputError { word: String, illegal_char: char },
+    #[error(
+        "A transition tried to move a pointer out of the tape. Tried to access {accessed_index} but the tape has a size of {tape_size}"
+    )]
+    OutofRangeError {
+        accessed_index: usize,
+        tape_size: usize,
+    },
+}
 
 /// A trait used to implement Turing tapes
 pub trait TuringTape: Display + Clone {
@@ -31,7 +59,7 @@ pub trait TuringTape: Display + Clone {
         if_read: char,
         replace_by: char,
         move_to: &TuringDirection,
-    ) -> Result<bool, TuringError>;
+    ) -> Result<bool, TuringTapeError>;
 
     /// Returns the current character being read by the tape
     fn read_curr_char(&self) -> char;
@@ -71,13 +99,13 @@ impl TuringTape for TuringWritingTape {
         if_read: char,
         replace_by: char,
         move_to: &TuringDirection,
-    ) -> Result<bool, TuringError> {
+    ) -> Result<bool, TuringTapeError> {
         // if the correct symbol was read
         if self.chars_vec[self.pointer] == if_read {
             let new_pointer = (self.pointer as isize) + (move_to.get_value() as isize);
 
             if new_pointer < 0 {
-                return Err(TuringError::OutofRangeTapeError {
+                return Err(TuringTapeError::OutofRangeError {
                     accessed_index: new_pointer as usize,
                     tape_size: self.chars_vec.len(),
                 });
@@ -126,7 +154,7 @@ impl TuringTape for TuringReadingTape {
         if_read: char,
         _: char,
         move_to: &TuringDirection,
-    ) -> Result<bool, TuringError> {
+    ) -> Result<bool, TuringTapeError> {
         // if the correct symbol was read
         if self.chars_vec[self.pointer] == if_read {
             // Move to the new position
@@ -134,7 +162,7 @@ impl TuringTape for TuringReadingTape {
 
             // If the pointer points out of the bounds of the reading tape
             if new_pointer < 0 || new_pointer >= self.chars_vec.len() as isize {
-                return Err(TuringError::OutofRangeTapeError {
+                return Err(TuringTapeError::OutofRangeError {
                     accessed_index: new_pointer as usize,
                     tape_size: self.chars_vec.len(),
                 });
@@ -159,8 +187,8 @@ impl TuringTape for TuringReadingTape {
 }
 
 impl TuringReadingTape {
-    /// Feed a word into the reading tape, and also adds [INIT_CHAR] and [END_CHAR] to the extremities of it
-    pub fn feed_word(&mut self, word: String) -> Result<(), TuringError> {
+    /// Feed a word into the reading tape, and also adds [`INIT_CHAR`] and [`END_CHAR`] to the extremities of it
+    pub fn feed_word(&mut self, word: String) -> Result<(), TuringTapeError> {
         check_word_validity(&word)?;
 
         self.chars_vec.clear();
@@ -174,26 +202,22 @@ impl TuringReadingTape {
     }
 }
 
-fn check_replacement_validity(og_char: char, new_char: char) -> Result<(), TuringError> {
+fn check_replacement_validity(og_char: char, new_char: char) -> Result<(), TuringTapeError> {
     if og_char == new_char {
         return Ok(());
     }
 
     if new_char == INIT_CHAR || new_char == END_CHAR {
-        return Err(TuringError::IllegalActionError {
-            cause: format!(
-                "Tried to replace a char (`{}`) with a special char (`{}`)",
-                og_char, new_char
-            ),
+        return Err(TuringTapeError::SpecialCharPlacementError {
+            og_char,
+            special_char: new_char,
         });
     }
 
     if og_char == INIT_CHAR || new_char == END_CHAR {
-        return Err(TuringError::IllegalActionError {
-            cause: format!(
-                "Tried to replace a special char (`{}`) with another char (`{}`)",
-                og_char, new_char
-            ),
+        return Err(TuringTapeError::SpecialCharReplacementError {
+            special_char: og_char,
+            replacement_char: new_char,
         });
     }
 
@@ -211,7 +235,7 @@ impl Display for TuringReadingTape {
 }
 
 /// Turns a character vector into an easy string to read for humans, displaying with an arrow the current char being pointed
-fn tape_to_string(chars_vec: &Vec<char>, pointer: usize, is_inf: bool) -> String {
+fn tape_to_string(chars_vec: &[char], pointer: usize, is_inf: bool) -> String {
     let mut res: String = String::from("[");
     let mut pointing: String = String::from(" ");
 
@@ -240,15 +264,13 @@ impl Display for TuringWritingTape {
     }
 }
 
-fn check_word_validity(word: &String) -> Result<(), TuringError> {
+fn check_word_validity(word: &String) -> Result<(), TuringTapeError> {
     let forbidden_chars = vec![INIT_CHAR, BLANK_CHAR, END_CHAR];
     for char in forbidden_chars {
         if word.contains(char) {
-            return Err(TuringError::IllegalActionError {
-                cause: format!(
-                    "The given input \"{}\" contains the following forbidden character : \'{}\'",
-                    word, char
-                ),
+            return Err(TuringTapeError::IllegalInputError {
+                word: word.to_string(),
+                illegal_char: char,
             });
         }
     }
@@ -302,9 +324,20 @@ mod tests {
         }
     }
 
-    fn expect_ill_action_error(te: TuringError) {
+    fn expect_ill_action_error(te: TuringTapeError) {
         match te {
-            TuringError::IllegalActionError { cause: _ } => {}
+            TuringTapeError::IllegalInputError {
+                word: _,
+                illegal_char: _,
+            }
+            | TuringTapeError::SpecialCharPlacementError {
+                og_char: _,
+                special_char: _,
+            }
+            | TuringTapeError::SpecialCharReplacementError {
+                special_char: _,
+                replacement_char: _,
+            } => {}
             _ => panic!(
                 "Exepected an IllegalActionError, but received the following error : {:?}",
                 te
@@ -352,7 +385,7 @@ mod tests {
                 )
             }
             Err(e) => match e {
-                TuringError::OutofRangeTapeError {
+                TuringTapeError::OutofRangeError {
                     accessed_index: _,
                     tape_size: _,
                 } => (),

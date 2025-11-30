@@ -2,8 +2,9 @@ use ritm_core::{
     turing_graph::TuringMachineGraph,
     turing_machine::{Mode, TuringExecutionSteps, TuringMachines},
     turing_parser::parse_turing_graph_string,
-    turing_state::{TuringDirection, TuringStateType, TuringTransition},
+    turing_state::TuringStateType,
     turing_tape::TuringTape,
+    turing_transition::{TuringDirection, TuringTransition},
 };
 
 const TM_ACCEPT_XX: &str = "// Turing machine that only accepts words of the form : xx
@@ -31,7 +32,6 @@ q_i {ç, ç -> N, ç, N} q_i;";
 #[test]
 fn save_all_accept() {
     let tm_graph = get_test_non_deter_graph();
-    //println!("{:?}", tm_graph);
 
     // let mut turing_machine = TuringMachine::new(tm_graph, String::from("010"), Mode::SaveAll).unwrap();
 
@@ -160,8 +160,8 @@ fn stop_first_reject() {
         last_step = Some(steps);
     }
 
-    if let Some(step) = last_step {
-        if let TuringExecutionSteps::TransitionTaken {
+    if let Some(step) = last_step
+        && let TuringExecutionSteps::TransitionTaken {
             previous_state: _,
             reached_state,
             transition_index_taken: _,
@@ -171,10 +171,9 @@ fn stop_first_reject() {
             iteration: _,
             state_pointer: _,
         } = step
-        {
-            assert_ne!(reached_state.state_type, TuringStateType::Accepting);
-            return;
-        }
+    {
+        assert_ne!(reached_state.state_type, TuringStateType::Accepting);
+        return;
     }
     panic!("The iteration didn't stop like it was supposed to");
 }
@@ -185,7 +184,7 @@ fn _get_smaller_non_deter_graph() -> TuringMachineGraph {
     let q2 = &String::from("q2");
     let mut graph = TuringMachineGraph::new(1).unwrap();
 
-    graph.add_state(&q2);
+    graph.add_state(q2);
 
     let mut transition = TuringTransition::create(
         vec!['ç', 'ç'],
@@ -194,7 +193,7 @@ fn _get_smaller_non_deter_graph() -> TuringMachineGraph {
     )
     .unwrap();
     graph
-        .append_rule_state_by_name(&String::from("i"), transition.clone(), &q2)
+        .append_rule_state_by_name("i", transition.clone(), q2)
         .unwrap();
 
     transition = TuringTransition::create(
@@ -204,7 +203,7 @@ fn _get_smaller_non_deter_graph() -> TuringMachineGraph {
     )
     .unwrap();
     graph
-        .append_rule_state_by_name(&q2, transition.clone(), &q2)
+        .append_rule_state_by_name(q2, transition.clone(), q2)
         .unwrap();
 
     transition = TuringTransition::create(
@@ -214,7 +213,7 @@ fn _get_smaller_non_deter_graph() -> TuringMachineGraph {
     )
     .unwrap();
     graph
-        .append_rule_state_by_name(&q2, transition.clone(), &String::from("a"))
+        .append_rule_state_by_name(q2, transition.clone(), "a")
         .unwrap();
 
     graph
@@ -227,8 +226,8 @@ fn get_test_non_deter_graph() -> TuringMachineGraph {
     let q2 = &String::from("q2");
     let mut graph = TuringMachineGraph::new(1).unwrap();
 
-    graph.add_state(&q1);
-    graph.add_state(&q2);
+    graph.add_state(q1);
+    graph.add_state(q2);
 
     // q_0 -> {ç, ç, => R, ç, R} -> q_1
     let mut transition = TuringTransition::create(
@@ -238,7 +237,7 @@ fn get_test_non_deter_graph() -> TuringMachineGraph {
     )
     .unwrap();
     graph
-        .append_rule_state_by_name(&String::from("i"), transition.clone(), &q1)
+        .append_rule_state_by_name("i", transition.clone(), q1)
         .unwrap();
 
     // q_1 -> {0, _ => R, a, R} -> q_1
@@ -249,7 +248,7 @@ fn get_test_non_deter_graph() -> TuringMachineGraph {
     )
     .unwrap();
     graph
-        .append_rule_state_by_name(&q1, transition.clone(), &q1)
+        .append_rule_state_by_name(q1, transition.clone(), q1)
         .unwrap();
     // q_1 -> {1, _ => R, a, R} -> q_1
     transition = TuringTransition::create(
@@ -259,7 +258,7 @@ fn get_test_non_deter_graph() -> TuringMachineGraph {
     )
     .unwrap();
     graph
-        .append_rule_state_by_name(&q1, transition.clone(), &q1)
+        .append_rule_state_by_name(q1, transition.clone(), q1)
         .unwrap();
 
     // q_1 -> {1, _ => R, _, L} -> q_2
@@ -270,7 +269,7 @@ fn get_test_non_deter_graph() -> TuringMachineGraph {
     )
     .unwrap();
     graph
-        .append_rule_state_by_name(&q1, transition.clone(), &q2)
+        .append_rule_state_by_name(q1, transition.clone(), q2)
         .unwrap();
 
     // q_2 -> {0, a => R, a, L} -> q_2
@@ -281,7 +280,7 @@ fn get_test_non_deter_graph() -> TuringMachineGraph {
     )
     .unwrap();
     graph
-        .append_rule_state_by_name(&q2, transition.clone(), &q2)
+        .append_rule_state_by_name(q2, transition.clone(), q2)
         .unwrap();
 
     // q_2 -> {1, a => R, a, L} -> q_2
@@ -292,7 +291,7 @@ fn get_test_non_deter_graph() -> TuringMachineGraph {
     )
     .unwrap();
     graph
-        .append_rule_state_by_name(&q2, transition.clone(), &q2)
+        .append_rule_state_by_name(q2, transition.clone(), q2)
         .unwrap();
 
     // q_2 -> {$, ç => N, ç, N} -> a
@@ -303,10 +302,10 @@ fn get_test_non_deter_graph() -> TuringMachineGraph {
     )
     .unwrap();
     graph
-        .append_rule_state_by_name(&q2, transition.clone(), &String::from("a"))
+        .append_rule_state_by_name(q2, transition.clone(), "a")
         .unwrap();
 
-    return graph;
+    graph
 }
 
 fn get_small_inf_machine(mode: Mode) -> TuringMachines {
@@ -323,7 +322,7 @@ fn get_small_inf_machine(mode: Mode) -> TuringMachines {
     )
     .unwrap();
     graph
-        .append_rule_state_by_name(&String::from("i"), transition.clone(), &q1)
+        .append_rule_state_by_name("i", transition.clone(), q1)
         .unwrap();
 
     // q_1 -> {1, _, => N, _, N} -> q_1
@@ -334,10 +333,10 @@ fn get_small_inf_machine(mode: Mode) -> TuringMachines {
     )
     .unwrap();
     graph
-        .append_rule_state_by_name(&q1, transition.clone(), &q1)
+        .append_rule_state_by_name(q1, transition.clone(), q1)
         .unwrap();
 
-    TuringMachines::new(graph, String::from("1"), mode).unwrap()
+    TuringMachines::new(graph,String::from("1"), mode).unwrap()
 }
 
 #[test]
@@ -386,6 +385,7 @@ fn get_path_to_accept_test() {
                         )
                         .unwrap()
                 );
+                #[allow(clippy::needless_range_loop)]
                 for i in 0..(transition_taken.get_number_of_affected_tapes() - 1) {
                     assert!(
                         writting_tapes[i]

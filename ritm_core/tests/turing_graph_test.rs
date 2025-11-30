@@ -1,10 +1,7 @@
 use ritm_core::{
-    turing_errors::TuringError,
-    turing_graph::TuringMachineGraph,
-    turing_state::{
-        TuringDirection::{self},
-        TuringStateType, TuringTransition,
-    },
+    turing_graph::{TuringGraphError, TuringMachineGraph},
+    turing_state::TuringStateType,
+    turing_transition::{TuringDirection, TuringTransition},
 };
 
 #[test]
@@ -13,30 +10,19 @@ fn create_graph_test() {
 
     assert_eq!(*graph.get_name_index_hashmap().get("i").unwrap(), 0);
     assert_eq!(*graph.get_name_index_hashmap().get("a").unwrap(), 1);
-    assert_eq!(*graph.get_name_index_hashmap().get("r").unwrap(), 2);
 
-    expect_illegal_action_error(TuringMachineGraph::new(0));
+    assert!(matches!(
+        TuringMachineGraph::new(0),
+        Err(TuringGraphError::NotEnoughTapesError)
+    ));
     // Check the final states
     assert_eq!(
         TuringStateType::Accepting,
-        graph
-            .get_state_from_name(&"a".to_string())
-            .unwrap()
-            .state_type
-    );
-    assert_eq!(
-        TuringStateType::Rejecting,
-        graph
-            .get_state_from_name(&"r".to_string())
-            .unwrap()
-            .state_type
+        graph.get_state_from_name("a").unwrap().state_type
     );
     assert_eq!(
         TuringStateType::Normal,
-        graph
-            .get_state_from_name(&"i".to_string())
-            .unwrap()
-            .state_type
+        graph.get_state_from_name("i").unwrap().state_type
     );
 
     TuringMachineGraph::new(1).unwrap();
@@ -46,9 +32,15 @@ fn create_graph_test() {
 fn delete_init_nodes_test() {
     let mut graph = TuringMachineGraph::new(2).unwrap();
 
-    expect_illegal_action_error(graph.remove_state_with_name(&"i".to_string()));
-    expect_illegal_action_error(graph.remove_state_with_name(&"a".to_string()));
-    expect_illegal_action_error(graph.remove_state_with_name(&"r".to_string()));
+    assert!(matches!(
+        graph.remove_state_with_name("i"),
+        Err(TuringGraphError::ImmutableStateError { state: _ })
+    ));
+
+    assert!(matches!(
+        graph.remove_state_with_name("a"),
+        Err(TuringGraphError::ImmutableStateError { state: _ })
+    ));
 }
 
 #[test]
@@ -56,80 +48,49 @@ fn add_nodes() {
     let mut graph = TuringMachineGraph::new(1).unwrap();
 
     // Check they already exists
-    assert_eq!(graph.add_state(&"i".to_string()), 0);
-    assert_eq!(graph.add_state(&"a".to_string()), 1);
-    assert_eq!(graph.add_state(&"r".to_string()), 2);
+    assert_eq!(graph.add_state("i"), 0);
+    assert_eq!(graph.add_state("a"), 1);
 
     // Add new ones
-    assert_eq!(graph.add_state(&"b".to_string()), 3);
-    assert_eq!(graph.add_state(&"c".to_string()), 4);
-    assert_eq!(graph.add_state(&"d".to_string()), 5);
+    assert_eq!(graph.add_state("b"), 2);
+    assert_eq!(graph.add_state("c"), 3);
+    assert_eq!(graph.add_state("d"), 4);
     // Check they got the correct index
-    assert_eq!(graph.add_state(&"b".to_string()), 3);
-    assert_eq!(graph.add_state(&"c".to_string()), 4);
-    assert_eq!(graph.add_state(&"d".to_string()), 5);
+    assert_eq!(graph.add_state("b"), 2);
+    assert_eq!(graph.add_state("c"), 3);
+    assert_eq!(graph.add_state("d"), 4);
 }
 
 #[test]
 fn get_nodes_test() {
     let mut graph = TuringMachineGraph::new(1).unwrap();
     // Add new nodes
-    assert_eq!(graph.add_state(&"b".to_string()), 3);
-    assert_eq!(graph.add_state(&"c".to_string()), 4);
-    assert_eq!(graph.add_state(&"d".to_string()), 5);
+    assert_eq!(graph.add_state("b"), 2);
+    assert_eq!(graph.add_state("c"), 3);
+    assert_eq!(graph.add_state("d"), 4);
 
     // check they get be obtained
-    assert_eq!(graph.get_state(3).unwrap().name.clone(), "b".to_string());
-    assert_eq!(graph.get_state(4).unwrap().name.clone(), "c".to_string());
-    assert_eq!(graph.get_state(5).unwrap().name.clone(), "d".to_string());
+    assert_eq!(graph.get_state(2).unwrap().name.clone(), "b");
+    assert_eq!(graph.get_state(3).unwrap().name.clone(), "c");
+    assert_eq!(graph.get_state(4).unwrap().name.clone(), "d");
 
     // check they get be obtained
-    assert_eq!(
-        graph
-            .get_state_from_name(&"b".to_string())
-            .unwrap()
-            .name
-            .clone(),
-        "b".to_string()
-    );
-    assert_eq!(
-        graph
-            .get_state_from_name(&"c".to_string())
-            .unwrap()
-            .name
-            .clone(),
-        "c".to_string()
-    );
-    assert_eq!(
-        graph
-            .get_state_from_name(&"d".to_string())
-            .unwrap()
-            .name
-            .clone(),
-        "d".to_string()
-    );
+    assert_eq!(graph.get_state_from_name("b").unwrap().name.clone(), "b");
+    assert_eq!(graph.get_state_from_name("c").unwrap().name.clone(), "c");
+    assert_eq!(graph.get_state_from_name("d").unwrap().name.clone(), "d");
 
     // Check they aren't final
     assert_eq!(
         TuringStateType::Normal,
-        graph
-            .get_state_from_name(&"b".to_string())
-            .unwrap()
-            .state_type
+        graph.get_state_from_name("b").unwrap().state_type
     );
     assert_eq!(
         TuringStateType::Normal,
-        graph
-            .get_state_from_name(&"c".to_string())
-            .unwrap()
-            .state_type
+        graph.get_state_from_name("c").unwrap().state_type
     );
     assert_eq!(
         TuringStateType::Normal,
-        graph
-            .get_state_from_name(&"d".to_string())
-            .unwrap()
-            .state_type
+        graph.get_state_from_name("d").unwrap().state_type
     );
 }
 
@@ -139,51 +100,54 @@ fn add_transition() {
 
     graph
         .append_rule_state_by_name(
-            &String::from("i"),
+            "i",
             TuringTransition::create(
                 vec!['ç', 'ç'],
                 vec!['ç'],
                 vec![TuringDirection::None, TuringDirection::Right],
             )
             .unwrap(),
-            &String::from("a"),
+            "a",
         )
         .expect("no errors were expected");
 
     // e, is not part of the graph
-    expect_unk_name_error(
+    assert!(matches!(
         graph.append_rule_state_by_name(
-            &String::from("e"),
+            "e",
             TuringTransition::create(
                 vec!['ç', 'ç'],
                 vec!['ç'],
                 vec![TuringDirection::None, TuringDirection::Right],
             )
             .unwrap(),
-            &String::from("a"),
+            "a",
         ),
-    );
-    // o, is not part of the graph
-    expect_unk_name_error(
+        Err(TuringGraphError::UnknownStateError { state_name } ) if state_name == "e"
+    ));
+
+    assert!(matches!(
         graph.append_rule_state_by_name(
-            &String::from("a"),
+            "a",
             TuringTransition::create(
                 vec!['ç', 'ç'],
                 vec!['ç'],
                 vec![TuringDirection::None, TuringDirection::Right],
             )
             .unwrap(),
-            &String::from("o"),
+            "o",
         ),
-    );
+        Err(TuringGraphError::UnknownStateError { state_name } ) if state_name == "o"
+    ));
+
     // add e and o to the graph
-    graph.add_state(&String::from("e"));
-    graph.add_state(&String::from("o"));
+    graph.add_state("e");
+    graph.add_state("o");
 
     // Check that the transition didn't already exists
     // Check that the transition was really added
     if !graph
-        .get_transition_indexes_by_name(&String::from("e"), &String::from("o"))
+        .get_transition_indexes_by_name("e", "o")
         .expect("a value was expected here")
         .is_empty()
     {
@@ -192,20 +156,20 @@ fn add_transition() {
     // add transition
     graph
         .append_rule_state_by_name(
-            &String::from("e"),
+            "e",
             TuringTransition::create(
                 vec!['ç', 'ç'],
                 vec!['ç'],
                 vec![TuringDirection::None, TuringDirection::Right],
             )
             .unwrap(),
-            &String::from("o"),
+            "o",
         )
         .expect("no errors were expected");
 
     // Check that the transition was really added
     if graph
-        .get_transition_indexes_by_name(&String::from("e"), &String::from("o"))
+        .get_transition_indexes_by_name("e", "o")
         .expect("a value was expected here")
         .is_empty()
     {
@@ -233,19 +197,24 @@ fn delete_transitions() {
     .unwrap();
 
     graph
-        .append_rule_state_by_name(&String::from("i"), t1.clone(), &String::from("a"))
+        .append_rule_state_by_name("i", t1.clone(), "a")
         .unwrap();
     graph
-        .append_rule_state_by_name(&String::from("i"), t2.clone(), &String::from("a"))
+        .append_rule_state_by_name("i", t2.clone(), "a")
         .unwrap();
 
-    expect_unk_name_error(graph.remove_transition(&String::from("i"), &t1, &String::from("p")));
-    expect_unk_name_error(graph.remove_transition(&String::from("d"), &t1, &String::from("a")));
+    assert!(matches!(
+        graph.remove_transition("i", &t1, "d"),
+        Err(TuringGraphError::UnknownStateError { state_name } ) if state_name == "d"
+    ));
+
+    assert!(matches!(
+        graph.remove_transition("d", &t1, "a"),
+        Err(TuringGraphError::UnknownStateError { state_name } ) if state_name == "d"
+    ));
 
     // Remove transition
-    graph
-        .remove_transition(&String::from("i"), &t1, &String::from("a"))
-        .unwrap();
+    graph.remove_transition("i", &t1, "a").unwrap();
 
     // Check that it was indeed removed
     assert!(
@@ -290,19 +259,17 @@ fn delete_all_transitions_two_nodes() {
     .unwrap();
 
     graph
-        .append_rule_state_by_name(&String::from("i"), t1.clone(), &String::from("a"))
+        .append_rule_state_by_name("i", t1.clone(), "a")
         .unwrap();
     graph
-        .append_rule_state_by_name(&String::from("i"), t2.clone(), &String::from("a"))
+        .append_rule_state_by_name("i", t2.clone(), "a")
         .unwrap();
     graph
-        .append_rule_state_by_name(&String::from("i"), t3.clone(), &String::from("i"))
+        .append_rule_state_by_name("i", t3.clone(), "i")
         .unwrap(); // i -> i
 
     // Removes all transitions btw 'i' and 'a'
-    graph
-        .remove_transitions(&String::from("i"), &String::from("a"))
-        .unwrap();
+    graph.remove_transitions("i", "a").unwrap();
 
     // (note: index of 'i' is 0)
     assert!(graph.get_state(0).unwrap().get_transitions_to(1).is_empty());
@@ -341,44 +308,55 @@ fn delete_node() {
     )
     .unwrap();
 
-    let _ = graph.add_state(&String::from("t"));
-    let ind_p = graph.add_state(&String::from("p"));
-    let ind_q = graph.add_state(&String::from("q"));
+    let _ = graph.add_state("t");
+    let ind_p = graph.add_state("p");
+    let ind_q = graph.add_state("q");
 
     graph
-        .append_rule_state_by_name(&String::from("t"), t1.clone(), &String::from("a"))
+        .append_rule_state_by_name("t", t1.clone(), "a")
         .unwrap(); // t -> a
     graph
-        .append_rule_state_by_name(&String::from("r"), t2.clone(), &String::from("t"))
-        .unwrap(); // r -> t
+        .append_rule_state_by_name("a", t2.clone(), "t")
+        .unwrap(); // a -> t
     graph
-        .append_rule_state_by_name(&String::from("q"), t3.clone(), &String::from("t"))
+        .append_rule_state_by_name("p", t2.clone(), "t")
+        .unwrap(); // a -> t
+    graph
+        .append_rule_state_by_name("q", t3.clone(), "t")
         .unwrap(); // q -> t
     graph
-        .append_rule_state_by_name(&String::from("q"), t3.clone(), &String::from("p"))
+        .append_rule_state_by_name("q", t3.clone(), "p")
         .unwrap(); // q -> p
 
-    expect_unk_name_error(graph.remove_state_with_name(&String::from("o")));
+    assert!(matches!(
+        graph.remove_state_with_name("o"),
+        Err(TuringGraphError::UnknownStateError { state_name } ) if state_name == "o"
+    ));
+
     // remove 't'
-    graph.remove_state_with_name(&String::from("t")).unwrap();
+    graph.remove_state_with_name("t").unwrap();
 
     // check that it was removed
-    expect_unk_name_error(graph.get_state_from_name(&String::from("t")));
-    if let Some(_) = graph.get_name_index_hashmap().get(&String::from("t")) {
+    assert!(matches!(
+        graph.remove_state_with_name("t"),
+        Err(TuringGraphError::UnknownStateError { state_name } ) if state_name == "t"
+    ));
+
+    if graph.get_name_index_hashmap().get("t").is_some() {
         panic!("No index should have been returned")
     }
 
     // Check all the related transitions to 't' are also gone
     assert!(
         graph
-            .get_state_from_name(&String::from("r"))
+            .get_state_from_name("p")
             .unwrap()
             .get_valid_transitions(&vec!('ç', 'ç'))
             .is_empty()
     );
     assert!(
         graph
-            .get_state_from_name(&String::from("a"))
+            .get_state_from_name("a")
             .unwrap()
             .get_valid_transitions(&vec!('ç', 'ç'))
             .is_empty()
@@ -386,7 +364,7 @@ fn delete_node() {
 
     assert_eq!(
         graph
-            .get_state_from_name(&String::from("q"))
+            .get_state_from_name("q")
             .unwrap()
             .get_valid_transitions(&vec!('ç', 'ç'))
             .len(),
@@ -394,7 +372,7 @@ fn delete_node() {
     );
     assert_eq!(
         *graph
-            .get_state_from_name(&String::from("q"))
+            .get_state_from_name("q")
             .unwrap()
             .get_valid_transitions(&vec!('ç', 'ç'))
             .first()
@@ -403,8 +381,8 @@ fn delete_node() {
     ); // only q -> p, should be left
 
     // Check that the indexes of 'q' and 'p' are also changed
-    assert_eq!(graph.add_state(&String::from("p")), ind_p - 1);
-    assert_eq!(graph.add_state(&String::from("q")), ind_q - 1);
+    assert_eq!(graph.add_state("p"), ind_p - 1);
+    assert_eq!(graph.add_state("q"), ind_q - 1);
 
     let ind_p = ind_p - 1;
     let ind_q = ind_q - 1;
@@ -415,28 +393,4 @@ fn delete_node() {
         graph.get_transitions_by_index(ind_q, ind_p).unwrap(),
         vec!(&t3)
     );
-}
-
-// TODO : add test for removing states with indexes
-
-fn expect_illegal_action_error<O>(res: Result<O, TuringError>) {
-    if let Err(e) = res {
-        match e {
-            TuringError::IllegalActionError { cause: _ } => (),
-            _ => panic!("Wrong error was returned"),
-        }
-    } else {
-        panic!("Should have thrown an error")
-    }
-}
-
-fn expect_unk_name_error<O>(res: Result<O, TuringError>) {
-    if let Err(e) = res {
-        match e {
-            TuringError::UnknownStateError { state_name: _ } => (),
-            _ => panic!("Wrong error was returned"),
-        }
-    } else {
-        panic!("Should have thrown an error")
-    }
 }

@@ -42,9 +42,9 @@ pub fn show(app: &mut App, ui: &mut Ui) {
         })
         .response;
 
-    // TODO maybe enable the button when samll windows but change the behavior to save code as text file directly
+    // TODO maybe enable the button when small windows but change the behavior to save code as text file directly
+    let layer = LayerId::new(egui::Order::Middle, Id::new("graph-button"));
     if !app.event.is_small_window {
-        let layer = LayerId::new(egui::Order::Middle, Id::new("to-code"));
         ui.scope_builder(
             UiBuilder::new()
                 .layer_id(layer)
@@ -76,6 +76,35 @@ pub fn show(app: &mut App, ui: &mut Ui) {
     } else {
         scene_rect
     };
+
+    // Reset the graph (after recenter because need to redraw the states)
+    ui.scope_builder(
+        UiBuilder::new()
+            .layer_id(layer)
+            .max_rect(Rect::from_min_size(
+                ui.max_rect().right_top() - vec2(35.0, 0.0),
+                vec2(35.0, 35.0),
+            )),
+        |ui| {
+            if ui
+                .put(
+                    Rect::from_min_size(
+                        ui.max_rect().right_top() - vec2(45.0, 0.0),
+                        vec2(35.0, 35.0),
+                    ),
+                    ImageButton::new(
+                        Image::new(include_image!("../../assets/icon/erase.svg"))
+                            .fit_to_exact_size(vec2(35.0, 35.0))
+                            .tint(app.theme.gray),
+                    )
+                    .frame(false),
+                )
+                .clicked()
+            {
+                app.reset_graph();
+            }
+        },
+    );
 
     // If the graph scene is clicked
     if scene_response.clicked() {

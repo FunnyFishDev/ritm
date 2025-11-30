@@ -1,4 +1,4 @@
-# $RITM$ : *R*ibbon *I*nteractive *T*uring *M*achine
+# $RITM$ : **R**ust **I**nteractive **T**uring **M**achine
 
 [![Rust](https://github.com/PizzaManStarted/ritm/actions/workflows/rust.yml/badge.svg?branch=main)](https://github.com/PizzaManStarted/ritm/actions/workflows/rust.yml)
 
@@ -38,6 +38,10 @@ All the following tools are based upon the main crate called : `ritm_core`.
 So it is also possible to use this crate for your own needs.
 
 ### Using the GUI
+
+Thanks to rust and the egui library, the power of the turing machine can be used by anyone, anywhere ! 
+
+The Graphical User Interface is indeed available on Linux, Window, MacOS and even the web so the mobile user can access it !
 
 ### Using the REPL (Read-Eval-Print Loop)
 

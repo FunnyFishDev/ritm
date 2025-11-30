@@ -1,12 +1,13 @@
 name: deploy-action
 
 on: 
-  push:
-    branches:
-      - gui
-  pull_request:
-    branches:
-      - gui
+  workflow_dispatch:
+#  push:
+#    branches:
+#      - gui
+#  pull_request:
+#    branches:
+#      - gui
 jobs:
   deploy:
     runs-on: self-hosted

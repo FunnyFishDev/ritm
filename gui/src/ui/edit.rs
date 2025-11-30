@@ -6,6 +6,7 @@ use egui::{
 use crate::{
     App,
     app::take_screenshot,
+    turing::TransitionEdit,
     ui::{constant::Constant, popup::RitmPopup, theme::Theme},
 };
 
@@ -161,7 +162,16 @@ pub fn show(app: &mut App, ui: &mut Ui, rect: Rect) {
                                         app.popup = RitmPopup::StateEdit;
                                     }
                                     if transition_selected {
-                                        app.popup = RitmPopup::TransitionEdit
+                                        app.popup = RitmPopup::TransitionEdit;
+                                        app.rules_edit = app
+                                            .turing
+                                            .graph_ref()
+                                            .get_state(app.selected_transition.unwrap().0)
+                                            .unwrap()
+                                            .transitions
+                                            .iter()
+                                            .map(|transition| TransitionEdit::from(transition))
+                                            .collect::<Vec<TransitionEdit>>();
                                     }
                                 }
 

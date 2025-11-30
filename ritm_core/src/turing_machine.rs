@@ -3,16 +3,27 @@ use std::{
     fmt::{Debug, Display},
 };
 
+use thiserror::Error;
+
 use crate::{
-    turing_errors::TuringError,
-    turing_graph::TuringMachineGraph,
-    turing_state::{TuringState, TuringStateType, TuringTransition},
-    turing_tape::{TuringReadingTape, TuringTape, TuringWritingTape},
+    turing_graph::{TuringGraphError, TuringMachineGraph},
+    turing_state::{TuringState, TuringStateType},
+    turing_tape::{TuringReadingTape, TuringTape, TuringTapeError, TuringWritingTape},
+    turing_transition::{TuringTransition, TuringTransitionError},
 };
 
-#[derive(Clone, Debug)]
+#[derive(Debug, Error)]
+pub enum TuringMachineError {
+    #[error("Encountered a graph error : {0}")]
+    GraphError(#[from] TuringGraphError),
+    #[error("Encountered a transition error : {0}")]
+    TransitionError(#[from] TuringTransitionError),
+    #[error("Encountered a tape error : {0}")]
+    TapeError(#[from] TuringTapeError),
+}
+
+#[derive(Clone, Debug, PartialEq)]
 /// Represents the different mode a turing machine can have during it's execution
-#[derive(PartialEq)]
 pub enum Mode {
     /// Explores all possible paths (and possibilities using backtracking) until an accepting state is found or no path is left is to take.
     SaveAll, // May god bless your ram
@@ -86,7 +97,11 @@ pub struct IterationData {
 
 impl TuringMachines {
     // Create a new [TuringMachineWithRef] for a given word.
-    pub fn new(mt: TuringMachineGraph, word: String, mode: Mode) -> Result<Self, TuringError> {
+    pub fn new(
+        mt: TuringMachineGraph,
+        word: String,
+        mode: Mode,
+    ) -> Result<Self, TuringMachineError> {
         let mut s = TuringMachines::TuringMachine {
             data: IterationData {
                 state_pointer: 0,
@@ -111,11 +126,9 @@ impl TuringMachines {
             is_over: false,
         };
         // Add the word to the reading tape
-        if let Err(e) = s.get_reading_tape_mut().feed_word(word) {
-            Err(e)
-        } else {
-            Ok(s)
-        }
+        s.get_reading_tape_mut().feed_word(word)?;
+
+        Ok(s)
     }
 
     /// Adds a new [SavedState] to the front of the memory stack.
@@ -130,7 +143,7 @@ impl TuringMachines {
     }
 
     /// Resets the turing machine to its initial state and feeds it the given word.
-    pub fn reset_word(&mut self, word: &String) -> Result<(), TuringError> {
+    pub fn reset_word(&mut self, word: &String) -> Result<(), TuringMachineError> {
         // Reset reading tape
         self.get_reading_tape_mut().feed_word(word.clone())?;
 

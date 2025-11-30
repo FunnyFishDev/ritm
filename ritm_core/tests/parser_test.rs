@@ -1,8 +1,8 @@
 use ritm_core::{
-    turing_errors::{TuringError, TuringParserError},
     turing_graph::TuringMachineGraph,
-    turing_parser::{parse_transition_string, parse_turing_graph_string},
-    turing_state::{TuringDirection, TuringTransition},
+    turing_machine::TuringMachineError,
+    turing_parser::{TuringParserError, parse_transition_string, parse_turing_graph_string},
+    turing_transition::{TuringDirection, TuringTransition, TuringTransitionError},
 };
 
 #[test]
@@ -20,7 +20,7 @@ fn test_parse_mt_valid() {
     let mut graph = TuringMachineGraph::new(1).unwrap();
 
     let q1 = &String::from("1");
-    graph.add_state(&q1);
+    graph.add_state(q1);
 
     // q_i -> {ç, ç, => R, ç, R} -> q_1
     let mut transition = TuringTransition::create(
@@ -30,7 +30,7 @@ fn test_parse_mt_valid() {
     )
     .unwrap();
     graph
-        .append_rule_state_by_name(&String::from("i"), transition.clone(), &q1)
+        .append_rule_state_by_name("i", transition.clone(), q1)
         .unwrap();
 
     transition = TuringTransition::create(
@@ -40,7 +40,7 @@ fn test_parse_mt_valid() {
     )
     .unwrap();
     graph
-        .append_rule_state_by_name(&q1, transition.clone(), &q1)
+        .append_rule_state_by_name(q1, transition.clone(), q1)
         .unwrap();
 
     transition = TuringTransition::create(
@@ -50,7 +50,7 @@ fn test_parse_mt_valid() {
     )
     .unwrap();
     graph
-        .append_rule_state_by_name(&q1, transition.clone(), &q1)
+        .append_rule_state_by_name(q1, transition.clone(), q1)
         .unwrap();
 
     assert_eq!(parsed_graph.get_k(), graph.get_k());
@@ -260,20 +260,22 @@ fn test_parse_graph_incompatible_transition() {
     let res = parse_turing_graph_string(machine);
     match res {
         Ok(_) => panic!("An error was expected"),
-        Err(e) => match e {
-            TuringParserError::EncounteredTuringError {
-                line_col_pos: _,
+        Err(TuringParserError::TuringError {
+            line_col_pos: _,
+            turing_error,
+            value: _,
+        }) => {
+            matches!(
                 turing_error,
-                value: _,
-            } => match turing_error {
-                TuringError::IncompatibleTransitionError {
-                    expected: _,
-                    received: _,
-                } => (),
-                _ => panic!("An IncompatibleTransitionError was expected"),
-            },
-            _ => panic!("An EncounteredTuringError was expected"),
-        },
+                TuringMachineError::GraphError(
+                    ritm_core::turing_graph::TuringGraphError::IncompatibleTransitionError {
+                        expected: _,
+                        received: _
+                    }
+                )
+            );
+        }
+        Err(_) => unreachable!("This is not suppose to happen"),
     }
 }
 
@@ -286,17 +288,22 @@ fn test_parse_graph_bad_transition() {
     );
 
     let res = parse_turing_graph_string(machine);
+
     match res {
         Ok(_) => panic!("An error was expected"),
         Err(e) => match e {
-            TuringParserError::EncounteredTuringError {
+            TuringParserError::TuringError {
                 line_col_pos: _,
                 turing_error,
                 value: _,
-            } => match turing_error {
-                TuringError::TransitionArgsError { reason: _ } => (),
-                _ => panic!("An IncompatibleTransitionError was expected"),
-            },
+            } => {
+                assert!(matches!(
+                    turing_error,
+                    TuringMachineError::TransitionError(
+                        TuringTransitionError::TransitionArgsError(_val)
+                    )
+                ))
+            }
             _ => panic!("An EncounteredTuringError was expected"),
         },
     }
