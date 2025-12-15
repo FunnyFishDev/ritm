@@ -1,6 +1,5 @@
 use egui::{
-    Align, AtomExt, Button, Color32, Context, Frame, Id, Image, ImageButton, Label, Layout, Margin,
-    Modal, RichText, ScrollArea, Shadow, Stroke, TextEdit, Ui, Vec2b, include_image,
+    Align, AtomExt, Button, Color32, Frame, Image, ImageButton, Label, Layout, Margin, RichText, ScrollArea, Shadow, Stroke, TextEdit, Ui, Vec2b, include_image,
     scroll_area::ScrollBarVisibility, style::WidgetVisuals, vec2,
 };
 use ritm_core::turing_transition::{TuringDirection, TuringTransition};
@@ -11,166 +10,156 @@ use crate::{
     ui::{component::combobox::ComboBox, font::Font, theme::Theme},
 };
 
-pub fn show(app: &mut App, ctx: &Context) {
-    Modal::new(Id::new("transition_edit"))
-        .frame(Frame {
-            fill: app.theme.white,
-            stroke: Stroke::new(2.0, app.theme.gray),
-            inner_margin: Margin::same(10),
-            corner_radius: 10.into(),
-            ..Default::default()
-        })
-        .show(ctx, |ui: &mut Ui| {
-            let selected_transition = app.selected_transition.unwrap();
-            ui.set_max_width(300.0);
+pub fn show(ui: &mut Ui, app: &mut App) {
+    let selected_transition = app.selected_transition.unwrap();
+    ui.set_max_width(300.0);
 
-            // Main layout
-            ui.vertical_centered(|ui| {
+    // Main layout
+    ui.vertical_centered(|ui| {
+        ui.style_mut().spacing.item_spacing = vec2(0.0, 10.0);
+
+        // The transition "name" : From state To state
+        ui.label(
+            RichText::new(format!(
+                "{} -> {}",
+                State::get(app, selected_transition.0).name,
+                State::get(app, selected_transition.1).name
+            ))
+            .font(Font::default_medium()),
+        );
+
+        // List of the rule
+        let width = ui
+            .vertical_centered(|ui| {
                 ui.style_mut().spacing.item_spacing = vec2(0.0, 10.0);
 
-                // The transition "name" : From state To state
-                ui.label(
-                    RichText::new(format!(
-                        "{} -> {}",
-                        State::get(app, selected_transition.0).name,
-                        State::get(app, selected_transition.1).name
-                    ))
-                    .font(Font::default_medium()),
-                );
+                // Copy the transition (Modify without change)
+                if app.rules_edit.is_empty() {
+                    app.rules_edit = app
+                        .turing
+                        .graph_ref()
+                        .get_state(selected_transition.0)
+                        .unwrap()
+                        .transitions
+                        .iter()
+                        .map(TransitionEdit::from)
+                        .collect::<Vec<TransitionEdit>>();
+                }
 
-                // List of the rule
-                let width = ui
-                    .vertical_centered(|ui| {
-                        ui.style_mut().spacing.item_spacing = vec2(0.0, 10.0);
-
-                        // Copy the transition (Modify without change)
-                        if app.rules_edit.is_empty() {
-                            app.rules_edit = app
-                                .turing
-                                .graph_ref()
-                                .get_state(selected_transition.0)
-                                .unwrap()
-                                .transitions
-                                .iter()
-                                .map(TransitionEdit::from)
-                                .collect::<Vec<TransitionEdit>>();
-                        }
-
-                        Frame::new()
-                            .fill(Color32::LIGHT_GRAY)
-                            .shadow(Shadow {
-                                blur: 0,
-                                color: app.theme.gray,
-                                offset: [0, 2],
-                                spread: 0,
-                            })
-                            .inner_margin(10)
-                            .corner_radius(5)
-                            .show(ui, |ui| {
-                                ScrollArea::vertical()
-                                    .auto_shrink(Vec2b::new(true, false))
-                                    .scroll_bar_visibility(ScrollBarVisibility::AlwaysVisible)
-                                    .max_height(ui.ctx().input(|i| i.screen_rect()).height() / 3.0)
-                                    .show(ui, |ui| {
-                                        ui.set_width(ui.available_width());
-
-                                        // Create a row with the rule of each transition
-                                        let count = app.rules_edit.len();
-                                        let mut marked_to_delete: Vec<usize> = vec![];
-                                        for transition_index in 0..count {
-                                            // Skip the transition not relevant
-                                            if app.rules_edit[transition_index]
-                                                .get_edit()
-                                                .index_to_state
-                                                .unwrap()
-                                                != selected_transition.1
-                                            {
-                                                continue;
-                                            }
-
-                                            if transition(app, ui, transition_index) {
-                                                marked_to_delete.push(transition_index);
-                                            }
-                                        }
-
-                                        // Remove transitions
-                                        marked_to_delete.sort_by(|a, b| b.cmp(a));
-                                        for t in marked_to_delete {
-                                            app.rules_edit.remove(t);
-                                        }
-                                    });
-                            });
-
-                        if ui
-                            .add(
-                                ImageButton::new(
-                                    Image::new(include_image!("../../../assets/icon/plus.svg"))
-                                        .fit_to_exact_size(vec2(35.0, 35.0))
-                                        .tint(app.theme.gray),
-                                )
-                                .frame(false),
-                            )
-                            .clicked()
-                        {
-                            app.rules_edit.push(TransitionEdit::from(&TuringTransition {
-                                chars_read: vec!['ç'; app.turing.graph_ref().get_k() + 1],
-                                move_read: TuringDirection::None,
-                                chars_write: vec![
-                                    ('ç', TuringDirection::None);
-                                    app.turing.graph_ref().get_k()
-                                ],
-                                index_to_state: Some(selected_transition.1),
-                            }));
-                        }
+                Frame::new()
+                    .fill(Color32::LIGHT_GRAY)
+                    .shadow(Shadow {
+                        blur: 0,
+                        color: app.theme.gray,
+                        offset: [0, 2],
+                        spread: 0,
                     })
-                    .response
-                    .rect
-                    .width();
+                    .inner_margin(10)
+                    .corner_radius(5)
+                    .show(ui, |ui| {
+                        ScrollArea::vertical()
+                            .auto_shrink(Vec2b::new(true, false))
+                            .scroll_bar_visibility(ScrollBarVisibility::AlwaysVisible)
+                            .max_height(ui.ctx().input(|i| i.screen_rect()).height() / 3.0)
+                            .show(ui, |ui| {
+                                ui.set_width(ui.available_width());
 
-                ui.set_width(width);
+                                // Create a row with the rule of each transition
+                                let count = app.rules_edit.len();
+                                let mut marked_to_delete: Vec<usize> = vec![];
+                                for transition_index in 0..count {
+                                    // Skip the transition not relevant
+                                    if app.rules_edit[transition_index]
+                                        .get_edit()
+                                        .index_to_state
+                                        .unwrap()
+                                        != selected_transition.1
+                                    {
+                                        continue;
+                                    }
 
-                ui.spacing_mut().button_padding = vec2(0.0, 8.0);
-                ui.spacing_mut().item_spacing = vec2(10.0, 0.0);
-                ui.columns(2, |columns| {
-                    let text = RichText::new("Save")
-                        .color(Theme::constrast_color(app.theme.valid))
-                        .font(Font::default_medium())
-                        .atom_grow(true);
-                    if columns[0]
-                        .add(
-                            Button::new(text)
-                                .stroke(Stroke::new(2.0, app.theme.gray))
-                                .fill(app.theme.valid)
-                                .corner_radius(10.0),
+                                    if transition(app, ui, transition_index) {
+                                        marked_to_delete.push(transition_index);
+                                    }
+                                }
+
+                                // Remove transitions
+                                marked_to_delete.sort_by(|a, b| b.cmp(a));
+                                for t in marked_to_delete {
+                                    app.rules_edit.remove(t);
+                                }
+                            });
+                    });
+
+                if ui
+                    .add(
+                        ImageButton::new(
+                            Image::new(include_image!("../../../assets/icon/plus.svg"))
+                                .fit_to_exact_size(vec2(35.0, 35.0))
+                                .tint(app.theme.gray),
                         )
-                        .clicked()
-                    {
-                        app.apply_transition_change();
-                    };
+                        .frame(false),
+                    )
+                    .clicked()
+                {
+                    app.rules_edit.push(TransitionEdit::from(&TuringTransition {
+                        chars_read: vec!['ç'; app.turing.graph_ref().get_k() + 1],
+                        move_read: TuringDirection::None,
+                        chars_write: vec![
+                            ('ç', TuringDirection::None);
+                            app.turing.graph_ref().get_k()
+                        ],
+                        index_to_state: Some(selected_transition.1),
+                    }));
+                }
+            })
+            .response
+            .rect
+            .width();
 
-                    let text = RichText::new("Cancel")
-                        .color(Theme::constrast_color(app.theme.invalid))
-                        .font(Font::default_medium())
-                        .atom_grow(true);
-                    if columns[1]
-                        .add(
-                            Button::new(text)
-                                .stroke(Stroke::new(2.0, app.theme.gray))
-                                .fill(app.theme.invalid)
-                                .corner_radius(10.0),
-                        )
-                        .clicked()
-                    {
-                        app.cancel_transition_change();
-                    };
-                });
-            });
+        ui.set_width(width);
 
-            if app.event.close_popup {
-                app.event.close_popup = false;
+        ui.spacing_mut().button_padding = vec2(0.0, 8.0);
+        ui.spacing_mut().item_spacing = vec2(10.0, 0.0);
+        ui.columns(2, |columns| {
+            let text = RichText::new("Save")
+                .color(Theme::constrast_color(app.theme.valid))
+                .font(Font::default_medium())
+                .atom_grow(true);
+            if columns[0]
+                .add(
+                    Button::new(text)
+                        .stroke(Stroke::new(2.0, app.theme.gray))
+                        .fill(app.theme.valid)
+                        .corner_radius(10.0),
+                )
+                .clicked()
+            {
+                app.apply_transition_change();
+            };
+
+            let text = RichText::new("Cancel")
+                .color(Theme::constrast_color(app.theme.invalid))
+                .font(Font::default_medium())
+                .atom_grow(true);
+            if columns[1]
+                .add(
+                    Button::new(text)
+                        .stroke(Stroke::new(2.0, app.theme.gray))
+                        .fill(app.theme.invalid)
+                        .corner_radius(10.0),
+                )
+                .clicked()
+            {
                 app.cancel_transition_change();
-            }
+            };
         });
+    });
+
+    if app.event.close_popup {
+        app.event.close_popup = false;
+        app.cancel_transition_change();
+    }
 }
 
 // Right to left to allow the text edit to take the remaining space

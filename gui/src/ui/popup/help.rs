@@ -1,177 +1,117 @@
 use egui::{
-    Align, AtomExt, AtomLayout, Button, CentralPanel, Color32, Context, Frame, Id,
-    Image, ImageButton, ImageSource, IntoAtoms, Label, Layout, Margin, Modal, RichText, ScrollArea,
-    Separator, SidePanel, Stroke, Ui, Vec2, include_image, style::WidgetVisuals, vec2,
+    Align, AtomExt, AtomLayout, CentralPanel, Color32, Frame, Image, ImageButton, ImageSource,
+    IntoAtoms, Label, Layout, Margin, RichText, ScrollArea, SidePanel, Stroke, Ui, Vec2,
+    include_image, vec2,
 };
-use egui_flex::{Flex, FlexAlignContent, item};
 
 use crate::{
     App,
-    ui::{font::Font, popup::RitmPopup, theme::Theme},
+    ui::{font::Font, popup::RitmPopup},
 };
 
-pub fn show(app: &mut App, ctx: &Context) {
-    Modal::new(Id::new("help"))
-        .frame(Frame {
-            fill: app.theme.white,
-            stroke: Stroke::new(2.0, app.theme.gray),
-            inner_margin: Margin::same(10),
-            corner_radius: 10.into(),
-            ..Default::default()
-        })
-        .show(ctx, |ui: &mut Ui| {
-            ui.set_max_size(ui.ctx().screen_rect().size() * 0.8);
-            ui.set_min_size(ui.ctx().screen_rect().size() * 0.8);
+pub fn show(ui: &mut Ui, app: &mut App) {
+    ui.set_max_size(ui.ctx().screen_rect().size() * 0.8);
+    ui.set_min_size(ui.ctx().screen_rect().size() * 0.8);
 
-            ui.scope(|ui| {
-                Theme::set_widget(
-                    ui,
-                    WidgetVisuals {
-                        bg_stroke: Stroke::new(1.0, app.theme.gray),
-                        corner_radius: 5.into(),
-                        expansion: 3.0,
-                        ..app.theme.default_widget()
-                    },
-                );
-
-                // Popup header
-                Flex::horizontal()
-                    .w_full()
-                    .align_content(FlexAlignContent::SpaceBetween)
-                    .show(ui, |flex| {
-                        flex.add(
-                            item(),
-                            Label::new(RichText::new("Help").font(Font::default_big())),
-                        );
-
-                        flex.grow();
-
-                        let img = Image::new(include_image!("../../../assets/icon/back.svg"))
-                            .fit_to_exact_size(Vec2::splat(25.0))
-                            .tint(app.theme.gray)
-                            .atom_size(Vec2::splat(25.0));
-
-                        if flex
-                            .add(
-                                item(),
-                                Button::new((img, RichText::new("Back").font(Font::default_big())))
-                                    .frame(false),
+    SidePanel::left("previous")
+        .exact_width(50.0)
+        .frame(Frame::new().fill(Color32::TRANSPARENT))
+        .show_separator_line(false)
+        .resizable(false)
+        .show_inside(ui, |ui| {
+            if app.help_slide_index > 0 {
+                ui.add_space(ui.available_height() / 2.0 - 50.0);
+                Frame::new()
+                    .inner_margin(0)
+                    .outer_margin(0)
+                    .stroke(Stroke::new(1.0, app.theme.gray))
+                    .corner_radius(10)
+                    .show(ui, |ui| {
+                        if ui
+                            .add_sized(
+                                vec2(ui.available_width(), 100.0),
+                                ImageButton::new(
+                                    Image::new(include_image!("../../../assets/icon/left.svg"))
+                                        .fit_to_exact_size(Vec2::splat(ui.available_width())),
+                                )
+                                .tint(app.theme.gray)
+                                .frame(false),
                             )
                             .clicked()
+                            && app.help_slide_index > 0
                         {
-                            app.popup = RitmPopup::None;
+                            app.help_slide_index -= 1;
                         }
                     });
-
-                ui.add(Separator::default().horizontal().grow(10.0));
-
-                SidePanel::left("previous")
-                    .exact_width(50.0)
-                    .frame(Frame::new().fill(Color32::TRANSPARENT))
-                    .show_separator_line(false)
-                    .resizable(false)
-                    .show_inside(ui, |ui| {
-                        if app.help_slide_index > 0 {
-                            ui.add_space(ui.available_height() / 2.0 - 50.0);
-                            Frame::new()
-                                .inner_margin(0)
-                                .outer_margin(0)
-                                .stroke(Stroke::new(1.0, app.theme.gray))
-                                .corner_radius(10)
-                                .show(ui, |ui| {
-                                    if ui
-                                        .add_sized(
-                                            vec2(ui.available_width(), 100.0),
-                                            ImageButton::new(
-                                                Image::new(include_image!(
-                                                    "../../../assets/icon/left.svg"
-                                                ))
-                                                .fit_to_exact_size(Vec2::splat(
-                                                    ui.available_width(),
-                                                )),
-                                            )
-                                            .tint(app.theme.gray)
-                                            .frame(false),
-                                        )
-                                        .clicked()
-                                        && app.help_slide_index > 0 {
-                                            app.help_slide_index -= 1;
-                                        }
-                                });
-                        }
-                    });
-
-                SidePanel::right("next")
-                    .exact_width(50.0)
-                    .frame(Frame::new().fill(Color32::TRANSPARENT))
-                    .show_separator_line(false)
-                    .resizable(false)
-                    .show_inside(ui, |ui| {
-                        if app.help_slide_index < 6 {
-                            ui.add_space(ui.available_height() / 2.0 - 50.0);
-                            Frame::new()
-                                .inner_margin(0)
-                                .outer_margin(0)
-                                .stroke(Stroke::new(1.0, app.theme.gray))
-                                .corner_radius(10)
-                                .show(ui, |ui| {
-                                    if ui
-                                        .add_sized(
-                                            vec2(ui.available_width(), 100.0),
-                                            ImageButton::new(
-                                                Image::new(include_image!(
-                                                    "../../../assets/icon/right.svg"
-                                                ))
-                                                .fit_to_exact_size(Vec2::splat(
-                                                    ui.available_width(),
-                                                )),
-                                            )
-                                            .tint(app.theme.gray)
-                                            .frame(false),
-                                        )
-                                        .clicked()
-                                        && app.help_slide_index < 6 {
-                                            app.help_slide_index += 1;
-                                        }
-                                });
-                        }
-                    });
-
-                CentralPanel::default()
-                    .frame(
-                        Frame::new()
-                            .fill(Color32::WHITE)
-                            .inner_margin(Margin::symmetric(15, 5)),
-                    )
-                    .show_inside(ui, |ui| {
-                        ScrollArea::vertical().show(ui, |ui| {
-                            ui.allocate_ui_with_layout(
-                                ui.available_size(),
-                                Layout::top_down(Align::Min).with_cross_justify(true),
-                                |ui| {
-                                    ui.spacing_mut().item_spacing = vec2(0.0, 20.0);
-
-                                    match app.help_slide_index {
-                                        0 => welcome(app, ui),
-                                        1 => code(app, ui),
-                                        2 => settings(app, ui),
-                                        3 => tapes(app, ui),
-                                        4 => controls(app, ui),
-                                        5 => graph(app, ui),
-                                        6 => editing(app, ui),
-                                        _ => welcome(app, ui),
-                                    }
-                                },
-                            );
-                        });
-                    });
-            });
-
-            if app.event.close_popup {
-                app.event.close_popup = false;
-                app.popup = RitmPopup::None;
             }
         });
+
+    SidePanel::right("next")
+        .exact_width(50.0)
+        .frame(Frame::new().fill(Color32::TRANSPARENT))
+        .show_separator_line(false)
+        .resizable(false)
+        .show_inside(ui, |ui| {
+            if app.help_slide_index < 6 {
+                ui.add_space(ui.available_height() / 2.0 - 50.0);
+                Frame::new()
+                    .inner_margin(0)
+                    .outer_margin(0)
+                    .stroke(Stroke::new(1.0, app.theme.gray))
+                    .corner_radius(10)
+                    .show(ui, |ui| {
+                        if ui
+                            .add_sized(
+                                vec2(ui.available_width(), 100.0),
+                                ImageButton::new(
+                                    Image::new(include_image!("../../../assets/icon/right.svg"))
+                                        .fit_to_exact_size(Vec2::splat(ui.available_width())),
+                                )
+                                .tint(app.theme.gray)
+                                .frame(false),
+                            )
+                            .clicked()
+                            && app.help_slide_index < 6
+                        {
+                            app.help_slide_index += 1;
+                        }
+                    });
+            }
+        });
+
+    CentralPanel::default()
+        .frame(
+            Frame::new()
+                .fill(Color32::WHITE)
+                .inner_margin(Margin::symmetric(15, 5)),
+        )
+        .show_inside(ui, |ui| {
+            ScrollArea::vertical().show(ui, |ui| {
+                ui.allocate_ui_with_layout(
+                    ui.available_size(),
+                    Layout::top_down(Align::Min).with_cross_justify(true),
+                    |ui| {
+                        ui.spacing_mut().item_spacing = vec2(0.0, 20.0);
+
+                        match app.help_slide_index {
+                            0 => welcome(app, ui),
+                            1 => code(app, ui),
+                            2 => settings(app, ui),
+                            3 => tapes(app, ui),
+                            4 => controls(app, ui),
+                            5 => graph(app, ui),
+                            6 => editing(app, ui),
+                            _ => welcome(app, ui),
+                        }
+                    },
+                );
+            });
+        });
+
+    if app.event.close_popup {
+        app.event.close_popup = false;
+        app.popup = RitmPopup::None;
+    }
 }
 
 fn title(text: impl Into<String>) -> Label {
@@ -439,7 +379,7 @@ fn editing(app: &mut App, ui: &mut Ui) {
     );
 }
 
-fn keybind(app: &mut App, ui: &mut Ui) {
+fn _keybind(app: &mut App, ui: &mut Ui) {
     ui.add(
         Label::new(
             RichText::new(

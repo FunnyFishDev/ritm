@@ -114,7 +114,7 @@ pub fn show(app: &mut App, ui: &mut Ui) {
                 "temp".to_string(),
                 scene_response.interact_pointer_pos().unwrap(),
             ));
-            app.popup = RitmPopup::StateEdit;
+            app.popup = RitmPopup::StateEdit("temp".to_string());
         }
 
         // CLick on the scene reset selection and editing

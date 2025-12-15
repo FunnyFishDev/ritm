@@ -17,21 +17,12 @@ pub mod utils;
 
 use crate::{
     App,
-    ui::{
-        font::Font,
-        popup::{help, setting, state_edit, transition_edit},
-    },
+    ui::font::Font,
 };
 
 pub fn show(app: &mut App, ctx: &egui::Context) {
-    // Display the popup
-    match app.popup {
-        popup::RitmPopup::None => {}
-        popup::RitmPopup::TransitionEdit => transition_edit::show(app, ctx),
-        popup::RitmPopup::StateEdit => state_edit::show(app, ctx),
-        popup::RitmPopup::Setting => setting::show(app, ctx),
-        popup::RitmPopup::Help => help::show(app, ctx),
-    }
+    // Display the current popup/modal
+    popup::show(ctx, app);
 
     CentralPanel::default()
         .frame(Frame {

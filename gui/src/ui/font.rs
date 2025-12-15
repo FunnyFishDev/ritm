@@ -52,7 +52,7 @@ impl Font {
     }
 
     /// Compute the size of a text with a certain font
-    pub fn text_size(ui: &Ui, fond_id: FontId, text: &str) -> Vec2 {
+    pub fn _text_size(ui: &Ui, fond_id: FontId, text: &str) -> Vec2 {
         let rect = ui.fonts(|f| {
             f.layout_job(LayoutJob::simple_singleline(
                 text.to_string(),

@@ -6,7 +6,7 @@ use egui::{
 use crate::{
     App,
     app::take_screenshot,
-    turing::TransitionEdit,
+    turing::{State, Transition, TransitionEdit},
     ui::{constant::Constant, popup::RitmPopup, theme::Theme},
 };
 
@@ -74,7 +74,8 @@ pub fn show(app: &mut App, ui: &mut Ui, rect: Rect) {
                                 // State
                                 // Only possible to add a state if nothing is selected
                                 // IDEA : maybe permit it for state selected, and create a transition directly
-                                if app.selected_state.is_none() && app.selected_transition.is_none()
+                                if app.selected_state.is_none()
+                                    && app.selected_transition.is_none()
                                     && ui
                                         .add(
                                             ImageButton::new(
@@ -91,9 +92,9 @@ pub fn show(app: &mut App, ui: &mut Ui, rect: Rect) {
                                             .frame(false),
                                         )
                                         .clicked()
-                                    {
-                                        app.event.is_adding_state ^= true;
-                                    }
+                                {
+                                    app.event.is_adding_state ^= true;
+                                }
 
                                 // Transition
                                 // Only possible to create transition if a state is selected
@@ -114,9 +115,9 @@ pub fn show(app: &mut App, ui: &mut Ui, rect: Rect) {
                                             .frame(false),
                                         )
                                         .clicked()
-                                    {
-                                        app.event.is_adding_transition ^= true;
-                                    }
+                                {
+                                    app.event.is_adding_transition ^= true;
+                                }
 
                                 // Delete
                                 // If a state or transition is selected, then display the delete button
@@ -159,10 +160,18 @@ pub fn show(app: &mut App, ui: &mut Ui, rect: Rect) {
                                         .clicked()
                                 {
                                     if state_selected {
-                                        app.popup = RitmPopup::StateEdit;
+                                        app.popup = RitmPopup::StateEdit(format!("State {}",
+                                            State::get(app, app.selected_state.unwrap()).name,
+                                        ));
                                     }
                                     if transition_selected {
-                                        app.popup = RitmPopup::TransitionEdit;
+                                        let transition =
+                                            Transition::get(app, app.selected_transition.unwrap());
+                                        app.popup = RitmPopup::TransitionEdit(format!(
+                                            "Transition {} -> {}",
+                                            State::get(app, transition.parent_id).name,
+                                            State::get(app, transition.target_id).name
+                                        ));
                                         app.rules_edit = app
                                             .turing
                                             .graph_ref()
@@ -170,7 +179,7 @@ pub fn show(app: &mut App, ui: &mut Ui, rect: Rect) {
                                             .unwrap()
                                             .transitions
                                             .iter()
-                                            .map(|transition| TransitionEdit::from(transition))
+                                            .map(TransitionEdit::from)
                                             .collect::<Vec<TransitionEdit>>();
                                     }
                                 }

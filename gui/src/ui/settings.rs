@@ -62,7 +62,7 @@ pub fn show(app: &mut App, ui: &mut Ui) {
             )
             .clicked()
         {
-            app.popup = RitmPopup::Setting;
+            app.popup = RitmPopup::Settings;
         }
 
         if ui
