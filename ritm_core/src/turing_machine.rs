@@ -6,8 +6,7 @@ use std::{
 use thiserror::Error;
 
 use crate::{
-    turing_graph::{TuringGraphError, TuringMachineGraph},
-    turing_state::{TuringState, TuringStateType},
+    turing_graph::{TuringGraphError, TuringMachineGraph, TuringState, TuringStateInfo, TuringStateType},
     turing_tape::{TuringReadingTape, TuringTape, TuringTapeError, TuringWritingTape},
     turing_transition::{TuringTransition, TuringTransitionError},
 };
@@ -62,10 +61,14 @@ pub struct SavedState {
 }
 
 #[derive(Debug)]
-pub enum TuringMachines {
+pub enum TuringMachines<S, T>
+where
+    S: TuringState,
+    T: TuringTransition,
+{
     TuringMachine {
         /// The turing machine graph that will execute a word
-        graph: TuringMachineGraph,
+        graph: TuringMachineGraph<S, T>,
         data: IterationData,
         /// The current number of iterations already done
         iteration: usize,
@@ -95,10 +98,14 @@ pub struct IterationData {
     backtracked_info: Option<usize>,
 }
 
-impl TuringMachines {
+impl<S, T> TuringMachines<S, T>
+where
+    S: TuringState,
+    T: TuringTransition,
+{
     // Create a new [TuringMachineWithRef] for a given word.
     pub fn new(
-        mt: TuringMachineGraph,
+        mt: TuringMachineGraph<S, T>,
         word: String,
         mode: Mode,
     ) -> Result<Self, TuringMachineError> {
@@ -264,9 +271,13 @@ impl TuringMachines {
     }
 }
 
-impl TuringMachines {
+impl<S, T> TuringMachines<S, T>
+where
+    S: TuringState,
+    T: TuringTransition,
+{
     /// Gets *reference* of the stored turing machine graph.
-    pub fn graph_ref(&self) -> &TuringMachineGraph {
+    pub fn graph_ref(&self) -> &TuringMachineGraph<S,T> {
         match self {
             TuringMachines::TuringMachine {
                 graph,
@@ -279,7 +290,7 @@ impl TuringMachines {
     }
 
     /// Gets *mutable reference* of the stored turing machine graph.
-    pub fn graph_mut(&mut self) -> &mut TuringMachineGraph {
+    pub fn graph_mut(&mut self) -> &mut TuringMachineGraph<S,T> {
         match self {
             TuringMachines::TuringMachine {
                 graph,
@@ -294,7 +305,7 @@ impl TuringMachines {
     /// Gets the stored turing machine graph.
     ///
     /// This will free the turing machine since it will drop the ownership
-    pub fn graph(self) -> TuringMachineGraph {
+    pub fn graph(self) -> TuringMachineGraph<S, T> {
         match self {
             TuringMachines::TuringMachine {
                 graph,
@@ -604,7 +615,7 @@ impl TuringMachines {
 pub enum TuringExecutionSteps {
     FirstIteration {
         /// A clone of the initial state
-        init_state: TuringState,
+        init_state: TuringStateInfo,
         /// A clone representing the initial state of the reading tape.
         init_reading_tape: TuringReadingTape,
         /// A clone representing the initial state of the writting tapes.
@@ -612,9 +623,9 @@ pub enum TuringExecutionSteps {
     },
     TransitionTaken {
         /// A clone of the state that was just left
-        previous_state: TuringState,
+        previous_state: TuringStateInfo,
         /// A clone of the state that was just reached
-        reached_state: TuringState,
+        reached_state: TuringStateInfo,
         /// The index of the currently reached state
         state_pointer: usize,
         /// The index of the transition taken from the current state to the next one.
@@ -630,9 +641,9 @@ pub enum TuringExecutionSteps {
     },
     Backtracked {
         /// A clone of the state that was just left
-        previous_state: TuringState,
+        previous_state: TuringStateInfo,
         /// A clone of the state that was backtracked to
-        reached_state: TuringState,
+        reached_state: TuringStateInfo,
         /// The index of the currently reached state
         state_pointer: usize,
         /// A clone representing the current state of the reading tape after backtracking.
