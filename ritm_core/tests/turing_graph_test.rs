@@ -1,7 +1,7 @@
 use ritm_core::{
     turing_graph::{TuringGraphError, TuringMachineGraph},
     turing_state::TuringStateType,
-    turing_transition::{TuringDirection, TuringTransition},
+    turing_transition::{TuringDirection, TuringTransitionWrapper},
 };
 
 #[test]
@@ -101,7 +101,7 @@ fn add_transition() {
     graph
         .append_rule_state_by_name(
             "i",
-            TuringTransition::create(
+            TuringTransitionWrapper::create(
                 vec!['ç', 'ç'],
                 vec!['ç'],
                 vec![TuringDirection::None, TuringDirection::Right],
@@ -115,7 +115,7 @@ fn add_transition() {
     assert!(matches!(
         graph.append_rule_state_by_name(
             "e",
-            TuringTransition::create(
+            TuringTransitionWrapper::create(
                 vec!['ç', 'ç'],
                 vec!['ç'],
                 vec![TuringDirection::None, TuringDirection::Right],
@@ -123,13 +123,13 @@ fn add_transition() {
             .unwrap(),
             "a",
         ),
-        Err(TuringGraphError::UnknownStateError { state_name } ) if state_name == "e"
+        Err(TuringGraphError::UnknownStateNameError { state_name } ) if state_name == "e"
     ));
 
     assert!(matches!(
         graph.append_rule_state_by_name(
             "a",
-            TuringTransition::create(
+            TuringTransitionWrapper::create(
                 vec!['ç', 'ç'],
                 vec!['ç'],
                 vec![TuringDirection::None, TuringDirection::Right],
@@ -137,7 +137,7 @@ fn add_transition() {
             .unwrap(),
             "o",
         ),
-        Err(TuringGraphError::UnknownStateError { state_name } ) if state_name == "o"
+        Err(TuringGraphError::UnknownStateNameError { state_name } ) if state_name == "o"
     ));
 
     // add e and o to the graph
@@ -157,7 +157,7 @@ fn add_transition() {
     graph
         .append_rule_state_by_name(
             "e",
-            TuringTransition::create(
+            TuringTransitionWrapper::create(
                 vec!['ç', 'ç'],
                 vec!['ç'],
                 vec![TuringDirection::None, TuringDirection::Right],
@@ -183,13 +183,13 @@ fn add_transition() {
 #[test]
 fn delete_transitions() {
     let mut graph = TuringMachineGraph::new(1).unwrap();
-    let t1 = TuringTransition::create(
+    let t1 = TuringTransitionWrapper::create(
         vec!['ç', 'ç'],
         vec!['ç'],
         vec![TuringDirection::None, TuringDirection::Right],
     )
     .unwrap();
-    let t2 = TuringTransition::create(
+    let t2 = TuringTransitionWrapper::create(
         vec!['ç', '_'],
         vec!['_'],
         vec![TuringDirection::None, TuringDirection::Right],
@@ -205,12 +205,12 @@ fn delete_transitions() {
 
     assert!(matches!(
         graph.remove_transition("i", &t1, "d"),
-        Err(TuringGraphError::UnknownStateError { state_name } ) if state_name == "d"
+        Err(TuringGraphError::UnknownStateNameError { state_name } ) if state_name == "d"
     ));
 
     assert!(matches!(
         graph.remove_transition("d", &t1, "a"),
-        Err(TuringGraphError::UnknownStateError { state_name } ) if state_name == "d"
+        Err(TuringGraphError::UnknownStateNameError { state_name } ) if state_name == "d"
     ));
 
     // Remove transition
@@ -239,19 +239,19 @@ fn delete_transitions() {
 #[test]
 fn delete_all_transitions_two_nodes() {
     let mut graph = TuringMachineGraph::new(1).unwrap();
-    let t1 = TuringTransition::create(
+    let t1 = TuringTransitionWrapper::create(
         vec!['ç', 'ç'],
         vec!['ç'],
         vec![TuringDirection::None, TuringDirection::Right],
     )
     .unwrap();
-    let t2 = TuringTransition::create(
+    let t2 = TuringTransitionWrapper::create(
         vec!['ç', '_'],
         vec!['_'],
         vec![TuringDirection::None, TuringDirection::Right],
     )
     .unwrap();
-    let t3 = TuringTransition::create(
+    let t3 = TuringTransitionWrapper::create(
         vec!['_', '_'],
         vec!['_'],
         vec![TuringDirection::None, TuringDirection::Right],
@@ -289,19 +289,19 @@ fn delete_all_transitions_two_nodes() {
 #[test]
 fn delete_node() {
     let mut graph = TuringMachineGraph::new(1).unwrap();
-    let t1 = TuringTransition::create(
+    let t1 = TuringTransitionWrapper::create(
         vec!['ç', 'ç'],
         vec!['ç'],
         vec![TuringDirection::None, TuringDirection::Right],
     )
     .unwrap();
-    let t2 = TuringTransition::create(
+    let t2 = TuringTransitionWrapper::create(
         vec!['ç', 'ç'],
         vec!['ç'],
         vec![TuringDirection::None, TuringDirection::Right],
     )
     .unwrap();
-    let t3 = TuringTransition::create(
+    let t3 = TuringTransitionWrapper::create(
         vec!['ç', 'ç'],
         vec!['ç'],
         vec![TuringDirection::None, TuringDirection::Right],
@@ -330,7 +330,7 @@ fn delete_node() {
 
     assert!(matches!(
         graph.remove_state_with_name("o"),
-        Err(TuringGraphError::UnknownStateError { state_name } ) if state_name == "o"
+        Err(TuringGraphError::UnknownStateNameError { state_name } ) if state_name == "o"
     ));
 
     // remove 't'
@@ -339,7 +339,7 @@ fn delete_node() {
     // check that it was removed
     assert!(matches!(
         graph.remove_state_with_name("t"),
-        Err(TuringGraphError::UnknownStateError { state_name } ) if state_name == "t"
+        Err(TuringGraphError::UnknownStateNameError { state_name } ) if state_name == "t"
     ));
 
     if graph.get_name_index_hashmap().get("t").is_some() {

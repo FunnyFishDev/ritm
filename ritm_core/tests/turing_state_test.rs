@@ -1,12 +1,12 @@
 use ritm_core::{
     turing_state::*,
-    turing_transition::{TuringDirection, TuringTransition, TuringTransitionError},
+    turing_transition::{TuringDirection, TuringTransitionWrapper, TuringTransitionError},
 };
 
 // ________________________________________ Transitions tests ______________________________
 #[test]
 fn transition_creation_test() {
-    let t1 = TuringTransition::create(
+    let t1 = TuringTransitionWrapper::create(
         vec!['ç', 'ç'],
         vec!['ç'],
         vec![TuringDirection::Right, TuringDirection::None],
@@ -14,17 +14,17 @@ fn transition_creation_test() {
     .unwrap();
 
     assert!(matches!(
-        TuringTransition::create(vec!['ç', 'ç'], vec![], vec![TuringDirection::Right],),
+        TuringTransitionWrapper::create(vec!['ç', 'ç'], vec![], vec![TuringDirection::Right],),
         Err(TuringTransitionError::TransitionArgsError(_val))
     ));
 
     assert!(matches!(
-        TuringTransition::create(vec![], vec!['ç'], vec![TuringDirection::Right],),
+        TuringTransitionWrapper::create(vec![], vec!['ç'], vec![TuringDirection::Right],),
         Err(TuringTransitionError::TransitionArgsError(_val))
     ));
 
     assert!(matches!(
-        TuringTransition::create(vec!['ç'], vec!['ç'], vec![],),
+        TuringTransitionWrapper::create(vec!['ç'], vec!['ç'], vec![],),
         Err(TuringTransitionError::TransitionArgsError(_val))
     ));
 
@@ -41,7 +41,7 @@ fn transition_creation_test() {
 #[test]
 fn create_ill_transitions() {
     assert!(matches!(
-        TuringTransition::create(
+        TuringTransitionWrapper::create(
             vec!['$', '_'],
             vec!['_'],
             vec![TuringDirection::Right, TuringDirection::None],
@@ -51,7 +51,7 @@ fn create_ill_transitions() {
 
 
     assert!(matches!(
-        TuringTransition::create(
+        TuringTransitionWrapper::create(
         vec!['ç', '_'],
         vec!['_'],
         vec![TuringDirection::Left, TuringDirection::None],
@@ -60,7 +60,7 @@ fn create_ill_transitions() {
     ));
 
     assert!(matches!(
-        TuringTransition::create(
+        TuringTransitionWrapper::create(
         vec!['_', 'ç'],
         vec!['ç'],
         vec![TuringDirection::None, TuringDirection::Left],
@@ -69,7 +69,7 @@ fn create_ill_transitions() {
     ));
 
     assert!(matches!(
-        TuringTransition::create(
+        TuringTransitionWrapper::create(
         vec!['_', '_'],
         vec!['ç'],
         vec![TuringDirection::None, TuringDirection::Left],
@@ -78,7 +78,7 @@ fn create_ill_transitions() {
     ));
 
     assert!(matches!(
-        TuringTransition::create(
+        TuringTransitionWrapper::create(
         vec!['_', 'ç'],
         vec!['_'],
         vec![TuringDirection::None, TuringDirection::Left],
@@ -89,7 +89,7 @@ fn create_ill_transitions() {
 
 #[test]
 fn transition_eq() {
-    let mut t1 = TuringTransition::create(
+    let mut t1 = TuringTransitionWrapper::create(
         vec!['ç', 'ç'],
         vec!['ç'],
         vec![TuringDirection::None, TuringDirection::Right],
@@ -98,7 +98,7 @@ fn transition_eq() {
 
     assert_ne!(
         t1,
-        TuringTransition::create(
+        TuringTransitionWrapper::create(
             vec!('ç', 'ç'),
             vec!('ç'),
             vec!(TuringDirection::Right, TuringDirection::Right)
@@ -108,7 +108,7 @@ fn transition_eq() {
 
     assert_ne!(
         t1,
-        TuringTransition::create(
+        TuringTransitionWrapper::create(
             vec!('ç', 'v'),
             vec!('_'),
             vec!(TuringDirection::Right, TuringDirection::Right)
@@ -118,7 +118,7 @@ fn transition_eq() {
 
     assert_ne!(
         t1,
-        TuringTransition::create(
+        TuringTransitionWrapper::create(
             vec!('ç', 'v'),
             vec!('t'),
             vec!(TuringDirection::Right, TuringDirection::Right)
@@ -128,7 +128,7 @@ fn transition_eq() {
 
     assert_ne!(
         t1,
-        TuringTransition::create(
+        TuringTransitionWrapper::create(
             vec!('ç', 'v', 'p'),
             vec!('t', 'x'),
             vec!(
@@ -145,7 +145,7 @@ fn transition_eq() {
 
     assert_eq!(
         t1,
-        TuringTransition::create(
+        TuringTransitionWrapper::create(
             vec!('ç', 'ç'),
             vec!('ç'),
             vec!(TuringDirection::None, TuringDirection::Right)
@@ -185,7 +185,7 @@ fn rename_state() {
 #[test]
 fn add_transitions() {
     let mut s = TuringState::new(TuringStateType::Normal, "test");
-    let transition = TuringTransition::create(
+    let transition = TuringTransitionWrapper::create(
         vec!['ç', 'ç'],
         vec!['ç'],
         vec![TuringDirection::Right, TuringDirection::Right],
@@ -197,7 +197,7 @@ fn add_transitions() {
     // Check that the transition was added
     assert_eq!(
         s.transitions.first().unwrap(),
-        &TuringTransition::create(
+        &TuringTransitionWrapper::create(
             vec!('ç', 'ç'),
             vec!('ç'),
             vec!(TuringDirection::Right, TuringDirection::Right)
@@ -206,7 +206,7 @@ fn add_transitions() {
     );
 
     // Check that we cannot add a transition that has a different size
-    let transition2 = TuringTransition::create(
+    let transition2 = TuringTransitionWrapper::create(
         vec!['ç', 'ç', 'ç'],
         vec!['ç', 'ç'],
         vec![
@@ -224,7 +224,7 @@ fn remove_transitions_using_index() {
     let mut s = TuringState::new(TuringStateType::Normal, "test");
     // add transitions
     s.add_transition(
-        TuringTransition::create(
+        TuringTransitionWrapper::create(
             vec!['ç', 'ç'],
             vec!['ç'],
             vec![TuringDirection::Right, TuringDirection::Right],
@@ -233,7 +233,7 @@ fn remove_transitions_using_index() {
     )
     .expect("There shouldn't be an error");
     s.add_transition(
-        TuringTransition::create(
+        TuringTransitionWrapper::create(
             vec!['ç', '_'],
             vec!['0'],
             vec![TuringDirection::Right, TuringDirection::Left],
@@ -250,7 +250,7 @@ fn remove_transitions_using_index() {
 
     // Add them back
     s.add_transition(
-        TuringTransition::create(
+        TuringTransitionWrapper::create(
             vec!['ç', 'ç'],
             vec!['ç'],
             vec![TuringDirection::Right, TuringDirection::Right],
@@ -259,7 +259,7 @@ fn remove_transitions_using_index() {
     )
     .expect("There shouldn't be an error");
     s.add_transition(
-        TuringTransition::create(
+        TuringTransitionWrapper::create(
             vec!['ç', '_'],
             vec!['0'],
             vec![TuringDirection::Right, TuringDirection::Left],
@@ -274,13 +274,13 @@ fn remove_transitions_using_index() {
 #[test]
 fn remove_transitions_using_ref() {
     let mut s = TuringState::new(TuringStateType::Normal, "test");
-    let t1 = TuringTransition::create(
+    let t1 = TuringTransitionWrapper::create(
         vec!['ç', 'ç'],
         vec!['ç'],
         vec![TuringDirection::Right, TuringDirection::Right],
     )
     .unwrap();
-    let t2 = TuringTransition::create(
+    let t2 = TuringTransitionWrapper::create(
         vec!['ç', '_'],
         vec!['0'],
         vec![TuringDirection::Right, TuringDirection::Left],
@@ -310,19 +310,19 @@ fn remove_transitions_using_ref() {
 #[test]
 fn get_valid_transitions() {
     let mut s = TuringState::new(TuringStateType::Normal, "test");
-    let t1 = TuringTransition::create(
+    let t1 = TuringTransitionWrapper::create(
         vec!['ç', 'ç'],
         vec!['ç'],
         vec![TuringDirection::None, TuringDirection::Right],
     )
     .unwrap();
-    let t2 = TuringTransition::create(
+    let t2 = TuringTransitionWrapper::create(
         vec!['ç', '_'],
         vec!['0'],
         vec![TuringDirection::None, TuringDirection::Left],
     )
     .unwrap();
-    let t3 = TuringTransition::create(
+    let t3 = TuringTransitionWrapper::create(
         vec!['ç', '_'],
         vec!['0'],
         vec![TuringDirection::None, TuringDirection::Right],
@@ -346,19 +346,19 @@ fn get_valid_transitions() {
 #[test]
 fn update_transitions() {
     let mut s = TuringState::new(TuringStateType::Normal, "test");
-    let t1 = TuringTransition::create(
+    let t1 = TuringTransitionWrapper::create(
         vec!['ç', 'ç'],
         vec!['ç'],
         vec![TuringDirection::Right, TuringDirection::Right],
     )
     .unwrap();
-    let t2 = TuringTransition::create(
+    let t2 = TuringTransitionWrapper::create(
         vec!['ç', '_'],
         vec!['c'],
         vec![TuringDirection::None, TuringDirection::None],
     )
     .unwrap();
-    let t3 = TuringTransition::create(
+    let t3 = TuringTransitionWrapper::create(
         vec!['_', '_'],
         vec!['b'],
         vec![TuringDirection::Right, TuringDirection::Left],

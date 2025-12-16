@@ -6,7 +6,7 @@ use thiserror::Error;
 use crate::{
     turing_graph::TuringMachineGraph,
     turing_machine::TuringMachineError,
-    turing_transition::{TuringDirection, TuringTransition},
+    turing_transition::{TuringDirection, TuringTransitionWrapper},
 };
 
 #[derive(Debug, Error)]
@@ -199,7 +199,7 @@ pub fn parse_turing_graph_string(
 /// When giving multiple transitions, each one must affect the same number of tapes or an error will be returned.
 pub fn parse_transition_string(
     to_parse: String,
-) -> Result<(String, Vec<TuringTransition>, String), TuringParserError> {
+) -> Result<(String, Vec<TuringTransitionWrapper>, String), TuringParserError> {
     let parsed = TuringGrammar::parse(Rule::transition_only, &to_parse);
     if let Err(e) = parsed {
         return Err(TuringParserError::ParsingError {
@@ -215,7 +215,7 @@ pub fn parse_transition_string(
 /// For more information look at the documentation of the structure [TuringTransition]
 pub fn parse_transition_content_string(
     transition: String,
-) -> Result<TuringTransition, TuringParserError> {
+) -> Result<TuringTransitionWrapper, TuringParserError> {
     let parsed = TuringGrammar::parse(Rule::turing_machine, &transition);
     if let Err(e) = parsed {
         return Err(TuringParserError::ParsingError {
@@ -230,7 +230,7 @@ pub fn parse_transition_content_string(
 
 fn parse_transition(
     rule: Pair<Rule>,
-) -> Result<(String, Vec<TuringTransition>, String), TuringParserError> {
+) -> Result<(String, Vec<TuringTransitionWrapper>, String), TuringParserError> {
     let mut transitions = vec![];
     let mut to_var = String::new();
     let mut from_var = String::new();
@@ -280,7 +280,7 @@ fn parse_str_token(rule: Pair<Rule>) -> String {
     }
 }
 
-fn parse_transition_content(rule: Pair<Rule>) -> Result<TuringTransition, TuringMachineError> {
+fn parse_transition_content(rule: Pair<Rule>) -> Result<TuringTransitionWrapper, TuringMachineError> {
     let mut chars_read: Vec<char> = vec![];
     let mut directions: Vec<TuringDirection> = vec![];
     let mut chars_written: Vec<char> = vec![];
@@ -318,7 +318,7 @@ fn parse_transition_content(rule: Pair<Rule>) -> Result<TuringTransition, Turing
         }
     }
 
-    Ok(TuringTransition::create(
+    Ok(TuringTransitionWrapper::create(
         chars_read,
         chars_written,
         directions,

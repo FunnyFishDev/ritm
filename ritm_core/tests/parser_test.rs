@@ -2,7 +2,7 @@ use ritm_core::{
     turing_graph::TuringMachineGraph,
     turing_machine::TuringMachineError,
     turing_parser::{TuringParserError, parse_transition_string, parse_turing_graph_string},
-    turing_transition::{TuringDirection, TuringTransition, TuringTransitionError},
+    turing_transition::{TuringDirection, TuringTransitionWrapper, TuringTransitionError},
 };
 
 #[test]
@@ -23,7 +23,7 @@ fn test_parse_mt_valid() {
     graph.add_state(q1);
 
     // q_i -> {ç, ç, => R, ç, R} -> q_1
-    let mut transition = TuringTransition::create(
+    let mut transition = TuringTransitionWrapper::create(
         vec!['ç', 'ç'],
         vec!['ç'],
         vec![TuringDirection::Right, TuringDirection::Right],
@@ -33,7 +33,7 @@ fn test_parse_mt_valid() {
         .append_rule_state_by_name("i", transition.clone(), q1)
         .unwrap();
 
-    transition = TuringTransition::create(
+    transition = TuringTransitionWrapper::create(
         vec!['0', '_'],
         vec!['a'],
         vec![TuringDirection::Right, TuringDirection::Right],
@@ -43,7 +43,7 @@ fn test_parse_mt_valid() {
         .append_rule_state_by_name(q1, transition.clone(), q1)
         .unwrap();
 
-    transition = TuringTransition::create(
+    transition = TuringTransitionWrapper::create(
         vec!['1', '_'],
         vec!['a'],
         vec![TuringDirection::Right, TuringDirection::Right],
@@ -93,7 +93,7 @@ fn test_parse_transition_valid_mult() {
     assert_eq!(transitions.len(), 2);
     assert_eq!(
         transitions[0],
-        TuringTransition::new(
+        TuringTransitionWrapper::new(
             vec!('0', 'a'),
             TuringDirection::Right,
             vec!(('a', TuringDirection::Left))
@@ -101,7 +101,7 @@ fn test_parse_transition_valid_mult() {
     );
     assert_eq!(
         transitions[1],
-        TuringTransition::new(
+        TuringTransitionWrapper::new(
             vec!('1', 'b'),
             TuringDirection::None,
             vec!(('p', TuringDirection::Right))
@@ -121,7 +121,7 @@ fn test_parse_transition_valid_single() {
     assert_eq!(transitions.len(), 1);
     assert_eq!(
         transitions[0],
-        TuringTransition::new(
+        TuringTransitionWrapper::new(
             vec!('0', 'a'),
             TuringDirection::Right,
             vec!(('a', TuringDirection::Left))
