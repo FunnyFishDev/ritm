@@ -3,7 +3,7 @@ use thiserror::Error;
 use crate::{
     turing_state::{TuringState, TuringStateError, TuringStateType},
     turing_tape::TuringTapeError,
-    turing_transition::{TuringTransition, TuringTransitionWrapper},
+    turing_transition::TuringTransition,
 };
 use std::{
     collections::HashMap,
@@ -15,20 +15,18 @@ pub enum TuringGraphError {
     #[error("Tried to create a turing machine with no writting tapes")]
     NotEnoughTapesError,
     #[error("Tried to modify (or remove) a state that cannot be changed : {state}")]
-    ImmutableStateError { state: TuringStateInfo },
+    ImmutableStateError { state: TuringState },
     #[error(
-        "Tried to add a state (or rename an existant one) with the name \"{name}\" but it is already owned by \"{state}\" "
+        "Tried to access a state with the index {accessed_index} but only {states_len} states are present"
     )]
-    AlreadyPresentNameError {
-        name: String,
-        state: TuringStateInfo,
+    OutOfRangeStateError {
+        accessed_index: usize,
+        states_len: usize,
     },
-    #[error(
-        "Tried to access a state using index \"{accessed_index}\" but it is present in the graph"
-    )]
-    UnknownStateIndex { accessed_index: TuringGraphIndex },
     #[error("Ran into the following state error : {0}")]
     StateError(#[from] TuringStateError),
+    #[error("Trying to access the state \"{state_name}\" but it is not in this graph")]
+    UnknownStateError { state_name: String },
     #[error("Encountered a tape error : {0}")]
     TuringTapeError(#[from] TuringTapeError),
     #[error(
@@ -37,195 +35,39 @@ pub enum TuringGraphError {
     IncompatibleTransitionError { expected: usize, received: usize },
 }
 
-/// Can be used to try to find a state in the graph
-#[derive(Debug, Clone)]
-pub enum TuringGraphIndex {
-    /// Represents the index value of the state to get.
-    ID(usize),
-    /// Represents the name of the state to get.
-    Name(String),
-}
-
-impl Display for TuringGraphIndex {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}",
-            match self {
-                TuringGraphIndex::ID(val) => val.to_string(),
-                TuringGraphIndex::Name(val) => val.to_string(),
-            }
-        )
-    }
-}
-
-impl From<String> for TuringGraphIndex {
-    fn from(value: String) -> Self {
-        TuringGraphIndex::Name(value)
-    }
-}
-impl From<&String> for TuringGraphIndex {
-    fn from(value: &String) -> Self {
-        value.to_string().into()
-    }
-}
-
-impl From<&str> for TuringGraphIndex {
-    fn from(value: &str) -> Self {
-        value.to_string().into()
-    }
-}
-
-impl From<usize> for TuringGraphIndex {
-    fn from(value: usize) -> Self {
-        TuringGraphIndex::ID(value)
-    }
-}
-
-impl From<&usize> for TuringGraphIndex {
-    fn from(value: &usize) -> Self {
-        (*value).into()
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-/// Represents the different types of states that can be found inside a turing machine graph
-pub enum TuringStateType {
-    /// A normal state, has no special effect.
-    Normal,
-    /// Accepts the given input.
-    Accepting,
-    /// Immediatly rejects the given input.
-    Rejecting,
-}
-
-impl Display for TuringStateType {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}",
-            match self {
-                TuringStateType::Normal => "Normal",
-                TuringStateType::Accepting => "Accepting",
-                TuringStateType::Rejecting => "Rejecting",
-            }
-        )
-    }
-}
-
-pub trait TuringState: Clone + Default + Debug {
-    fn new_init() -> Self;
-    fn new_accepting() -> Self;
-    fn visited(&mut self);
-}
-
-impl Display for TuringStateInfo {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "({}: {}, {})", self.id, self.name, self.state_type)
-    }
-}
-
-impl<S: TuringState> From<TuringStateWrapper<S>> for TuringStateInfo {
-    fn from(value: TuringStateWrapper<S>) -> Self {
-        value.state_info
-    }
-}
-impl<S: TuringState> From<&TuringStateWrapper<S>> for TuringStateInfo {
-    fn from(value: &TuringStateWrapper<S>) -> Self {
-        value.state_info.clone()
-    }
-}
-
-#[derive(Debug, PartialEq, Eq, Clone)]
-pub struct TuringStateWrapper<S: TuringState> {
-    inner_state: S,
-    state_info: TuringStateInfo,
-}
-
-#[derive(Debug, PartialEq, Eq, Clone)]
-pub struct TuringStateInfo {
-    name: String,
-    state_type: TuringStateType,
-    id: usize,
-}
-
 #[derive(Debug, Clone)]
 /// A struct representing a Turing Machine graph with `k` **writting** tapes (`k >= 1`).
-pub struct TuringMachineGraph<S, T>
-where
-    S: TuringState,
-    T: TuringTransition,
-{
-    state_hashmap: HashMap<usize, TuringStateWrapper<S>>,
-    transition_hasmap: HashMap<(usize, usize), Vec<TuringTransitionWrapper<T>>>,
-
-    next_state_index: usize,
-
+pub struct TuringMachineGraph {
+    /// The hashmap containing a mapping of all nodes names and their related index in the `states` field.
+    name_index_hashmap: HashMap<String, usize>,
+    /// The vector containing all the nodes of the turing machine graph
+    states: Vec<TuringState>,
     /// The number of tapes this graph was made for
     k: usize,
 }
 
-impl<S: TuringState> TuringStateWrapper<S> {
-    fn new_normal(inner_state: S, name: impl Into<String>, index: usize) -> Self {
-        Self::new_type(inner_state, name, index, TuringStateType::Normal)
-    }
-    fn new_accepting(inner_state: S, name: impl Into<String>, index: usize) -> Self {
-        Self::new_type(inner_state, name, index, TuringStateType::Accepting)
-    }
-    fn new_type(
-        inner_state: S,
-        name: impl Into<String>,
-        index: usize,
-        state_type: TuringStateType,
-    ) -> Self {
-        Self {
-            inner_state,
-            state_info: TuringStateInfo {
-                name: name.into(),
-                state_type,
-                id: index,
-            },
-        }
-    }
-}
-
-impl<S, T> TuringMachineGraph<S, T>
-where
-    S: TuringState,
-    T: TuringTransition,
-{
+impl TuringMachineGraph {
     /// Creates a new empty Turing Machine graph that has `k` writting tapes (`k >= 1`).
     ///
-    /// default states will be created :
+    /// Three default states will be created :
     /// * `q_i` : The initial state
-    /// * `q_a` : The default accepting state, but only if `default_acc_state` is set to True.
-    pub fn new(k: usize, default_acc_state: bool) -> Result<Self, TuringGraphError> {
+    /// * `q_a` : The default accepting state
+    pub fn new(k: usize) -> Result<Self, TuringGraphError> {
         if k == 0 {
             return Err(TuringGraphError::NotEnoughTapesError);
         }
         // Add the default states
-        let mut state_hashmap = HashMap::new();
+        let init_state = TuringState::new(TuringStateType::Normal, "i");
+        let accepting_state = TuringState::new(TuringStateType::Accepting, "a");
 
-        // Always adds init
-        state_hashmap.insert(
-            0,
-            TuringStateWrapper::new_normal(TuringState::new_init(), "i", 0),
-        );
-
-        let mut next_state_index = 1;
-        // Only adds default accepting if needed
-        if default_acc_state {
-            state_hashmap.insert(
-                1,
-                TuringStateWrapper::new_accepting(TuringState::new_accepting(), "a", 1),
-            );
-            next_state_index = 2;
-        }
+        // Create the hash map with the already known states
+        let mut name_index_hashmap: HashMap<String, usize> = HashMap::new();
+        name_index_hashmap.insert("i".to_string(), 0); // init
+        name_index_hashmap.insert("a".to_string(), 1); // accepting
 
         Ok(Self {
-            state_hashmap,
-            transition_hasmap: HashMap::new(),
-            next_state_index,
+            name_index_hashmap,
+            states: vec![init_state, accepting_state],
             k,
         })
     }
@@ -234,14 +76,14 @@ where
     /// Meaning, a new edge is added to the graph.
     ///
     /// If one of the given state didn't already exists, a [TuringError::UnknownStateError] will be returned.
-    pub fn append_rule_state(
+    pub fn append_rule_state_by_name(
         &mut self,
-        from: impl Into<TuringGraphIndex>,
-        transition: TuringTransitionWrapper<T>,
-        to: impl Into<TuringGraphIndex>,
+        from: impl ToString,
+        transition: TuringTransition,
+        to: impl ToString,
     ) -> Result<(), TuringGraphError> {
-        let from = from.into();
-        let to = to.into();
+        let from = from.to_string();
+        let to = to.to_string();
 
         // Checks if the given number of tapes is correct
         if transition.get_number_of_affected_tapes() != (self.k + 1) {
@@ -250,172 +92,365 @@ where
                 received: transition.get_number_of_affected_tapes() - 1,
             });
         }
+        let from_index = self.name_index_hashmap.get(&from);
+        if from_index.is_none() {
+            return Err(TuringGraphError::UnknownStateError { state_name: from });
+        }
+        let from_index = *from_index.unwrap();
 
-        let state_from = self.get_state(from)?.state_info.id;
-        let state_to = self.get_state(to)?.state_info.id;
+        let to_index = self.name_index_hashmap.get(&to);
+        if to_index.is_none() {
+            return Err(TuringGraphError::UnknownStateError { state_name: to });
+        }
+        let to_index = *to_index.unwrap();
 
-        let transition_vector = self
-            .transition_hasmap
-            .entry((state_from, state_to))
-            .or_default();
-        transition_vector.push(transition);
-        Ok(())
+        self.add_rule_state_ind(from_index, transition, to_index)
+    }
+
+    /// Adds a new rule/transition to a state of the machine of the form : `from {transition} to`.
+    /// Meaning, a new edge is added to the graph.
+    ///
+    /// ## Returns
+    /// * If everything went correctly : `Ok(())`
+    /// * Otherwise, it will return a [TuringError]
+    pub fn append_rule_state(
+        &mut self,
+        from_index: usize,
+        transition: TuringTransition,
+        to_index: usize,
+    ) -> Result<(), TuringGraphError> {
+        // Checks if the given correct of number transitions was given
+        if transition.chars_write.len() != self.k {
+            return Err(TuringGraphError::IncompatibleTransitionError {
+                expected: self.k,
+                received: transition.chars_write.len(),
+            });
+        }
+        match self.add_rule_state_ind(from_index, transition, to_index) {
+            Ok(()) => Ok(()),
+            Err(e) => Err(e),
+        }
+    }
+
+    /// Adds a new rule to a state of the machine and returns the machine.
+    ///
+    /// If the given state didn't already exists, the state will be created.
+    pub fn append_rule_state_self(
+        mut self,
+        from: &String,
+        transition: TuringTransition,
+        to: &String,
+    ) -> Result<Self, TuringGraphError> {
+        self.append_rule_state_by_name(from, transition, to)?;
+
+        Ok(self)
     }
 
     /// Adds a new state to the turing machine graph and returns its index. Meaning a new node is added to the graph.
     ///
     /// If the state name already existed then the index of the already existing state is returned.
-    pub fn add_state(&mut self, name: impl ToString, state_type: TuringStateType) -> usize {
+    pub fn add_state(&mut self, name: impl ToString) -> usize {
         let name = name.to_string();
-        let index = match self.get_state_index(&name) {
-            Some(index) => index,
+        // Try to find the index of the state inside the hashmap
+        match self.name_index_hashmap.get(&name) {
+            // If the index was found, return it
+            Some(e) => *e,
+            // If not
             None => {
-                self.state_hashmap.insert(
-                    self.next_state_index,
-                    TuringStateWrapper::new_type(
-                        S::default(),
-                        name,
-                        self.next_state_index,
-                        state_type,
-                    ),
-                );
-                self.next_state_index += 1;
-                self.next_state_index - 1
+                // Pushes in the vector of states a new state with the given name
+                self.states
+                    .push(TuringState::new(TuringStateType::Normal, name.to_string()));
+                // Adds the index of this state to the hashmap
+                self.name_index_hashmap
+                    .insert(name.to_string(), self.states.len() - 1);
+                // Returns the index of the newly created state
+                self.states.len() - 1
             }
-        };
+        }
+    }
 
-        index
+    /// Adds a new state to the turing machine graph using variables indexes
+    fn add_rule_state_ind(
+        &mut self,
+        from: usize,
+        mut transition: TuringTransition,
+        to: usize,
+    ) -> Result<(), TuringGraphError> {
+        if self.states.len() <= from {
+            return Err(TuringGraphError::OutOfRangeStateError {
+                accessed_index: from,
+                states_len: self.states.len(),
+            });
+        }
+        if self.states.len() <= to {
+            return Err(TuringGraphError::OutOfRangeStateError {
+                accessed_index: to,
+                states_len: self.states.len(),
+            });
+        }
+        // Change transition index
+        transition.index_to_state = Some(to);
+
+        let state = self.states.get_mut(from).unwrap();
+        state.add_transition(transition)?;
+
+        Ok(())
     }
 
     /// Returns the state (*node*) at the given index.
-    pub fn get_state(
-        &self,
-        index: impl Into<TuringGraphIndex>,
-    ) -> Result<&TuringStateWrapper<S>, TuringGraphError> {
-        let index = index.into();
-
-        let index_res = match &index {
-            TuringGraphIndex::ID(id) => Some(*id),
-            TuringGraphIndex::Name(val) => self.get_state_index(val),
-        };
-        if let Some(id) = index_res {
-            if let Some(state) = self.state_hashmap.get(&id) {
-                return Ok(state);
-            }
-        };
-
-        Err(TuringGraphError::UnknownStateIndex {
-            accessed_index: index,
-        })
+    pub fn get_state(&self, pointer: usize) -> Result<&TuringState, TuringGraphError> {
+        if self.states.len() <= pointer {
+            return Err(TuringGraphError::OutOfRangeStateError {
+                accessed_index: pointer,
+                states_len: self.states.len(),
+            });
+        }
+        Ok(&self.states[pointer])
     }
 
     /// Returns the **mutable** state (*node*) at the given index.
-    pub fn get_state_mut(
-        &mut self,
-        index: impl Into<TuringGraphIndex>,
-    ) -> Result<&mut TuringStateWrapper<S>, TuringGraphError> {
-        let index = index.into();
+    pub fn get_state_mut(&mut self, pointer: usize) -> Result<&mut TuringState, TuringGraphError> {
+        if self.states.len() <= pointer {
+            return Err(TuringGraphError::OutOfRangeStateError {
+                accessed_index: pointer,
+                states_len: self.states.len(),
+            });
+        }
+        Ok(&mut self.states[pointer])
+    }
 
-        let index_res = match &index {
-            TuringGraphIndex::ID(id) => Some(*id),
-            TuringGraphIndex::Name(val) => self.get_state_index(val),
+    /// Returns the state (*node*) that has the given name.
+    pub fn get_state_from_name(
+        &self,
+        name: impl ToString,
+    ) -> Result<&TuringState, TuringGraphError> {
+        let name = name.to_string();
+        match self.name_index_hashmap.get(&name) {
+            Some(index) => self.get_state(*index),
+            None => Err(TuringGraphError::UnknownStateError { state_name: name }),
+        }
+    }
+
+    /// Returns the **mutable** state (*node*) that has the given name.
+    pub fn get_state_from_name_mut(
+        &mut self,
+        name: &String,
+    ) -> Result<&mut TuringState, TuringGraphError> {
+        match self.name_index_hashmap.get(name) {
+            Some(index) => self.get_state_mut(*index),
+            None => Err(TuringGraphError::UnknownStateError {
+                state_name: name.to_string(),
+            }),
+        }
+    }
+
+    /// Get the transition index between two nodes if it exists.
+    pub fn get_transition_indexes_by_name(
+        &self,
+        n1: impl ToString,
+        n2: impl ToString,
+    ) -> Result<Vec<usize>, TuringGraphError> {
+        let n1 = n1.to_string();
+        let n2 = n2.to_string();
+
+        let mut res = vec![];
+        // Get n1 and n2 indexes if they exists
+        let n1_state = match self.name_index_hashmap.get(&n1) {
+            Some(i) => &self.states[*i],
+            None => {
+                return Err(TuringGraphError::UnknownStateError {
+                    state_name: n1.clone(),
+                });
+            }
         };
-        if let Some(id) = index_res {
-            if let Some(state) = self.state_hashmap.get_mut(&id) {
-                return Ok(state);
+        let n2_index = match self.name_index_hashmap.get(&n2) {
+            Some(i) => *i,
+            None => {
+                return Err(TuringGraphError::UnknownStateError {
+                    state_name: n2.clone(),
+                });
             }
         };
 
-        Err(TuringGraphError::UnknownStateIndex {
-            accessed_index: index,
-        })
-    }
-
-    /// Returns the state index using the given value if it exists.
-    fn get_state_index(&self, state_name: impl ToString) -> Option<usize> {
-        let state_name = state_name.to_string();
-        for (index, state) in &self.state_hashmap {
-            if state.state_info.name == state_name {
-                return Some(*index);
+        for (i, t) in n1_state.transitions.iter().enumerate() {
+            if t.index_to_state.unwrap() == n2_index {
+                res.push(i);
             }
         }
-        None
+
+        Ok(res)
     }
 
-    /// Get the transitions between two nodes if any.
-    pub fn get_transitions(
+    /// Get all the transitions between two nodes.
+    pub fn get_transitions_by_index(
         &self,
-        from: impl Into<TuringGraphIndex>,
-        to: impl Into<TuringGraphIndex>,
-    ) -> Result<Option<&Vec<TuringTransitionWrapper<T>>>, TuringGraphError> {
-        let from = from.into();
-        let to = to.into();
+        n1: usize,
+        n2: usize,
+    ) -> Result<Vec<&TuringTransition>, TuringGraphError> {
+        let mut vec = vec![];
+        // Get n1 index
+        let n1_state = self.get_state(n1)?;
 
-        let state_from = self.get_state(from)?.state_info.id;
-        let state_to = self.get_state(to)?.state_info.id;
+        // Fetch all transition that go toward n2
+        for t in n1_state.transitions.iter() {
+            if t.index_to_state.unwrap() == n2 {
+                vec.push(t);
+            }
+        }
 
-        Ok(self.transition_hasmap.get(&(state_from, state_to)))
+        Ok(vec)
     }
 
     /// Removes **all** the transitions from this state to the given node
     pub fn remove_transitions(
         &mut self,
-        from: impl Into<TuringGraphIndex>,
-        to: impl Into<TuringGraphIndex>,
+        from: impl ToString,
+        to: impl ToString,
     ) -> Result<(), TuringGraphError> {
-        let state_from = self.get_state(from)?.state_info.id;
-        let to_from = self.get_state(to)?.state_info.id;
+        let from = from.to_string();
+        let to = to.to_string();
+
+        let (n1_state, n2_index) = self.fetch_n1_state_n2_index(&from, &to)?;
 
         // Remove all transitions from n1 to n2
-        self.transition_hasmap.remove(&(state_from, to_from));
+        n1_state.remove_transitions(n2_index);
+        Ok(())
+    }
+
+    /// Removes **all** the transitions from a state to the given node, using the nodes `to` node index.
+    pub fn remove_transitions_with_index(
+        &mut self,
+        from: usize,
+        to: usize,
+    ) -> Result<(), TuringGraphError> {
+        // check that `from` state exists
+        let n1_state = self.get_state_mut(from)?;
+
+        // Remove all transitions from n1 to n2
+        n1_state.remove_transitions(to);
         Ok(())
     }
 
     /// Removes all transitions of the form `from {transition} to` using the given parameters.
+    ///  
+    /// The `transition`'s `index_to_state` field, will not be be taken into account here (as it will be changed with the index of `to` anyways), the rest however is still important.
+    ///
+    /// Only `from`'s existance will be verified (and will return an error if it does not exists). But `to`'s index can be outside the bounds.
     pub fn remove_transition(
         &mut self,
-        from: impl Into<TuringGraphIndex>,
-        transition: &TuringTransitionWrapper<T>,
-        to: impl Into<TuringGraphIndex>,
+        from: impl ToString,
+        transition: &TuringTransition,
+        to: impl ToString,
     ) -> Result<(), TuringGraphError> {
-        let state_from = self.get_state(from)?.state_info.id;
-        let state_to = self.get_state(to)?.state_info.id;
+        let from = from.to_string();
+        let to = to.to_string();
 
-        if let Some(transitions) = self.transition_hasmap.get_mut(&(state_from, state_to)) {
-            for trans in transitions {}
-        }
+        let (n1_state, n2_index) = self.fetch_n1_state_n2_index(&from, &to)?;
 
-        // TODO: Fix this !
+        let mut trans = transition.clone();
+        // In order to make sure it is removed, we change the index to the correct one
+        trans.index_to_state = Some(n2_index);
+        n1_state.remove_transition(&trans);
 
         Ok(())
     }
 
-    /// Removes a state and **all** mentions of it in **all** transitions of **all** the other states of the graph.
-    pub fn remove_state(
+    fn fetch_n1_state_n2_index(
         &mut self,
-        index: impl Into<TuringGraphIndex>,
-    ) -> Result<(), TuringGraphError> {
-        // First keep the index for later
-        let state_id = self.get_state(index)?.state_info.id;
-
-        // Remove all transitions that start with the index
-        let keys_to_remove: Vec<(usize, usize)> = self
-            .transition_hasmap
-            .keys()
-            .filter_map(|(from, to)| {
-                if *from == state_id {
-                    Some((*from, *to))
-                } else {
-                    None
-                }
-            })
-            .collect();
-
-        for key in keys_to_remove {
-            self.transition_hasmap.remove(&key);
+        from: &String,
+        to: &String,
+    ) -> Result<(&mut TuringState, usize), TuringGraphError> {
+        // Fetch n1 as a state
+        let n1_state = self.name_index_hashmap.get(from);
+        if n1_state.is_none() {
+            return Err(TuringGraphError::UnknownStateError {
+                state_name: from.to_string(),
+            });
         }
-        // Finally remove the state itself
-        self.state_hashmap.remove(&state_id);
+
+        let n1_state = &mut self.states[*n1_state.unwrap()];
+
+        // Fetch n2 as an index
+        let n2_state = self.name_index_hashmap.get(to);
+        if n2_state.is_none() {
+            return Err(TuringGraphError::UnknownStateError {
+                state_name: to.to_string(),
+            });
+        }
+        let n2_index = n2_state.unwrap();
+
+        Ok((n1_state, *n2_index))
+    }
+
+    /// Removes a state and **all** mentions of it in **all** transitions of **all** the other states of the TuringMachine using its name.
+    pub fn remove_state_with_name(
+        &mut self,
+        state_name: impl ToString,
+    ) -> Result<(), TuringGraphError> {
+        let state_name = state_name.to_string();
+        // First keep the index for later
+        let index = self.name_index_hashmap.get(&state_name);
+        if index.is_none() {
+            return Err(TuringGraphError::UnknownStateError { state_name });
+        }
+        let index = *index.unwrap();
+        // Use that index to remove that state
+        self.remove_state_with_index(index)
+    }
+
+    /// Removes a state and **all** mentions of it in **all** transitions of **all** the other states of the TuringMachine using its index.
+    fn remove_state_with_index(&mut self, state_index: usize) -> Result<(), TuringGraphError> {
+        // if the node is one of the 3 initial nodes, throw an error
+        if state_index <= 1 {
+            return Err(TuringGraphError::ImmutableStateError {
+                state: self
+                    .get_state(state_index)
+                    .expect("default state present")
+                    .clone(),
+            });
+        }
+
+        // get state name
+        let state_name = self.get_state(state_index).cloned()?.name;
+
+        /* Remove references to this state from *all* other nodes transitions */
+        let mut states = vec![];
+        // Fetch all names that aren't the state we are trying to remove
+        for name in self.name_index_hashmap.keys() {
+            if name.eq(&state_name) {
+                continue;
+            }
+            states.push(name.clone());
+        }
+
+        let mut to_notify_neigh = vec![];
+
+        // Remove the node
+        self.states.remove(state_index); // this means that other indexes might have shifted too
+        // Collect all values that are gonna change
+
+        let mut prev_val;
+        for name in &states {
+            prev_val = *self.name_index_hashmap.get_mut(name).unwrap();
+            // If this node had a bigger index, we lower it by one in the hashmap (it moved in the `states` vector)
+            if prev_val >= state_index {
+                to_notify_neigh.push(prev_val);
+                let index = *self.name_index_hashmap.get_mut(name).unwrap();
+                *self.name_index_hashmap.get_mut(name).unwrap() = index - 1;
+                // Save this state for later use
+                prev_val = index - 1;
+            }
+
+            // Remove all transitions to the removed node
+            self.remove_transitions_with_index(prev_val, state_index)?
+        }
+        for state in &mut self.states {
+            for changed_index in &to_notify_neigh {
+                state.update_transitions(*changed_index, *changed_index - 1);
+            }
+        }
+
+        self.name_index_hashmap.remove(&state_name);
         Ok(())
     }
 
@@ -423,52 +458,21 @@ where
         self.k
     }
 
-    pub fn get_state_hashmap(&self) -> &HashMap<usize, TuringStateWrapper<S>> {
-        &self.state_hashmap
+    pub fn get_name_index_hashmap(&self) -> &HashMap<String, usize> {
+        &self.name_index_hashmap
     }
 
-    pub fn get_states(&self) -> Vec<&TuringStateWrapper<S>> {
-        self.state_hashmap.values().collect()
+    pub fn get_states(&self) -> &Vec<TuringState> {
+        &self.states
     }
-
-    pub fn rename_state(
-        &mut self,
-        index: impl Into<TuringGraphIndex>,
-        new_name: impl ToString,
-    ) -> Result<(), TuringGraphError> {
-        let index = index.into();
-
-        let new_name = new_name.to_string();
-        // Check if the new name is not already present somewhere else (does not crash when trying to rename a state using the same index)
-        if let Ok(val) = self.get_state(&new_name) {
-            return Err(TuringGraphError::AlreadyPresentNameError {
-                name: new_name,
-                state: (val).into(),
-            });
-        }
-
-        // Try to get state :
-        let state = self.get_state_mut(index)?;
-        // Updates the name
-        state.name = new_name;
-
-        Ok(())
-    }
-
-    // fn to_id(&self, index: impl Into<TuringGraphIndex>) -> usize {
-    //     match index.into() {
-    //         TuringGraphIndex::ID(id) => id,
-    //         TuringGraphIndex::Name(name) => self.get_state_index(name).expect("present"),
-    //     }
-    // }
 }
 
-impl<S: TuringState, T: TuringTransition> Display for TuringMachineGraph<S, T> {
+impl Display for TuringMachineGraph {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut res = String::from("States:\n");
 
         // Print all states
-        for state in self.state_hashmap.values() {
+        for state in &self.states {
             res.push_str(format!("{}: {}\n", state.name, state.state_type).as_str());
         }
 

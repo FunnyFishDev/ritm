@@ -9,7 +9,7 @@ use ritm_core::{
     turing_graph::TuringMachineGraph,
     turing_machine::TuringMachines,
     turing_parser::{self, parse_transition_string},
-    turing_transition::TuringTransitionWrapper,
+    turing_transition::TuringTransition,
 };
 use rustyline::{Editor, history::FileHistory};
 use strum_macros::EnumIter;
@@ -246,14 +246,14 @@ fn remove_transition(
     Ok(())
 }
 
-fn format_transition(from: &String, transition: &TuringTransitionWrapper, to: &String) -> ColoredString {
+fn format_transition(from: &String, transition: &TuringTransition, to: &String) -> ColoredString {
     format!("q_{} {}{}{} q_{}", from, "{", transition, "}", to).yellow()
 }
 
 pub fn query_transition(
     rl: &mut Editor<(), FileHistory>,
     query: String,
-) -> Result<(String, Vec<TuringTransitionWrapper>, String), RiplError> {
+) -> Result<(String, Vec<TuringTransition>, String), RiplError> {
     println!("{}", query);
     loop {
         let readline = rl.readline("==> ");

@@ -1,4 +1,4 @@
-use std::fmt::{Debug, Display};
+use std::fmt::Display;
 use thiserror::Error;
 
 use crate::turing_tape;
@@ -46,48 +46,36 @@ impl Display for TuringDirection {
     }
 }
 
-pub trait TuringTransition: Clone + Default + Debug {}
-
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug)]
 /// A struct representing a transition for a turing machine that has strictly more than **1 tape** :
 /// * `a_0, a_1, ..., a_{n-1} -> D_0, b_1, D_1, b_2, D_2, ..., b_{n-1}, D_{n-1}`
 /// - With :
 ///     * `a_i` : The character *i* being read.
 ///     * `D_i` : Direction to take by taking this transition, see [TuringDirection] for more information.
 ///     * `b_i` : The character to replace the character *i* with.
-pub struct TuringTransitionWrapper<T: TuringTransition> {
-    pub inner_transition: T,
+pub struct TuringTransition {
     /// The chars that have to be read in order apply the rest of the transition : `a_0,..., a_{n-1}`
     pub chars_read: Vec<char>,
     /// The move to take after writing/reading the character : `D_0`
     pub move_read: TuringDirection,
     /// The character to replace the character just read : `(b_1, D_1),..., (b_{n-1}, D_{n-1})`
     pub chars_write: Vec<(char, TuringDirection)>,
+    /// The index of the state to go to after passing through this state.
+    pub index_to_state: Option<usize>,
 }
 
-pub struct TuringTransitionUnWrapped {
-    /// The chars that have to be read in order apply the rest of the transition : `a_0,..., a_{n-1}`
-    pub chars_read: Vec<char>,
-    /// The move to take after writing/reading the character : `D_0`
-    pub move_read: TuringDirection,
-    /// The character to replace the character just read : `(b_1, D_1),..., (b_{n-1}, D_{n-1})`
-    pub chars_write: Vec<(char, TuringDirection)>,
-}
-
-
-impl<T: TuringTransition> TuringTransitionWrapper<T> {
+impl TuringTransition {
     /// Creates a new [TuringTransitions].
     pub fn new(
-        inner_transition: T,
         char_read: Vec<char>,
         move_read: TuringDirection,
         chars_read_write: Vec<(char, TuringDirection)>,
     ) -> Self {
         Self {
-            inner_transition,
             chars_read: char_read,
             move_read,
             chars_write: chars_read_write,
+            index_to_state: None,
         }
     }
 
@@ -99,7 +87,6 @@ impl<T: TuringTransition> TuringTransitionWrapper<T> {
     /// * **chars_write** : The characters to replace the characters read : `b_1, ..., b_{n-1}`
     /// * **directions** : The directions to move the pointers of the tapes : `D_0, ..., D_{n-1}`
     pub fn create(
-        inner_transition: T,
         chars_read: Vec<char>,
         chars_write: Vec<char>,
         directions: Vec<TuringDirection>,
@@ -196,10 +183,10 @@ impl<T: TuringTransition> TuringTransitionWrapper<T> {
         }
 
         Ok(Self {
-            inner_transition,
             chars_read,
             move_read,
             chars_write: chars_write_dir,
+            index_to_state: None,
         })
     }
 
@@ -209,7 +196,18 @@ impl<T: TuringTransition> TuringTransitionWrapper<T> {
     }
 }
 
-impl<T: TuringTransition> Display for TuringTransitionWrapper<T> {
+impl Clone for TuringTransition {
+    fn clone(&self) -> Self {
+        Self {
+            chars_read: self.chars_read.clone(),
+            move_read: self.move_read.clone(),
+            chars_write: self.chars_write.clone(),
+            index_to_state: self.index_to_state,
+        }
+    }
+}
+
+impl Display for TuringTransition {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut char_read = String::from(self.chars_read[0]);
         for i in 1..self.chars_read.len() {
@@ -223,5 +221,14 @@ impl<T: TuringTransition> Display for TuringTransitionWrapper<T> {
         }
 
         write!(f, "{} -> {}", char_read, char_written)
+    }
+}
+
+impl PartialEq for TuringTransition {
+    /// Checks if two [TuringTransition] are equivalent. Note that the `index_to_state` field is not part of this comparison.
+    fn eq(&self, other: &Self) -> bool {
+        self.chars_read == other.chars_read
+            && self.move_read == other.move_read
+            && self.chars_write == other.chars_write
     }
 }

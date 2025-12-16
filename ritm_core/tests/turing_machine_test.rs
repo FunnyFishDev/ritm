@@ -4,7 +4,7 @@ use ritm_core::{
     turing_parser::parse_turing_graph_string,
     turing_state::TuringStateType,
     turing_tape::TuringTape,
-    turing_transition::{TuringDirection, TuringTransitionWrapper},
+    turing_transition::{TuringDirection, TuringTransition},
 };
 
 const TM_ACCEPT_XX: &str = "// Turing machine that only accepts words of the form : xx
@@ -186,7 +186,7 @@ fn _get_smaller_non_deter_graph() -> TuringMachineGraph {
 
     graph.add_state(q2);
 
-    let mut transition = TuringTransitionWrapper::create(
+    let mut transition = TuringTransition::create(
         vec!['ç', 'ç'],
         vec!['ç'],
         vec![TuringDirection::Right, TuringDirection::Right],
@@ -196,7 +196,7 @@ fn _get_smaller_non_deter_graph() -> TuringMachineGraph {
         .append_rule_state_by_name("i", transition.clone(), q2)
         .unwrap();
 
-    transition = TuringTransitionWrapper::create(
+    transition = TuringTransition::create(
         vec!['0', '_'],
         vec!['_'],
         vec![TuringDirection::Right, TuringDirection::None],
@@ -206,7 +206,7 @@ fn _get_smaller_non_deter_graph() -> TuringMachineGraph {
         .append_rule_state_by_name(q2, transition.clone(), q2)
         .unwrap();
 
-    transition = TuringTransitionWrapper::create(
+    transition = TuringTransition::create(
         vec!['0', '_'],
         vec!['_'],
         vec![TuringDirection::Right, TuringDirection::None],
@@ -230,7 +230,7 @@ fn get_test_non_deter_graph() -> TuringMachineGraph {
     graph.add_state(q2);
 
     // q_0 -> {ç, ç, => R, ç, R} -> q_1
-    let mut transition = TuringTransitionWrapper::create(
+    let mut transition = TuringTransition::create(
         vec!['ç', 'ç'],
         vec!['ç'],
         vec![TuringDirection::Right, TuringDirection::Right],
@@ -241,7 +241,7 @@ fn get_test_non_deter_graph() -> TuringMachineGraph {
         .unwrap();
 
     // q_1 -> {0, _ => R, a, R} -> q_1
-    transition = TuringTransitionWrapper::create(
+    transition = TuringTransition::create(
         vec!['0', '_'],
         vec!['a'],
         vec![TuringDirection::Right, TuringDirection::Right],
@@ -251,7 +251,7 @@ fn get_test_non_deter_graph() -> TuringMachineGraph {
         .append_rule_state_by_name(q1, transition.clone(), q1)
         .unwrap();
     // q_1 -> {1, _ => R, a, R} -> q_1
-    transition = TuringTransitionWrapper::create(
+    transition = TuringTransition::create(
         vec!['1', '_'],
         vec!['a'],
         vec![TuringDirection::Right, TuringDirection::Right],
@@ -262,7 +262,7 @@ fn get_test_non_deter_graph() -> TuringMachineGraph {
         .unwrap();
 
     // q_1 -> {1, _ => R, _, L} -> q_2
-    transition = TuringTransitionWrapper::create(
+    transition = TuringTransition::create(
         vec!['1', '_'],
         vec!['_'],
         vec![TuringDirection::Right, TuringDirection::Left],
@@ -273,7 +273,7 @@ fn get_test_non_deter_graph() -> TuringMachineGraph {
         .unwrap();
 
     // q_2 -> {0, a => R, a, L} -> q_2
-    transition = TuringTransitionWrapper::create(
+    transition = TuringTransition::create(
         vec!['0', 'a'],
         vec!['a'],
         vec![TuringDirection::Right, TuringDirection::Left],
@@ -284,7 +284,7 @@ fn get_test_non_deter_graph() -> TuringMachineGraph {
         .unwrap();
 
     // q_2 -> {1, a => R, a, L} -> q_2
-    transition = TuringTransitionWrapper::create(
+    transition = TuringTransition::create(
         vec!['1', 'a'],
         vec!['a'],
         vec![TuringDirection::Right, TuringDirection::Left],
@@ -295,7 +295,7 @@ fn get_test_non_deter_graph() -> TuringMachineGraph {
         .unwrap();
 
     // q_2 -> {$, ç => N, ç, N} -> a
-    transition = TuringTransitionWrapper::create(
+    transition = TuringTransition::create(
         vec!['$', 'ç'],
         vec!['ç'],
         vec![TuringDirection::None, TuringDirection::None],
@@ -315,7 +315,7 @@ fn get_small_inf_machine(mode: Mode) -> TuringMachines {
     graph.add_state(q1);
 
     // q_0 -> {ç, ç, => R, ç, R} -> q_1
-    let transition = TuringTransitionWrapper::create(
+    let transition = TuringTransition::create(
         vec!['ç', 'ç'],
         vec!['ç'],
         vec![TuringDirection::Right, TuringDirection::Right],
@@ -326,7 +326,7 @@ fn get_small_inf_machine(mode: Mode) -> TuringMachines {
         .unwrap();
 
     // q_1 -> {1, _, => N, _, N} -> q_1
-    let transition = TuringTransitionWrapper::create(
+    let transition = TuringTransition::create(
         vec!['1', '_'],
         vec!['_'],
         vec![TuringDirection::None, TuringDirection::None],
