@@ -6,9 +6,11 @@ use std::{
 use thiserror::Error;
 
 use crate::{
-    turing_graph::{TuringGraphError, TuringMachineGraph, TuringState, TuringStateInfo, TuringStateType},
+    turing_graph::{
+        TuringGraphError, TuringMachineGraph, TuringState, TuringStateInfo, TuringStateType,
+    },
     turing_tape::{TuringReadingTape, TuringTape, TuringTapeError, TuringWritingTape},
-    turing_transition::{TuringTransition, TuringTransitionError},
+    turing_transition::{TuringTransition, TuringTransitionError, TuringTransitionInfo},
 };
 
 #[derive(Debug, Error)]
@@ -222,7 +224,7 @@ where
             if !exit_condition() {
                 return None;
             }
-            last_step_type = Some(step.get_current_state().state_type.clone());
+            last_step_type = Some(step.get_current_state().get_type().clone());
             match &step {
                 TuringExecutionSteps::FirstIteration {
                     init_state: _,
@@ -277,7 +279,7 @@ where
     T: TuringTransition,
 {
     /// Gets *reference* of the stored turing machine graph.
-    pub fn graph_ref(&self) -> &TuringMachineGraph<S,T> {
+    pub fn graph_ref(&self) -> &TuringMachineGraph<S, T> {
         match self {
             TuringMachines::TuringMachine {
                 graph,
@@ -290,7 +292,7 @@ where
     }
 
     /// Gets *mutable reference* of the stored turing machine graph.
-    pub fn graph_mut(&mut self) -> &mut TuringMachineGraph<S,T> {
+    pub fn graph_mut(&mut self) -> &mut TuringMachineGraph<S, T> {
         match self {
             TuringMachines::TuringMachine {
                 graph,
@@ -631,7 +633,7 @@ pub enum TuringExecutionSteps {
         /// The index of the transition taken from the current state to the next one.
         transition_index_taken: usize,
         /// A clone of the transition that was just taken
-        transition_taken: TuringTransition,
+        transition_taken: TuringTransitionInfo,
         /// A clone representing the current state of the reading tape after taking that transition.
         reading_tape: TuringReadingTape,
         /// A clone representing the current state of the writting tapes after taking that transition.
@@ -657,7 +659,11 @@ pub enum TuringExecutionSteps {
     },
 }
 
-impl Iterator for &mut TuringMachines {
+impl<S, T> Iterator for &mut TuringMachines<S, T>
+where
+    S: TuringState,
+    T: TuringTransition,
+{
     type Item = TuringExecutionSteps;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -675,7 +681,11 @@ impl Iterator for &mut TuringMachines {
     }
 }
 
-fn next_iteration(tm: &mut TuringMachines) -> Option<TuringExecutionSteps> {
+fn next_iteration<S, T>(tm: &mut TuringMachines<S, T>) -> Option<TuringExecutionSteps>
+where
+    S: TuringState,
+    T: TuringTransition,
+{
     let prev_iter = tm.get_iteration();
 
     if let Mode::StopAfter(nb) = tm.get_mode()
@@ -688,11 +698,7 @@ fn next_iteration(tm: &mut TuringMachines) -> Option<TuringExecutionSteps> {
     tm.set_iteration(prev_iter + 1);
 
     // Fetch the current state
-    let curr_state = tm
-        .graph_ref()
-        .get_state(tm.get_state_pointer())
-        .unwrap()
-        .clone();
+    let curr_state = tm.graph_ref().get_state(tm.get_state_pointer()).unwrap();
 
     let mut transition_index_taken = None;
 
@@ -706,14 +712,14 @@ fn next_iteration(tm: &mut TuringMachines) -> Option<TuringExecutionSteps> {
             tm.set_first_iteration(false);
 
             return Some(TuringExecutionSteps::FirstIteration {
-                init_state: curr_state,
+                init_state: curr_state.get_info().clone(),
                 init_reading_tape: tm.get_reading_tape_mut().clone(),
                 init_write_tapes: tm.get_writting_tapes_mut().clone(),
             });
         }
 
         /* Checks if the state is accepting */
-        if let TuringStateType::Accepting = curr_state.state_type {
+        if let TuringStateType::Accepting = curr_state.get_info().get_type() {
             // The iteration is over
             return None;
         }
@@ -727,12 +733,17 @@ fn next_iteration(tm: &mut TuringMachines) -> Option<TuringExecutionSteps> {
             char_vec.push(tape.read_curr_char());
         }
 
-        let mut next_transitions =
-            VecDeque::from(curr_state.get_valid_transitions_indexes(&char_vec));
+        let mut next_transitions = VecDeque::from(
+            tm.graph_ref()
+                .get_valid_transitions(curr_state.get_info().get_id(), char_vec)
+                .expect("state present"),
+        );
 
         // If no transitions can be provided or the current state is rejecting,
         // we reached a *dead end*, go back in the exploration if possible
-        if next_transitions.is_empty() || curr_state.state_type == TuringStateType::Rejecting {
+        if next_transitions.is_empty()
+            || curr_state.get_info().get_type() == TuringStateType::Rejecting
+        {
             if let Mode::StopFirstReject = tm.get_mode() {
                 return None;
             }
@@ -774,11 +785,12 @@ fn next_iteration(tm: &mut TuringMachines) -> Option<TuringExecutionSteps> {
 
                 // Return backtracking info
                 return Some(TuringExecutionSteps::Backtracked {
-                    previous_state: curr_state,
+                    previous_state: curr_state.get_info().clone(),
                     reached_state: tm
                         .graph_ref()
                         .get_state(saved_state.saved_state_index)
                         .unwrap()
+                        .get_info()
                         .clone(),
                     reading_tape: tm.get_reading_tape_mut().clone(),
                     writing_tapes: tm.get_writting_tapes_mut().clone(),
@@ -792,6 +804,7 @@ fn next_iteration(tm: &mut TuringMachines) -> Option<TuringExecutionSteps> {
         // We must save the current state in order to explore all path.
         else if next_transitions.len() >= 2 {
             // take the first transition, save the rest
+
             transition_index_taken = Some(next_transitions.pop_front().unwrap());
 
             let to_save = SavedState {
@@ -924,7 +937,7 @@ impl Display for TuringExecutionSteps {
 }
 
 impl TuringExecutionSteps {
-    pub fn get_current_state(&self) -> &TuringState {
+    pub fn get_current_state(&self) -> &TuringStateInfo {
         match self {
             TuringExecutionSteps::FirstIteration {
                 init_state,
@@ -953,7 +966,7 @@ impl TuringExecutionSteps {
         }
     }
 
-    pub fn get_previous_state(&self) -> Option<&TuringState> {
+    pub fn get_previous_state(&self) -> Option<&TuringStateInfo> {
         match self {
             TuringExecutionSteps::FirstIteration {
                 init_state: _,

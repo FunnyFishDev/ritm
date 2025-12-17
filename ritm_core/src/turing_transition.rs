@@ -48,15 +48,28 @@ impl Display for TuringDirection {
 
 pub trait TuringTransition: Clone + Default + Debug {}
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone)]
 /// A struct representing a transition for a turing machine that has strictly more than **1 tape** :
 /// * `a_0, a_1, ..., a_{n-1} -> D_0, b_1, D_1, b_2, D_2, ..., b_{n-1}, D_{n-1}`
 /// - With :
 ///     * `a_i` : The character *i* being read.
 ///     * `D_i` : Direction to take by taking this transition, see [TuringDirection] for more information.
 ///     * `b_i` : The character to replace the character *i* with.
+/// ## Comparisons
+/// In order to simplify the graph exploration, when compared, only the [`TuringTransitionInfo`] fields will be compared.
 pub struct TuringTransitionWrapper<T: TuringTransition> {
     pub inner_transition: T,
+    pub info: TuringTransitionInfo,
+}
+
+impl<T: TuringTransition> PartialEq for TuringTransitionWrapper<T> {
+    fn eq(&self, other: &Self) -> bool {
+        self.info == other.info
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct TuringTransitionInfo {
     /// The chars that have to be read in order apply the rest of the transition : `a_0,..., a_{n-1}`
     pub chars_read: Vec<char>,
     /// The move to take after writing/reading the character : `D_0`
@@ -65,29 +78,31 @@ pub struct TuringTransitionWrapper<T: TuringTransition> {
     pub chars_write: Vec<(char, TuringDirection)>,
 }
 
-pub struct TuringTransitionUnWrapped {
-    /// The chars that have to be read in order apply the rest of the transition : `a_0,..., a_{n-1}`
-    pub chars_read: Vec<char>,
-    /// The move to take after writing/reading the character : `D_0`
-    pub move_read: TuringDirection,
-    /// The character to replace the character just read : `(b_1, D_1),..., (b_{n-1}, D_{n-1})`
-    pub chars_write: Vec<(char, TuringDirection)>,
+impl<T: TuringTransition> From<TuringTransitionInfo> for TuringTransitionWrapper<T> {
+    fn from(value: TuringTransitionInfo) -> Self {
+        TuringTransitionWrapper {
+            inner_transition: T::default(),
+            info: value,
+        }
+    }
 }
-
 
 impl<T: TuringTransition> TuringTransitionWrapper<T> {
     /// Creates a new [TuringTransitions].
     pub fn new(
-        inner_transition: T,
         char_read: Vec<char>,
         move_read: TuringDirection,
         chars_read_write: Vec<(char, TuringDirection)>,
     ) -> Self {
         Self {
-            inner_transition,
-            chars_read: char_read,
-            move_read,
-            chars_write: chars_read_write,
+            inner_transition: T::default(),
+            info: {
+                TuringTransitionInfo {
+                    chars_read: char_read,
+                    move_read,
+                    chars_write: chars_read_write,
+                }
+            },
         }
     }
 
@@ -99,7 +114,6 @@ impl<T: TuringTransition> TuringTransitionWrapper<T> {
     /// * **chars_write** : The characters to replace the characters read : `b_1, ..., b_{n-1}`
     /// * **directions** : The directions to move the pointers of the tapes : `D_0, ..., D_{n-1}`
     pub fn create(
-        inner_transition: T,
         chars_read: Vec<char>,
         chars_write: Vec<char>,
         directions: Vec<TuringDirection>,
@@ -196,20 +210,22 @@ impl<T: TuringTransition> TuringTransitionWrapper<T> {
         }
 
         Ok(Self {
-            inner_transition,
-            chars_read,
-            move_read,
-            chars_write: chars_write_dir,
+            inner_transition: T::default(),
+            info: TuringTransitionInfo {
+                chars_read,
+                move_read,
+                chars_write: chars_write_dir,
+            },
         })
     }
 
     /// Returns the number of tapes that are going to be affected by this transition.
     pub fn get_number_of_affected_tapes(&self) -> usize {
-        self.chars_write.len() + 1
+        self.info.chars_write.len() + 1
     }
 }
 
-impl<T: TuringTransition> Display for TuringTransitionWrapper<T> {
+impl Display for TuringTransitionInfo {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut char_read = String::from(self.chars_read[0]);
         for i in 1..self.chars_read.len() {
