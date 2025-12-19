@@ -223,6 +223,7 @@ where
         let mut path = Vec::<TuringExecutionSteps>::new();
         let mut last_step_type = None;
         for step in &mut *self {
+            println!("{step}");
             if !exit_condition() {
                 return None;
             }

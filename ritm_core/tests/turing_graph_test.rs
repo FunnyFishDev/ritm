@@ -19,11 +19,11 @@ fn create_graph_test() {
     // Check the final states
     assert_eq!(
         TuringStateType::Accepting,
-        *graph.try_get_state("a").unwrap().get_type()
+        graph.try_get_state("a").unwrap().get_type()
     );
     assert_eq!(
         TuringStateType::Normal,
-        *graph.try_get_state("i").unwrap().get_type()
+        graph.try_get_state("i").unwrap().get_type()
     );
 
     SimpleTuringGraph::new(1, true).unwrap();
@@ -70,44 +70,44 @@ fn add_nodes() {
 
     // Check they already exists
     assert!(matches!(
-        graph.add_state("i", TuringStateType::Normal),
+        graph.try_add_state("i", TuringStateType::Normal),
         Err(TuringGraphError::AlreadyPresentNameError { name: _, state: _ })
     ));
     assert!(matches!(
-        graph.add_state("a", TuringStateType::Normal),
+        graph.try_add_state("a", TuringStateType::Normal),
         Err(TuringGraphError::AlreadyPresentNameError { name: _, state: _ })
     ));
 
     // Add new ones
     assert_eq!(
         graph
-            .add_state("b", TuringStateType::Normal)
+            .try_add_state("b", TuringStateType::Normal)
             .expect("no issues"),
         2
     );
     assert_eq!(
         graph
-            .add_state("c", TuringStateType::Normal)
+            .try_add_state("c", TuringStateType::Normal)
             .expect("no issues"),
         3
     );
     assert_eq!(
         graph
-            .add_state("d", TuringStateType::Accepting)
+            .try_add_state("d", TuringStateType::Accepting)
             .expect("no issues"),
         4
     );
     // // Check they got added
     assert!(matches!(
-        graph.add_state("b", TuringStateType::Normal),
+        graph.try_add_state("b", TuringStateType::Normal),
         Err(TuringGraphError::AlreadyPresentNameError { name: _, state: _ })
     ));
     assert!(matches!(
-        graph.add_state("c", TuringStateType::Normal),
+        graph.try_add_state("c", TuringStateType::Normal),
         Err(TuringGraphError::AlreadyPresentNameError { name: _, state: _ })
     ));
     assert!(matches!(
-        graph.add_state("d", TuringStateType::Normal),
+        graph.try_add_state("d", TuringStateType::Normal),
         Err(TuringGraphError::AlreadyPresentNameError { name: _, state: _ })
     ));
 
@@ -121,13 +121,13 @@ fn get_nodes_test() {
     let mut graph = SimpleTuringGraph::new(1, true).unwrap();
     // Add new nodes
     graph
-        .add_state("b", TuringStateType::Normal)
+        .try_add_state("b", TuringStateType::Normal)
         .expect("no problem");
     graph
-        .add_state("c", TuringStateType::Normal)
+        .try_add_state("c", TuringStateType::Normal)
         .expect("no problem");
     graph
-        .add_state("d", TuringStateType::Accepting)
+        .try_add_state("d", TuringStateType::Accepting)
         .expect("no problem");
 
     // check they get be obtained using an id
@@ -197,10 +197,10 @@ fn add_transitions() {
 
     // add e and o to the graph
     graph
-        .add_state("e", TuringStateType::Normal)
+        .try_add_state("e", TuringStateType::Normal)
         .expect("no errors");
     graph
-        .add_state("o", TuringStateType::Normal)
+        .try_add_state("o", TuringStateType::Normal)
         .expect("no errors");
 
     // Check that the transition didn't already exists
@@ -401,7 +401,7 @@ fn delete_node() {
     .expect("no errors");
 
     graph
-        .add_state("q", TuringStateType::Normal)
+        .try_add_state("q", TuringStateType::Normal)
         .expect("no problem");
 
     graph

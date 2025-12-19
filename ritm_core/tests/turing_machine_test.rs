@@ -1,7 +1,10 @@
-use std::any::Any;
-
 use ritm_core::{
-    SimpleTuringGraph, SimpleTuringMachine, turing_graph::TuringStateType, turing_machine::{Mode, TuringExecutionSteps, TuringMachines}, turing_tape::TuringTape, turing_transition::{TuringDirection, TuringTransition, TuringTransitionInfo}
+    EmptyState, EmptyTransition, SimpleTuringGraph, SimpleTuringMachine,
+    turing_graph::TuringStateType,
+    turing_machine::{Mode, TuringExecutionSteps, TuringMachines},
+    turing_parser::parse_turing_graph_string,
+    turing_tape::TuringTape,
+    turing_transition::{TuringDirection, TuringTransitionInfo},
 };
 
 const TM_ACCEPT_XX: &str = "// Turing machine that only accepts words of the form : xx
@@ -153,7 +156,6 @@ fn stop_first_reject() {
         if counter == 1000 {
             return;
         }
-
         last_step = Some(steps);
     }
 
@@ -199,9 +201,7 @@ fn _get_smaller_non_deter_graph() -> SimpleTuringGraph {
         vec![TuringDirection::Right, TuringDirection::None],
     )
     .unwrap();
-    graph
-        .append_transition(q2, transition.clone(), q2)
-        .unwrap();
+    graph.append_transition(q2, transition.clone(), q2).unwrap();
 
     transition = TuringTransitionInfo::create(
         vec!['0', '_'],
@@ -244,9 +244,7 @@ fn get_test_non_deter_graph() -> SimpleTuringGraph {
         vec![TuringDirection::Right, TuringDirection::Right],
     )
     .unwrap();
-    graph
-        .append_transition(q1, transition.clone(), q1)
-        .unwrap();
+    graph.append_transition(q1, transition.clone(), q1).unwrap();
     // q_1 -> {1, _ => R, a, R} -> q_1
     transition = TuringTransitionInfo::create(
         vec!['1', '_'],
@@ -254,9 +252,7 @@ fn get_test_non_deter_graph() -> SimpleTuringGraph {
         vec![TuringDirection::Right, TuringDirection::Right],
     )
     .unwrap();
-    graph
-        .append_transition(q1, transition.clone(), q1)
-        .unwrap();
+    graph.append_transition(q1, transition.clone(), q1).unwrap();
 
     // q_1 -> {1, _ => R, _, L} -> q_2
     transition = TuringTransitionInfo::create(
@@ -265,9 +261,7 @@ fn get_test_non_deter_graph() -> SimpleTuringGraph {
         vec![TuringDirection::Right, TuringDirection::Left],
     )
     .unwrap();
-    graph
-        .append_transition(q1, transition.clone(), q2)
-        .unwrap();
+    graph.append_transition(q1, transition.clone(), q2).unwrap();
 
     // q_2 -> {0, a => R, a, L} -> q_2
     transition = TuringTransitionInfo::create(
@@ -276,9 +270,7 @@ fn get_test_non_deter_graph() -> SimpleTuringGraph {
         vec![TuringDirection::Right, TuringDirection::Left],
     )
     .unwrap();
-    graph
-        .append_transition(q2, transition.clone(), q2)
-        .unwrap();
+    graph.append_transition(q2, transition.clone(), q2).unwrap();
 
     // q_2 -> {1, a => R, a, L} -> q_2
     transition = TuringTransitionInfo::create(
@@ -287,9 +279,7 @@ fn get_test_non_deter_graph() -> SimpleTuringGraph {
         vec![TuringDirection::Right, TuringDirection::Left],
     )
     .unwrap();
-    graph
-        .append_transition(q2, transition.clone(), q2)
-        .unwrap();
+    graph.append_transition(q2, transition.clone(), q2).unwrap();
 
     // q_2 -> {$, ç => N, ç, N} -> a
     transition = TuringTransitionInfo::create(
@@ -329,139 +319,139 @@ fn get_small_inf_machine(mode: Mode) -> SimpleTuringMachine {
         vec![TuringDirection::None, TuringDirection::None],
     )
     .unwrap();
-    graph
-        .append_transition(q1, transition.clone(), q1)
-        .unwrap();
+    graph.append_transition(q1, transition.clone(), q1).unwrap();
 
     TuringMachines::new(graph, String::from("1"), mode).unwrap()
 }
 
-// #[test]
-// fn get_path_to_accept_test() {
-//     let tm = parse_turing_graph_string(TM_ACCEPT_XX.to_string()).unwrap();
+#[test]
+fn get_path_to_accept_test() {
+    let tm =
+        parse_turing_graph_string::<EmptyState, EmptyTransition>(TM_ACCEPT_XX.to_string()).unwrap();
 
-//     let mut tm = TuringMachines::new(tm, String::from("1010"), Mode::SaveAll).unwrap();
+    let mut tm = TuringMachines::new(tm, String::from("1010"), Mode::SaveAll).unwrap();
 
-//     let mut count = 0;
-//     let path = tm
-//         .get_path_to_accept(|| {
-//             count += 1;
-//             count <= 2000
-//         })
-//         .unwrap();
+    let mut count = 0;
+    let path = tm
+        .get_path_to_accept(|| {
+            count += 1;
+            count <= 2000
+        })
+        .unwrap();
 
-//     let mut path_iter = path.iter();
-//     // Skip first step
-//     let first_step = path_iter.next().unwrap();
+    let mut path_iter = path.iter();
+    // Skip first step
+    let first_step = path_iter.next().unwrap();
 
-//     let mut reading_tape = first_step.get_reading_tape().clone();
-//     let mut writting_tapes = first_step.get_writing_tapes().clone();
+    let mut reading_tape = first_step.get_reading_tape().clone();
+    let mut writting_tapes = first_step.get_writing_tapes().clone();
 
-//     let mut last_step_type = first_step.get_current_state().get_type();
-//     // Check that the path leads to the correct output.
-//     tm.reset();
-//     for step in path_iter {
-//         last_step_type = step.get_current_state().get_type();
-//         match &step {
-//             TuringExecutionSteps::TransitionTaken {
-//                 previous_state: _,
-//                 reached_state: _,
-//                 state_pointer: _,
-//                 transition_index_taken: _,
-//                 transition_taken,
-//                 reading_tape: _,
-//                 writing_tapes: _,
-//                 iteration: _,
-//             } => {
-//                 assert!(
-//                     reading_tape
-//                         .try_apply_transition(
-//                             transition_taken.chars_read[0],
-//                             ' ',
-//                             &transition_taken.move_read
-//                         )
-//                         .unwrap()
-//                 );
-//                 #[allow(clippy::needless_range_loop)]
-//                 for i in 0..(transition_taken.get_number_of_affected_tapes() - 1) {
-//                     assert!(
-//                         writting_tapes[i]
-//                             .try_apply_transition(
-//                                 transition_taken.chars_read[i + 1],
-//                                 transition_taken.chars_write[i].0,
-//                                 &transition_taken.chars_write[i].1
-//                             )
-//                             .unwrap()
-//                     );
-//                 }
-//             }
-//             TuringExecutionSteps::Backtracked {
-//                 previous_state: _,
-//                 reached_state: _,
-//                 state_pointer: _,
-//                 reading_tape: _,
-//                 writing_tapes: _,
-//                 iteration: _,
-//                 backtracked_iteration: _,
-//             } => {
-//                 panic!("No backtracking step was supposed to be found here");
-//             }
-//             TuringExecutionSteps::FirstIteration {
-//                 init_state: _,
-//                 init_reading_tape: _,
-//                 init_write_tapes: _,
-//             } => {
-//                 panic!("Wrong step struct found");
-//             }
-//         }
-//     }
-//     // Of course the last state must also be the accepting one
-//     assert_eq!(TuringStateType::Accepting, last_step_type)
-// }
+    let mut last_step_type = first_step.get_current_state().get_type();
+    // Check that the path leads to the correct output.
+    tm.reset();
+    for step in path_iter {
+        last_step_type = step.get_current_state().get_type();
+        match &step {
+            TuringExecutionSteps::TransitionTaken {
+                previous_state: _,
+                reached_state: _,
+                state_pointer: _,
+                transition_index_taken: _,
+                transition_taken,
+                reading_tape: _,
+                writing_tapes: _,
+                iteration: _,
+            } => {
+                assert!(
+                    reading_tape
+                        .try_apply_transition(
+                            transition_taken.chars_read[0],
+                            ' ',
+                            &transition_taken.move_read
+                        )
+                        .unwrap()
+                );
+                #[allow(clippy::needless_range_loop)]
+                for i in 0..(transition_taken.get_number_of_affected_tapes() - 1) {
+                    assert!(
+                        writting_tapes[i]
+                            .try_apply_transition(
+                                transition_taken.chars_read[i + 1],
+                                transition_taken.chars_write[i].0,
+                                &transition_taken.chars_write[i].1
+                            )
+                            .unwrap()
+                    );
+                }
+            }
+            TuringExecutionSteps::Backtracked {
+                previous_state: _,
+                reached_state: _,
+                state_pointer: _,
+                reading_tape: _,
+                writing_tapes: _,
+                iteration: _,
+                backtracked_iteration: _,
+            } => {
+                panic!("No backtracking step was supposed to be found here");
+            }
+            TuringExecutionSteps::FirstIteration {
+                init_state: _,
+                init_reading_tape: _,
+                init_write_tapes: _,
+            } => {
+                panic!("Wrong step struct found");
+            }
+        }
+    }
+    // Of course the last state must also be the accepting one
+    assert_eq!(TuringStateType::Accepting, last_step_type)
+}
 
-// #[test]
-// fn get_path_to_accept_exit_condition_test() {
-//     // Checks that the exist condition works by using an infinite turing machine
-//     let tm = parse_turing_graph_string(TM_INF.to_string()).unwrap();
+#[test]
+fn get_path_to_accept_exit_condition_test() {
+    // Checks that the exist condition works by using an infinite turing machine
+    let tm = parse_turing_graph_string::<EmptyState, EmptyTransition>(TM_INF.to_string()).unwrap();
 
-//     // Here the mode will not allow the machine to end, therefore only the exit condition can force the execution to stop
-//     let mut tm = TuringMachines::new(tm, String::from("1"), Mode::SaveAll).unwrap();
-//     let mut count = 0;
-//     let path = tm.get_path_to_accept(|| {
-//         count += 1;
-//         count <= 10000
-//     });
+    // Here the mode will not allow the machine to end, therefore only the exit condition can force the execution to stop
+    let mut tm = TuringMachines::new(tm, String::from("1"), Mode::SaveAll).unwrap();
+    let mut count = 0;
+    let path = tm.get_path_to_accept(|| {
+        count += 1;
+        count <= 10000
+    });
 
-//     if path.is_some() {
-//         panic!("Expected no path to be found but a value was returned.");
-//     }
-// }
+    if path.is_some() {
+        panic!("Expected no path to be found but a value was returned.");
+    }
+}
 
-// #[test]
-// fn get_path_to_accept_exit_mode_test() {
-//     // Checks that the exist condition works by using an infinite turing machine
-//     let tm = parse_turing_graph_string(TM_INF.to_string()).unwrap();
+#[test]
+fn get_path_to_accept_exit_mode_test() {
+    // Checks that the exist condition works by using an infinite turing machine
+    let tm = parse_turing_graph_string::<EmptyState, EmptyTransition>(TM_INF.to_string()).unwrap();
 
-//     let mut tm = TuringMachines::new(tm, String::from("1"), Mode::StopAfter(10)).unwrap();
-//     // No exit condition, therefore it could loop forever, if not for the mode
-//     let path = tm.get_path_to_accept(|| true);
+    let mut tm = TuringMachines::new(tm, String::from("1"), Mode::StopAfter(10)).unwrap();
+    // No exit condition, therefore it could loop forever, if not for the mode
+    let path = tm.get_path_to_accept(|| true);
 
-//     if path.is_some() {
-//         panic!("Expected no path to be found but a value was returned.");
-//     }
-// }
+    if path.is_some() {
+        panic!("Expected no path to be found but a value was returned.");
+    }
+}
 
-// #[test]
-// fn get_path_to_accept_rejected_test() {
-//     let tm = parse_turing_graph_string(TM_ACCEPT_XX.to_string()).unwrap();
+#[test]
+fn get_path_to_accept_rejected_test() {
+    let tm =
+        parse_turing_graph_string::<EmptyState, EmptyTransition>(TM_ACCEPT_XX.to_string()).unwrap();
 
-//     let mut tm = TuringMachines::new(tm, String::from("10101"), Mode::SaveAll).unwrap();
+    let mut tm = TuringMachines::new(tm, String::from("10101"), Mode::SaveAll).unwrap();
 
-//     // Checks that it returns none when no path exists (no inf loop here)
+    // Checks that it returns none when no path exists (no inf loop here)
 
-//     let path = tm.get_path_to_accept(|| true);
+    let path = tm.get_path_to_accept(|| true);
 
-//     if path.is_some() {
-//         panic!("Expected no path to be found but a value was returned.");
-//     }
-// }
+    if path.is_some() {
+        panic!("Expected no path to be found but a value was returned.");
+    }
+}

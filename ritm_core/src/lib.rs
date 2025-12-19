@@ -12,11 +12,11 @@ pub mod turing_tape;
 
 pub mod turing_index;
 
-// pub mod turing_parser;
+pub mod turing_parser;
 
 pub mod turing_transition;
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq)]
 pub struct EmptyState;
 
 #[derive(Debug, Clone, Default, PartialEq)]

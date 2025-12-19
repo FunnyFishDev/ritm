@@ -4,9 +4,9 @@ use std::{fmt::Display, fs, io};
 use thiserror::Error;
 
 use crate::{
-    turing_graph::TuringMachineGraph,
+    turing_graph::{TuringMachineGraph, TuringState, TuringStateType},
     turing_machine::TuringMachineError,
-    turing_transition::{TuringDirection, TuringTransition},
+    turing_transition::{TuringDirection, TuringTransition, TuringTransitionInfo},
 };
 
 #[derive(Debug, Error)]
@@ -24,7 +24,7 @@ pub enum TuringParserError {
     /// Error when a [`TuringMachineError`] was encountered **while** parsing a string value
     TuringError {
         line_col_pos: Option<(usize, usize)>,
-        turing_error: TuringMachineError,
+        turing_error: Box<TuringMachineError>,
         value: String,
     },
 }
@@ -85,21 +85,16 @@ pub struct TuringGrammar;
 
 /// Parses a turing machine graph from the content of a file.
 ///
-/// Important to note that if the given string is empty, then an empty [`TuringMachineGraph`] with a *k* of 1 is returned.
-pub fn parse_turing_graph_file_path(
+/// Important to note that if the given string is empty, then a default [`TuringMachineGraph`] will be returned.
+pub fn parse_turing_graph_file_path<S, T>(
     file_path: String,
-) -> Result<TuringMachineGraph, TuringParserError> {
+) -> Result<TuringMachineGraph<S, T>, TuringParserError>
+where
+    S: TuringState,
+    T: TuringTransition,
+{
     if file_path.trim().is_empty() {
-        match TuringMachineGraph::new(1) {
-            Ok(tm) => return Ok(tm),
-            Err(e) => {
-                return Err(TuringParserError::TuringError {
-                    line_col_pos: None,
-                    turing_error: e.into(),
-                    value: String::new(),
-                });
-            }
-        };
+        return Ok(TuringMachineGraph::default());
     }
     match fs::read_to_string(&file_path) {
         Ok(unparsed_file) => parse_turing_graph_string(unparsed_file),
@@ -113,9 +108,13 @@ pub fn parse_turing_graph_file_path(
 /// Parses a turing machine graph from the content of a string.
 ///
 /// Important to note that if the given string is empty, then an empty [TuringMachineGraph] with a *k* of 1 is returned.
-pub fn parse_turing_graph_string(
+pub fn parse_turing_graph_string<S, T>(
     turing_mach: String,
-) -> Result<TuringMachineGraph, TuringParserError> {
+) -> Result<TuringMachineGraph<S, T>, TuringParserError>
+where
+    S: TuringState,
+    T: TuringTransition,
+{
     let file = TuringGrammar::parse(Rule::turing_machine, &turing_mach);
     if let Err(e) = file {
         return Err(TuringParserError::ParsingError {
@@ -126,7 +125,7 @@ pub fn parse_turing_graph_string(
     }
     let file = file.unwrap().next().unwrap(); // get and unwrap the `file` rule; never fails
 
-    let mut turing_machine: Option<TuringMachineGraph> = None;
+    let mut turing_machine: Option<TuringMachineGraph<S, T>> = None;
 
     for turing_machine_rule in file.into_inner() {
         let rule_cp = turing_machine_rule.clone();
@@ -147,12 +146,13 @@ pub fn parse_turing_graph_string(
                             .expect("At least one rule should be given in a transition")
                             .get_number_of_affected_tapes()
                             - 1,
+                        true,
                     );
 
                     if let Err(e) = tm {
                         return Err(TuringParserError::TuringError {
                             line_col_pos: Some(rule_cp.line_col()),
-                            turing_error: e.into(),
+                            turing_error: Box::new(e.into()),
                             value: rule_cp.as_str().to_string(),
                         });
                     }
@@ -162,14 +162,14 @@ pub fn parse_turing_graph_string(
                 if let Some(mt) = &mut turing_machine {
                     // Add the states to the mt (if they didn't already exists)
                     // and get their index
-                    let var1 = mt.add_state(&from_var);
-                    let var2 = mt.add_state(&to_var);
+                    let var1 = mt.add_state(&from_var, TuringStateType::Normal);
+                    let var2 = mt.add_state(&to_var, TuringStateType::Normal);
                     // Adds all the collected transitions for these states
                     for transition in transitions {
-                        if let Err(e) = mt.append_rule_state(var1, transition, var2) {
+                        if let Err(e) = mt.append_transition(var1, transition, var2) {
                             return Err(TuringParserError::TuringError {
                                 line_col_pos: Some(rule_cp.line_col()),
-                                turing_error: e.into(),
+                                turing_error: Box::new(e.into()),
                                 value: rule_cp.as_str().to_string(),
                             });
                         }
@@ -185,7 +185,7 @@ pub fn parse_turing_graph_string(
     match turing_machine {
         Some(t) => Ok(t),
         // If no parse value was given, simply return a read only one
-        None => Ok(TuringMachineGraph::new(1).unwrap()),
+        None => Ok(TuringMachineGraph::default()),
     }
 }
 
@@ -194,12 +194,12 @@ pub fn parse_turing_graph_string(
 /// * Or even :  `q_i { transition_0 | ... | transition_n } q_j`
 ///
 /// Where each `transition` follows the form :  `a_0, a_1, ..., a_{n-1} -> D_0, b_1, D_1, b_2, D_2, ..., b_{n-1}, D_{n-1}`.
-/// For more information look at the documentation of the structure [`TuringTransition`].
+/// For more information look at the documentation of the structure [`TuringTransitionInfo`].
 ///
 /// When giving multiple transitions, each one must affect the same number of tapes or an error will be returned.
 pub fn parse_transition_string(
     to_parse: String,
-) -> Result<(String, Vec<TuringTransition>, String), TuringParserError> {
+) -> Result<(String, Vec<TuringTransitionInfo>, String), TuringParserError> {
     let parsed = TuringGrammar::parse(Rule::transition_only, &to_parse);
     if let Err(e) = parsed {
         return Err(TuringParserError::ParsingError {
@@ -215,7 +215,7 @@ pub fn parse_transition_string(
 /// For more information look at the documentation of the structure [TuringTransition]
 pub fn parse_transition_content_string(
     transition: String,
-) -> Result<TuringTransition, TuringParserError> {
+) -> Result<TuringTransitionInfo, TuringParserError> {
     let parsed = TuringGrammar::parse(Rule::turing_machine, &transition);
     if let Err(e) = parsed {
         return Err(TuringParserError::ParsingError {
@@ -230,7 +230,7 @@ pub fn parse_transition_content_string(
 
 fn parse_transition(
     rule: Pair<Rule>,
-) -> Result<(String, Vec<TuringTransition>, String), TuringParserError> {
+) -> Result<(String, Vec<TuringTransitionInfo>, String), TuringParserError> {
     let mut transitions = vec![];
     let mut to_var = String::new();
     let mut from_var = String::new();
@@ -259,7 +259,7 @@ fn parse_transition(
 
                     return Err(TuringParserError::TuringError {
                         line_col_pos: Some(rule_cp.line_col()),
-                        turing_error: e,
+                        turing_error: Box::new(e),
                         value: rule_cp.as_str().to_string(),
                     });
                 }
@@ -280,7 +280,7 @@ fn parse_str_token(rule: Pair<Rule>) -> String {
     }
 }
 
-fn parse_transition_content(rule: Pair<Rule>) -> Result<TuringTransition, TuringMachineError> {
+fn parse_transition_content(rule: Pair<Rule>) -> Result<TuringTransitionInfo, TuringMachineError> {
     let mut chars_read: Vec<char> = vec![];
     let mut directions: Vec<TuringDirection> = vec![];
     let mut chars_written: Vec<char> = vec![];
@@ -318,7 +318,7 @@ fn parse_transition_content(rule: Pair<Rule>) -> Result<TuringTransition, Turing
         }
     }
 
-    Ok(TuringTransition::create(
+    Ok(TuringTransitionInfo::create(
         chars_read,
         chars_written,
         directions,
@@ -359,33 +359,41 @@ fn get_line_col(error: &Error<Rule>) -> Option<(usize, usize)> {
 /// The returned value can then be parsed by the parser to return the same graph.
 ///
 /// This function is therefore very useful to save graphs.
-pub fn graph_to_string(tm: &TuringMachineGraph) -> String {
-    let mut res = String::new();
+pub fn graph_to_string<S, T>(tm: &TuringMachineGraph<S, T>) -> String
+where
+    S: TuringState,
+    T: TuringTransition,
+{
+    let mut res = String::from("States:\n");
 
-    // Print all transitions btw states
-    for (q1, i1) in tm.get_name_index_hashmap() {
-        for (q2, i2) in tm.get_name_index_hashmap() {
-            let transitions = tm.get_transitions_by_index(*i1, *i2).unwrap();
-            if transitions.is_empty() {
-                continue;
-            }
-            res.push_str(format!("q_{} {} ", q1, '{').as_str());
-            let spaces = 3 + q1.len();
-
-            for i in 0..transitions.len() - 1 {
-                res.push_str(
-                    format!("{} \n{}| ", transitions.get(i).unwrap(), " ".repeat(spaces)).as_str(),
-                );
-            }
-            // add last
-            res.push_str(format!("{} ", transitions.last().unwrap()).as_str());
-
-            res.push_str(format!("{} q_{};\n\n", "}", q2).as_str());
-        }
+    // Print all states
+    for state in tm.get_state_hashmap().values() {
+        res.push_str(format!("{}: {}\n", state.get_name(), state.get_type()).as_str());
     }
-    if !res.is_empty() {
-        // remove extra '\n'
-        res.pop().unwrap();
+
+    res.push_str("\nTransitions:\n");
+    let mut res_tr = String::new();
+    // Print all transitions btw states
+    for ((q1, q2), transitions) in tm.get_transitions_hashmap() {
+        if transitions.is_empty() {
+            continue;
+        }
+        let q1 = &tm.get_state_hashmap()[q1];
+        let q2 = &tm.get_state_hashmap()[q2];
+        res_tr.push_str(format!("q_{} {} ", q1.get_name(), '{').as_str());
+        let spaces = 3 + q1.get_name().len();
+        for transition in transitions.iter().take(transitions.len() - 1) {
+            res_tr.push_str(format!("{} \n{}| ", transition.info, " ".repeat(spaces)).as_str());
+        }
+        // add last
+        res_tr.push_str(format!("{} ", transitions.last().unwrap().info).as_str());
+
+        res_tr.push_str(format!("{} q_{};\n\n", "}", q2.get_name()).as_str());
+    }
+    if res_tr.is_empty() {
+        res.push_str("None");
+    } else {
+        res.push_str(res_tr.as_str());
     }
 
     res

@@ -1,3 +1,4 @@
+use indexmap::IndexMap;
 use thiserror::Error;
 
 use crate::{
@@ -5,10 +6,7 @@ use crate::{
     turing_tape::TuringTapeError,
     turing_transition::{TuringTransition, TuringTransitionInfo, TuringTransitionWrapper},
 };
-use std::{
-    collections::HashMap,
-    fmt::{Debug, Display},
-};
+use std::fmt::{Debug, Display};
 
 #[derive(Debug, Error)]
 pub enum TuringGraphError {
@@ -76,7 +74,11 @@ pub trait TuringState: Clone + Default + Debug {
 
 impl Display for TuringStateInfo {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "({}, id: {}, type: {})", self.name, self.id, self.state_type)
+        write!(
+            f,
+            "({}, id: {}, type: {})",
+            self.name, self.id, self.state_type
+        )
     }
 }
 
@@ -104,8 +106,8 @@ impl<S: TuringState> TuringStateWrapper<S> {
     pub fn get_name(&self) -> &String {
         &self.info.name
     }
-    pub fn get_type(&self) -> &TuringStateType {
-        &self.info.state_type
+    pub fn get_type(&self) -> TuringStateType {
+        self.info.state_type.clone()
     }
     pub fn get_id(&self) -> usize {
         self.info.id
@@ -138,13 +140,19 @@ where
     S: TuringState,
     T: TuringTransition,
 {
-    state_hashmap: HashMap<usize, TuringStateWrapper<S>>,
-    transition_hasmap: HashMap<(usize, usize), Vec<TuringTransitionWrapper<T>>>,
+    state_hashmap: IndexMap<usize, TuringStateWrapper<S>>,
+    transition_hasmap: IndexMap<(usize, usize), Vec<TuringTransitionWrapper<T>>>,
 
     next_state_index: usize,
 
     /// The number of tapes this graph was made for
     k: usize,
+}
+
+impl<S: TuringState, T: TuringTransition> Default for TuringMachineGraph<S, T> {
+    fn default() -> Self {
+        Self::new(1, true).expect("correct for one work ribbon")
+    }
 }
 
 impl<S: TuringState> TuringStateWrapper<S> {
@@ -186,7 +194,7 @@ where
             return Err(TuringGraphError::NotEnoughTapesError);
         }
         // Add the default states
-        let mut state_hashmap = HashMap::new();
+        let mut state_hashmap = IndexMap::new();
 
         // Always adds init
         state_hashmap.insert(
@@ -206,7 +214,7 @@ where
 
         Ok(Self {
             state_hashmap,
-            transition_hasmap: HashMap::new(),
+            transition_hasmap: IndexMap::new(),
             next_state_index,
             k,
         })
@@ -254,7 +262,7 @@ where
     }
 
     /// Adds a new state to the turing machine graph and returns its index. Meaning a new node is added to the graph.
-    pub fn add_state(
+    pub fn try_add_state(
         &mut self,
         name: impl ToString,
         state_type: TuringStateType,
@@ -265,6 +273,15 @@ where
                 name,
                 state: self.get_state(index).expect("is present").info.clone(),
             }),
+            None => Ok(self.add_state(name, state_type)),
+        }
+    }
+
+    /// Adds a new state to the turing machine graph and returns its index. And if the state was already present then its index nor is type will be affected.
+    pub fn add_state(&mut self, name: impl ToString, state_type: TuringStateType) -> usize {
+        let name = name.to_string();
+        match self.get_state_index(&name) {
+            Some(index) => index,
             None => {
                 self.state_hashmap.insert(
                     self.next_state_index,
@@ -276,7 +293,7 @@ where
                     ),
                 );
                 self.next_state_index += 1;
-                Ok(self.next_state_index - 1)
+                self.next_state_index - 1
             }
         }
     }
@@ -417,7 +434,7 @@ where
         let to_from = self.try_get_state(to)?.info.id;
 
         // Remove all transitions from n1 to n2
-        self.transition_hasmap.remove(&(state_from, to_from));
+        self.transition_hasmap.swap_remove(&(state_from, to_from));
         Ok(())
     }
 
@@ -476,10 +493,10 @@ where
             .collect();
 
         for key in keys_to_remove {
-            self.transition_hasmap.remove(&key);
+            self.transition_hasmap.swap_remove(&key);
         }
         // Finally remove the state itself
-        self.state_hashmap.remove(&state_id);
+        self.state_hashmap.swap_remove(&state_id);
         Ok(())
     }
 
@@ -487,7 +504,7 @@ where
         self.k
     }
 
-    pub fn get_state_hashmap(&self) -> &HashMap<usize, TuringStateWrapper<S>> {
+    pub fn get_state_hashmap(&self) -> &IndexMap<usize, TuringStateWrapper<S>> {
         &self.state_hashmap
     }
 
@@ -521,7 +538,7 @@ where
 
     pub fn get_transitions_hashmap(
         &self,
-    ) -> &HashMap<(usize, usize), Vec<TuringTransitionWrapper<T>>> {
+    ) -> &IndexMap<(usize, usize), Vec<TuringTransitionWrapper<T>>> {
         &self.transition_hasmap
     }
 }
