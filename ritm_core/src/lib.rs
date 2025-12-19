@@ -9,6 +9,8 @@ pub mod turing_graph;
 
 pub mod turing_tape;
 
+pub mod turing_index;
+
 // pub mod turing_parser;
 
 pub mod turing_transition;
@@ -16,7 +18,7 @@ pub mod turing_transition;
 #[derive(Debug, Clone, Default)]
 pub struct EmptyState;
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq)]
 pub struct EmptyTransition;
 
 impl TuringState for EmptyState {

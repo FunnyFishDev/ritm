@@ -46,9 +46,9 @@ impl Display for TuringDirection {
     }
 }
 
-pub trait TuringTransition: Clone + Default + Debug {}
+pub trait TuringTransition: Clone + Default + Debug + PartialEq {}
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 /// A struct representing a transition for a turing machine that has strictly more than **1 tape** :
 /// * `a_0, a_1, ..., a_{n-1} -> D_0, b_1, D_1, b_2, D_2, ..., b_{n-1}, D_{n-1}`
 /// - With :
@@ -60,12 +60,6 @@ pub trait TuringTransition: Clone + Default + Debug {}
 pub struct TuringTransitionWrapper<T: TuringTransition> {
     pub inner_transition: T,
     pub info: TuringTransitionInfo,
-}
-
-impl<T: TuringTransition> PartialEq for TuringTransitionWrapper<T> {
-    fn eq(&self, other: &Self) -> bool {
-        self.info == other.info
-    }
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -87,7 +81,7 @@ impl<T: TuringTransition> From<TuringTransitionInfo> for TuringTransitionWrapper
     }
 }
 
-impl<T: TuringTransition> TuringTransitionWrapper<T> {
+impl TuringTransitionInfo {
     /// Creates a new [TuringTransitions].
     pub fn new(
         char_read: Vec<char>,
@@ -95,14 +89,9 @@ impl<T: TuringTransition> TuringTransitionWrapper<T> {
         chars_read_write: Vec<(char, TuringDirection)>,
     ) -> Self {
         Self {
-            inner_transition: T::default(),
-            info: {
-                TuringTransitionInfo {
-                    chars_read: char_read,
-                    move_read,
-                    chars_write: chars_read_write,
-                }
-            },
+            chars_read: char_read,
+            move_read,
+            chars_write: chars_read_write,
         }
     }
 
@@ -210,18 +199,15 @@ impl<T: TuringTransition> TuringTransitionWrapper<T> {
         }
 
         Ok(Self {
-            inner_transition: T::default(),
-            info: TuringTransitionInfo {
-                chars_read,
-                move_read,
-                chars_write: chars_write_dir,
-            },
+            chars_read,
+            move_read,
+            chars_write: chars_write_dir,
         })
     }
 
     /// Returns the number of tapes that are going to be affected by this transition.
     pub fn get_number_of_affected_tapes(&self) -> usize {
-        self.info.chars_write.len() + 1
+        self.chars_write.len() + 1
     }
 }
 

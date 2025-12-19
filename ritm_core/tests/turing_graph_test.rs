@@ -1,17 +1,16 @@
 use ritm_core::{
-    SimpleTuringGraph,
-    turing_graph::{TuringGraphError, TuringGraphIndex, TuringMachineGraph, TuringStateType},
-    turing_transition::{
-        TuringDirection, TuringTransition, TuringTransitionInfo, TuringTransitionWrapper,
-    },
+    EmptyTransition, SimpleTuringGraph,
+    turing_graph::{TuringGraphError, TuringStateType},
+    turing_index::TuringStateIndex,
+    turing_transition::{TuringDirection, TuringTransitionInfo, TuringTransitionWrapper},
 };
 
 #[test]
 fn create_graph_test() {
     let graph = SimpleTuringGraph::new(2, true).unwrap();
 
-    assert_eq!(graph.get_state("i").expect("present").get_id(), 0);
-    assert_eq!(graph.get_state("a").expect("present").get_id(), 1);
+    assert_eq!(graph.try_get_state("i").expect("present").get_id(), 0);
+    assert_eq!(graph.try_get_state("a").expect("present").get_id(), 1);
 
     assert!(matches!(
         SimpleTuringGraph::new(0, false),
@@ -20,11 +19,11 @@ fn create_graph_test() {
     // Check the final states
     assert_eq!(
         TuringStateType::Accepting,
-        *graph.get_state("a").unwrap().get_type()
+        *graph.try_get_state("a").unwrap().get_type()
     );
     assert_eq!(
         TuringStateType::Normal,
-        *graph.get_state("i").unwrap().get_type()
+        *graph.try_get_state("i").unwrap().get_type()
     );
 
     SimpleTuringGraph::new(1, true).unwrap();
@@ -35,11 +34,15 @@ fn create_graph_no_accepting_test() {
     let graph = SimpleTuringGraph::new(2, false).unwrap();
 
     assert_eq!(
-        graph.get_state("i").expect("present").get_info().get_id(),
+        graph
+            .try_get_state("i")
+            .expect("present")
+            .get_info()
+            .get_id(),
         0
     );
     assert!(matches!(
-        graph.get_state("a"),
+        graph.try_get_state("a"),
         Err(TuringGraphError::UnknownStateIndex { accessed_index: _ })
     ));
 }
@@ -66,56 +69,96 @@ fn add_nodes() {
     let mut graph = SimpleTuringGraph::new(1, true).unwrap();
 
     // Check they already exists
-    assert_eq!(graph.add_state("i", TuringStateType::Normal), 0);
-    assert_eq!(graph.add_state("a", TuringStateType::Normal), 1);
+    assert!(matches!(
+        graph.add_state("i", TuringStateType::Normal),
+        Err(TuringGraphError::AlreadyPresentNameError { name: _, state: _ })
+    ));
+    assert!(matches!(
+        graph.add_state("a", TuringStateType::Normal),
+        Err(TuringGraphError::AlreadyPresentNameError { name: _, state: _ })
+    ));
 
     // Add new ones
-    assert_eq!(graph.add_state("b", TuringStateType::Normal), 2);
-    assert_eq!(graph.add_state("c", TuringStateType::Normal), 3);
-    assert_eq!(graph.add_state("d", TuringStateType::Accepting), 4);
-    // Check they got the correct index
-    assert_eq!(graph.add_state("b", TuringStateType::Accepting), 2);
-    assert_eq!(graph.add_state("c", TuringStateType::Accepting), 3);
-    assert_eq!(graph.add_state("d", TuringStateType::Accepting), 4);
+    assert_eq!(
+        graph
+            .add_state("b", TuringStateType::Normal)
+            .expect("no issues"),
+        2
+    );
+    assert_eq!(
+        graph
+            .add_state("c", TuringStateType::Normal)
+            .expect("no issues"),
+        3
+    );
+    assert_eq!(
+        graph
+            .add_state("d", TuringStateType::Accepting)
+            .expect("no issues"),
+        4
+    );
+    // // Check they got added
+    assert!(matches!(
+        graph.add_state("b", TuringStateType::Normal),
+        Err(TuringGraphError::AlreadyPresentNameError { name: _, state: _ })
+    ));
+    assert!(matches!(
+        graph.add_state("c", TuringStateType::Normal),
+        Err(TuringGraphError::AlreadyPresentNameError { name: _, state: _ })
+    ));
+    assert!(matches!(
+        graph.add_state("d", TuringStateType::Normal),
+        Err(TuringGraphError::AlreadyPresentNameError { name: _, state: _ })
+    ));
+
+    assert_eq!(graph.get_state("b").expect("no issues").get_id(), 2);
+    assert_eq!(graph.get_state("c").expect("no issues").get_id(), 3);
+    assert_eq!(graph.get_state("d").expect("no issues").get_id(), 4);
 }
 
 #[test]
 fn get_nodes_test() {
     let mut graph = SimpleTuringGraph::new(1, true).unwrap();
     // Add new nodes
-    assert_eq!(graph.add_state("b", TuringStateType::Normal), 2);
-    assert_eq!(graph.add_state("c", TuringStateType::Normal), 3);
-    assert_eq!(graph.add_state("d", TuringStateType::Accepting), 4);
+    graph
+        .add_state("b", TuringStateType::Normal)
+        .expect("no problem");
+    graph
+        .add_state("c", TuringStateType::Normal)
+        .expect("no problem");
+    graph
+        .add_state("d", TuringStateType::Accepting)
+        .expect("no problem");
 
     // check they get be obtained using an id
-    assert_eq!(graph.get_state(2).unwrap().get_name().clone(), "b");
-    assert_eq!(graph.get_state(3).unwrap().get_name().clone(), "c");
-    assert_eq!(graph.get_state(4).unwrap().get_name().clone(), "d");
+    assert_eq!(graph.try_get_state(2).unwrap().get_name().clone(), "b");
+    assert_eq!(graph.try_get_state(3).unwrap().get_name().clone(), "c");
+    assert_eq!(graph.try_get_state(4).unwrap().get_name().clone(), "d");
 
     // or their name
-    assert_eq!(graph.get_state("b").unwrap().get_name().clone(), "b");
-    assert_eq!(graph.get_state("c").unwrap().get_name().clone(), "c");
-    assert_eq!(graph.get_state("d").unwrap().get_name().clone(), "d");
+    assert_eq!(graph.try_get_state("b").unwrap().get_name().clone(), "b");
+    assert_eq!(graph.try_get_state("c").unwrap().get_name().clone(), "c");
+    assert_eq!(graph.try_get_state("d").unwrap().get_name().clone(), "d");
 
     // Check they aren't final
     assert_eq!(
         TuringStateType::Normal,
-        graph.get_state("b").unwrap().get_type().clone()
+        graph.try_get_state("b").unwrap().get_type().clone()
     );
     assert_eq!(
         TuringStateType::Normal,
-        graph.get_state("c").unwrap().get_type().clone()
+        graph.try_get_state("c").unwrap().get_type().clone()
     );
     assert_eq!(
         TuringStateType::Accepting,
-        graph.get_state("d").unwrap().get_type().clone()
+        graph.try_get_state("d").unwrap().get_type().clone()
     );
 }
 
 #[test]
 fn add_transitions() {
     let mut graph = SimpleTuringGraph::new(1, true).unwrap();
-    let transition = TuringTransitionWrapper::create(
+    let transition = TuringTransitionInfo::create(
         vec!['ç', 'ç'],
         vec!['ç'],
         vec![TuringDirection::None, TuringDirection::Right],
@@ -134,8 +177,8 @@ fn add_transitions() {
             1,
         ),
         Err(TuringGraphError::UnknownStateIndex { accessed_index } ) if match &accessed_index {
-            ritm_core::turing_graph::TuringGraphIndex::ID(_) => panic!("this is not an id"),
-            ritm_core::turing_graph::TuringGraphIndex::Name(val) => val,
+            TuringStateIndex::ID(_) => panic!("this is not an id"),
+            TuringStateIndex::Value(val) => val,
                     } == "e"
     ));
 
@@ -147,14 +190,18 @@ fn add_transitions() {
             "o",
         ),
         Err(TuringGraphError::UnknownStateIndex { accessed_index } ) if match &accessed_index {
-            ritm_core::turing_graph::TuringGraphIndex::ID(_) => panic!("this is not an id"),
-            ritm_core::turing_graph::TuringGraphIndex::Name(val) => val,
+            TuringStateIndex::ID(_) => panic!("this is not an id"),
+            TuringStateIndex::Value(val) => val,
                     } == "o"
     ));
 
     // add e and o to the graph
-    graph.add_state("e", TuringStateType::Normal);
-    graph.add_state("o", TuringStateType::Normal);
+    graph
+        .add_state("e", TuringStateType::Normal)
+        .expect("no errors");
+    graph
+        .add_state("o", TuringStateType::Normal)
+        .expect("no errors");
 
     // Check that the transition didn't already exists
     assert!(
@@ -173,7 +220,7 @@ fn add_transitions() {
         graph
             .get_transitions("e", "o")
             .expect("value expected here")
-            .is_some_and(|val| { val.len() == 1 && val[0].info == transition.info })
+            .is_some_and(|val| { val.len() == 1 && val[0].info == transition })
     );
 
     // Add the same transition again
@@ -191,14 +238,14 @@ fn add_transitions() {
 #[test]
 fn delete_transitions() {
     let mut graph = SimpleTuringGraph::new(1, true).unwrap();
-    let t1 = TuringTransitionWrapper::create(
+    let t1 = TuringTransitionInfo::create(
         vec!['ç', 'ç'],
         vec!['ç'],
         vec![TuringDirection::None, TuringDirection::Right],
     )
     .unwrap();
 
-    let t2 = TuringTransitionWrapper::create(
+    let t2 = TuringTransitionInfo::create(
         vec!['ç', '_'],
         vec!['_'],
         vec![TuringDirection::None, TuringDirection::Right],
@@ -209,19 +256,19 @@ fn delete_transitions() {
     graph.append_transition("i", t2.clone(), "a").unwrap();
 
     assert!(matches!(
-        graph.remove_transition("i", &t1, "d"),
+        graph.remove_transition("i", t1.clone(), "d"),
         Err(TuringGraphError::UnknownStateIndex {
             accessed_index
-         } ) if accessed_index == TuringGraphIndex::from("d")
+         } ) if accessed_index == TuringStateIndex::from("d")
     ));
 
     assert!(matches!(
-        graph.remove_transition("d", &t1, "a"),
-        Err(TuringGraphError::UnknownStateIndex { accessed_index } ) if accessed_index == TuringGraphIndex::from("d")
+        graph.remove_transition("d", t1.clone(), "a"),
+        Err(TuringGraphError::UnknownStateIndex { accessed_index } ) if accessed_index == TuringStateIndex::from("d")
     ));
 
     // Remove transition
-    graph.remove_transition("i", &t1, "a").unwrap();
+    graph.remove_transition("i", t1.clone(), "a").unwrap();
 
     // Check that it was indeed removed
     assert!(
@@ -240,69 +287,252 @@ fn delete_transitions() {
             .first()
             .expect("at least one element")
             .info,
-        t2.info
+        t2
     );
 }
 
-// #[test]
-// fn delete_all_transitions_two_nodes() {
-//     let mut graph = SimpleTuringGraph::new(1).unwrap();
-//     let t1 = TuringTransition::create(
-//         vec!['ç', 'ç'],
-//         vec!['ç'],
-//         vec![TuringDirection::None, TuringDirection::Right],
-//     )
-//     .unwrap();
-//     let t2 = TuringTransition::create(
-//         vec!['ç', '_'],
-//         vec!['_'],
-//         vec![TuringDirection::None, TuringDirection::Right],
-//     )
-//     .unwrap();
-//     let t3 = TuringTransition::create(
-//         vec!['_', '_'],
-//         vec!['_'],
-//         vec![TuringDirection::None, TuringDirection::Right],
-//     )
-//     .unwrap();
+#[test]
+fn delete_transitions_with_indexes() {
+    let mut graph = SimpleTuringGraph::new(1, true).unwrap();
+    let t1 = TuringTransitionInfo::create(
+        vec!['ç', 'ç'],
+        vec!['ç'],
+        vec![TuringDirection::None, TuringDirection::Right],
+    )
+    .unwrap();
 
-//     graph
-//         .append_rule_state_by_name("i", t1.clone(), "a")
-//         .unwrap();
-//     graph
-//         .append_rule_state_by_name("i", t2.clone(), "a")
-//         .unwrap();
-//     graph
-//         .append_rule_state_by_name("i", t3.clone(), "i")
-//         .unwrap(); // i -> i
+    let t2 = TuringTransitionInfo::create(
+        vec!['ç', '_'],
+        vec!['_'],
+        vec![TuringDirection::None, TuringDirection::Right],
+    )
+    .unwrap();
 
-//     // Removes all transitions btw 'i' and 'a'
-//     graph.remove_transitions("i", "a").unwrap();
+    graph.append_transition("i", t1.clone(), "a").unwrap();
+    graph.append_transition("i", t2.clone(), "a").unwrap();
 
-//     // (note: index of 'i' is 0)
-//     assert!(graph.get_state(0).unwrap().get_transitions_to(1).is_empty());
+    // Remove transition
+    graph.remove_transition("i", 1, "a").unwrap();
 
-//     // check that i -> i, is still here
-//     assert_eq!(
-//         *graph
-//             .get_state(0)
-//             .unwrap()
-//             .get_transitions_to(0)
-//             .first()
+    // Check that it was indeed removed
+    assert!(
+        graph
+            .get_valid_transitions("i", vec!('ç', '_'))
+            .expect("no errors")
+            .is_empty()
+    );
 
-//     ); // only q -> p, should be left
+    // and that the other one is still present
+    assert_eq!(
+        graph
+            .get_transitions(0, 1)
+            .expect("no errors")
+            .expect("present")
+            .first()
+            .expect("at least one element")
+            .info,
+        t1
+    );
+}
 
-//     // Check that the indexes of 'q' and 'p' are also changed
-//     assert_eq!(graph.add_state("p"), ind_p - 1);
-//     assert_eq!(graph.add_state("q"), ind_q - 1);
+#[test]
+fn delete_all_transitions_two_nodes() {
+    let mut graph = SimpleTuringGraph::new(1, true).unwrap();
+    let t1 = TuringTransitionInfo::create(
+        vec!['ç', 'ç'],
+        vec!['ç'],
+        vec![TuringDirection::None, TuringDirection::Right],
+    )
+    .unwrap();
+    let t2 = TuringTransitionInfo::create(
+        vec!['ç', '_'],
+        vec!['_'],
+        vec![TuringDirection::None, TuringDirection::Right],
+    )
+    .unwrap();
+    let t3 = TuringTransitionInfo::create(
+        vec!['_', '_'],
+        vec!['_'],
+        vec![TuringDirection::None, TuringDirection::Right],
+    )
+    .unwrap();
 
-//     let ind_p = ind_p - 1;
-//     let ind_q = ind_q - 1;
+    graph.append_transition("i", t1.clone(), "a").unwrap();
+    graph.append_transition("i", t2.clone(), "a").unwrap();
+    graph.append_transition("i", t3.clone(), "i").unwrap(); // i -> i
 
-//     // Important to also make sure that the transition also changed
+    // Removes all transitions btw 'i' and 'a'
+    graph.remove_transitions("i", "a").unwrap();
 
-//     assert_eq!(
-//         graph.get_transitions_by_index(ind_q, ind_p).unwrap(),
-//         vec!(&t3)
-//     );
-// }
+    // (note: index of 'i' is 0)
+    assert!(graph.get_transitions(0, 1).expect("no errors").is_none());
+
+    // check that i -> i, is still here
+    assert_eq!(
+        graph
+            .get_transitions(0, 0)
+            .expect("no error")
+            .expect("present")[0]
+            .info,
+        t3
+    );
+}
+
+#[test]
+fn delete_node() {
+    let mut graph = SimpleTuringGraph::new(1, true).expect("no errors");
+    let t1 = TuringTransitionInfo::create(
+        vec!['ç', 'ç'],
+        vec!['ç'],
+        vec![TuringDirection::None, TuringDirection::Right],
+    )
+    .expect("no errors");
+    let t2 = TuringTransitionInfo::create(
+        vec!['ç', '_'],
+        vec!['_'],
+        vec![TuringDirection::None, TuringDirection::Right],
+    )
+    .expect("no errors");
+    let t3 = TuringTransitionInfo::create(
+        vec!['_', '_'],
+        vec!['_'],
+        vec![TuringDirection::None, TuringDirection::Right],
+    )
+    .expect("no errors");
+
+    graph
+        .add_state("q", TuringStateType::Normal)
+        .expect("no problem");
+
+    graph
+        .append_transition("i", t1.clone(), "q")
+        .expect("no errors"); // i -> q
+    graph
+        .append_transition("q", t2.clone(), "i")
+        .expect("no errors"); // q -> i
+    graph
+        .append_transition("q", t2.clone(), "q")
+        .expect("no errors"); // q -> q
+    graph
+        .append_transition("i", t3.clone(), "i")
+        .expect("no errors"); // i -> i
+
+    let q_index = graph.get_state("q").expect("present").get_id();
+
+    // Removes state q
+    graph.remove_state("q").expect("no errors");
+
+    // Check that "q" is gone
+    assert!(graph.get_state("q").is_none());
+    assert!(graph.get_state(q_index).is_none());
+
+    // Check that no transition with q is present anymore
+
+    assert!({
+        let mut not_present = true;
+        for (from, to) in graph.get_transitions_hashmap().keys() {
+            if *from == q_index || *to == q_index {
+                not_present = false;
+                break;
+            }
+        }
+        not_present
+    });
+}
+
+#[test]
+fn rename_state() {
+    // i and a are present
+    let mut graph = SimpleTuringGraph::new(2, true).unwrap();
+
+    // rename i as start :
+    graph.rename_state("i", "start").expect("no problem");
+    assert_eq!(graph.get_state("start").expect("present").get_id(), 0);
+    // State not present
+    assert!(matches!(
+        graph.rename_state("q", "i"),
+        Err(TuringGraphError::UnknownStateIndex { accessed_index: _ })
+    ));
+    // Name already present
+    assert!(matches!(
+        graph.rename_state("start", "a"),
+        Err(TuringGraphError::AlreadyPresentNameError { name: _, state: _ })
+    ));
+}
+
+#[test]
+fn get_valid_transitions() {
+    let mut graph = SimpleTuringGraph::new(1, true).unwrap();
+
+    let t1 = TuringTransitionInfo::create(
+        vec!['ç', 'ç'],
+        vec!['ç'],
+        vec![TuringDirection::None, TuringDirection::Right],
+    )
+    .unwrap();
+    let t2 = TuringTransitionInfo::create(
+        vec!['ç', '_'],
+        vec!['0'],
+        vec![TuringDirection::None, TuringDirection::Left],
+    )
+    .unwrap();
+    let t3 = TuringTransitionInfo::create(
+        vec!['ç', '_'],
+        vec!['0'],
+        vec![TuringDirection::None, TuringDirection::Right],
+    )
+    .unwrap();
+
+    // there should be no values
+    assert!(
+        graph
+            .get_valid_transitions(0, vec!('ç'))
+            .expect("no error")
+            .is_empty()
+    );
+
+    // add transitions
+    graph
+        .append_transition(0, t1.clone(), 1)
+        .expect("no problem");
+    graph
+        .append_transition(0, t2.clone(), 1)
+        .expect("no problem");
+    graph
+        .append_transition(0, t3.clone(), 1)
+        .expect("no problem");
+
+    assert_eq!(
+        graph
+            .get_valid_transitions(0, vec!('ç', 'ç'))
+            .expect("no problem"),
+        vec!((
+            &TuringTransitionWrapper {
+                info: t1,
+                inner_transition: EmptyTransition
+            },
+            1
+        ))
+    );
+    assert_eq!(
+        graph
+            .get_valid_transitions(0, vec!('ç', '_'))
+            .expect("no problem"),
+        vec!(
+            (
+                &TuringTransitionWrapper {
+                    info: t2,
+                    inner_transition: EmptyTransition
+                },
+                1
+            ),
+            (
+                &TuringTransitionWrapper {
+                    info: t3,
+                    inner_transition: EmptyTransition
+                },
+                1
+            )
+        )
+    );
+}
