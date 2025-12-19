@@ -76,7 +76,7 @@ pub trait TuringState: Clone + Default + Debug {
 
 impl Display for TuringStateInfo {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "({}: {}, {})", self.id, self.name, self.state_type)
+        write!(f, "({}, id: {}, type: {})", self.name, self.id, self.state_type)
     }
 }
 
@@ -120,8 +120,8 @@ pub struct TuringStateInfo {
 }
 
 impl TuringStateInfo {
-    pub fn get_type(&self) -> &TuringStateType {
-        &self.state_type
+    pub fn get_type(&self) -> TuringStateType {
+        self.state_type.clone()
     }
     pub fn get_id(&self) -> usize {
         self.id
@@ -366,6 +366,32 @@ where
         Ok(res)
     }
 
+    pub fn get_valid_transitions_indexes(
+        &self,
+        index: impl Into<TuringStateIndex>,
+        chars_read: Vec<char>,
+    ) -> Result<Vec<(usize, usize)>, TuringGraphError> {
+        let mut res = Vec::new();
+
+        let state_id = self.try_get_state(index)?.info.id;
+
+        self.transition_hasmap
+            .iter()
+            .for_each(|((from, to), transitions)| {
+                // If the state is the one we are looking for
+                if *from == state_id {
+                    // If the character to read are equivalent
+                    transitions.iter().enumerate().for_each(|(i, transition)| {
+                        if transition.info.chars_read == chars_read {
+                            res.push((*to, i));
+                        }
+                    });
+                }
+            });
+
+        Ok(res)
+    }
+
     /// Get the transitions between two nodes if any.
     pub fn get_transitions(
         &self,
@@ -498,54 +524,42 @@ where
     ) -> &HashMap<(usize, usize), Vec<TuringTransitionWrapper<T>>> {
         &self.transition_hasmap
     }
-
-    // fn to_id(&self, index: impl Into<TuringGraphIndex>) -> usize {
-    //     match index.into() {
-    //         TuringGraphIndex::ID(id) => id,
-    //         TuringGraphIndex::Name(name) => self.get_state_index(name).expect("present"),
-    //     }
-    // }
 }
 
-// impl<S: TuringState, T: TuringTransition> Display for TuringMachineGraph<S, T> {
-//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-//         let mut res = String::from("States:\n");
+impl<S: TuringState, T: TuringTransition> Display for TuringMachineGraph<S, T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut res = String::from("States:\n");
 
-//         // Print all states
-//         for state in self.state_hashmap.values() {
-//             res.push_str(format!("{}: {}\n", state.name, state.state_type).as_str());
-//         }
+        // Print all states
+        for state in self.state_hashmap.values() {
+            res.push_str(format!("{}: {}\n", state.info.name, state.info.state_type).as_str());
+        }
 
-//         res.push_str("\nTransitions:\n");
-//         let mut res_tr = String::new();
-//         // Print all transitions btw states
-//         for (q1, i1) in &self.name_index_hashmap {
-//             for (q2, i2) in &self.name_index_hashmap {
-//                 let transitions = self.get_transitions_by_index(*i1, *i2).unwrap();
-//                 if transitions.is_empty() {
-//                     continue;
-//                 }
-//                 res_tr.push_str(format!("q_{} {} ", q1, '{').as_str());
-//                 let spaces = 3 + q1.len();
+        res.push_str("\nTransitions:\n");
+        let mut res_tr = String::new();
+        // Print all transitions btw states
+        for ((q1, q2), transitions) in &self.transition_hasmap {
+            if transitions.is_empty() {
+                continue;
+            }
+            let q1 = &self.state_hashmap[q1];
+            let q2 = &self.state_hashmap[q2];
+            res_tr.push_str(format!("q_{} {} ", q1.get_name(), '{').as_str());
+            let spaces = 3 + q1.get_name().len();
+            for transition in transitions.iter().take(transitions.len() - 1) {
+                res_tr.push_str(format!("{} \n{}| ", transition.info, " ".repeat(spaces)).as_str());
+            }
+            // add last
+            res_tr.push_str(format!("{} ", transitions.last().unwrap().info).as_str());
 
-//                 for i in 0..transitions.len() - 1 {
-//                     res_tr.push_str(
-//                         format!("{} \n{}| ", transitions.get(i).unwrap(), " ".repeat(spaces))
-//                             .as_str(),
-//                     );
-//                 }
-//                 // add last
-//                 res_tr.push_str(format!("{} ", transitions.last().unwrap()).as_str());
+            res_tr.push_str(format!("{} q_{};\n\n", "}", q2.get_name()).as_str());
+        }
+        if res_tr.is_empty() {
+            res.push_str("None");
+        } else {
+            res.push_str(res_tr.as_str());
+        }
 
-//                 res_tr.push_str(format!("{} q_{};\n\n", "}", q2).as_str());
-//             }
-//         }
-//         if res_tr.is_empty() {
-//             res.push_str("None");
-//         } else {
-//             res.push_str(res_tr.as_str());
-//         }
-
-//         write!(f, "{}", res)
-//     }
-// }
+        write!(f, "{}", res)
+    }
+}

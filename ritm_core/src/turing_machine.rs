@@ -53,7 +53,7 @@ pub struct SavedState {
     /// The index of the saved state
     pub saved_state_index: usize,
     /// A stack containing all the indexes of the transitions left to take
-    pub next_transitions: VecDeque<usize>,
+    pub next_transitions: VecDeque<(usize, usize)>,
     /// The value of the [TuringReadingTape] when it was saved
     pub saved_reading_tape: TuringReadingTape,
     /// The value of the [TuringWritingTape] when they were saved
@@ -89,15 +89,17 @@ pub struct IterationData {
     writing_tapes: Vec<TuringWritingTape>,
     /// The current word to read
     word: String,
-    /// The index of the current state of the turing machine
+    /// The ID of the current state of the turing machine
     state_pointer: usize,
-    /// Represents if the structs was just initialised or reset
+    /// Represents if the iteration has started or got reset.
     is_first_state: bool,
     /// A stack representing the memory of the exploration of this turing machine.
     memory: VecDeque<SavedState>,
     /// Represents the mode used for the execution of this turing machine
     mode: Mode,
-    backtracked_info: Option<usize>,
+    /// First index is the ID to the state that the transition leads to from the current state pointer.
+    /// The second one is the index of the transition taken between the two.
+    backtracked_info: Option<(usize, usize)>,
 }
 
 impl<S, T> TuringMachines<S, T>
@@ -514,7 +516,7 @@ where
         }
     }
 
-    fn get_backtracking_info(&self) -> Option<usize> {
+    fn get_backtracking_info(&self) -> Option<(usize, usize)> {
         match self {
             TuringMachines::TuringMachine {
                 graph: _,
@@ -526,7 +528,7 @@ where
         }
     }
 
-    fn set_backtracking_info(&mut self, val: Option<usize>) {
+    fn set_backtracking_info(&mut self, val: Option<(usize, usize)>) {
         match self {
             TuringMachines::TuringMachine {
                 graph: _,
@@ -631,7 +633,7 @@ pub enum TuringExecutionSteps {
         /// The index of the currently reached state
         state_pointer: usize,
         /// The index of the transition taken from the current state to the next one.
-        transition_index_taken: usize,
+        transition_index_taken: (usize, usize),
         /// A clone of the transition that was just taken
         transition_taken: TuringTransitionInfo,
         /// A clone representing the current state of the reading tape after taking that transition.
@@ -698,7 +700,12 @@ where
     tm.set_iteration(prev_iter + 1);
 
     // Fetch the current state
-    let curr_state = tm.graph_ref().get_state(tm.get_state_pointer()).unwrap();
+    let curr_state = tm
+        .graph_ref()
+        .get_state(tm.get_state_pointer())
+        .unwrap()
+        .get_info()
+        .clone();
 
     let mut transition_index_taken = None;
 
@@ -712,14 +719,14 @@ where
             tm.set_first_iteration(false);
 
             return Some(TuringExecutionSteps::FirstIteration {
-                init_state: curr_state.get_info().clone(),
+                init_state: curr_state.clone(),
                 init_reading_tape: tm.get_reading_tape_mut().clone(),
                 init_write_tapes: tm.get_writting_tapes_mut().clone(),
             });
         }
 
         /* Checks if the state is accepting */
-        if let TuringStateType::Accepting = curr_state.get_info().get_type() {
+        if let TuringStateType::Accepting = curr_state.get_type() {
             // The iteration is over
             return None;
         }
@@ -735,15 +742,13 @@ where
 
         let mut next_transitions = VecDeque::from(
             tm.graph_ref()
-                .get_valid_transitions(curr_state.get_info().get_id(), char_vec)
+                .get_valid_transitions_indexes(curr_state.get_id(), char_vec)
                 .expect("state present"),
         );
 
         // If no transitions can be provided or the current state is rejecting,
-        // we reached a *dead end*, go back in the exploration if possible
-        if next_transitions.is_empty()
-            || curr_state.get_info().get_type() == TuringStateType::Rejecting
-        {
+        // we reached a *dead end*, go back in the exploration if possible (i.e. backtrack)
+        if next_transitions.is_empty() || curr_state.get_type() == TuringStateType::Rejecting {
             if let Mode::StopFirstReject = tm.get_mode() {
                 return None;
             }
@@ -785,7 +790,7 @@ where
 
                 // Return backtracking info
                 return Some(TuringExecutionSteps::Backtracked {
-                    previous_state: curr_state.get_info().clone(),
+                    previous_state: curr_state.clone(),
                     reached_state: tm
                         .graph_ref()
                         .get_state(saved_state.saved_state_index)
@@ -820,53 +825,51 @@ where
             transition_index_taken = Some(next_transitions[0]);
         }
     }
+
     // if a viable transition was found
-    if let Some(ind) = transition_index_taken {
-        let transition = tm
+    let Some((to, index)) = transition_index_taken else {
+        // otherwise it's also the end
+        return None;
+    };
+    // Take this transition
+    let transition = tm.graph_ref().get_transitions_hashmap()[&(curr_state.get_id(), to)][index]
+        .info
+        .clone();
+    // Apply the transition
+    // to the reading tape
+    tm.get_reading_tape_mut()
+        .try_apply_transition(transition.chars_read[0], ' ', &transition.move_read)
+        .unwrap();
+
+    // to the write ribbons
+    for i in 0..tm.graph_ref().get_k() {
+        tm.get_writting_tapes_mut()[i]
+            .try_apply_transition(
+                transition.chars_read[i + 1],
+                transition.chars_write[i].0,
+                &transition.chars_write[i].1,
+            )
+            .unwrap();
+    }
+
+    // Move to the next state
+    tm.set_state_pointer(to);
+
+    Some(TuringExecutionSteps::TransitionTaken {
+        previous_state: curr_state.clone(),
+        reached_state: tm
             .graph_ref()
             .get_state(tm.get_state_pointer())
             .unwrap()
-            .transitions[ind]
-            .clone();
-        // Apply the transition
-        // to the reading tape
-        tm.get_reading_tape_mut()
-            .try_apply_transition(transition.chars_read[0], ' ', &transition.move_read)
-            .unwrap();
-
-        // to the write ribbons
-        for i in 0..tm.graph_ref().get_k() {
-            tm.get_writting_tapes_mut()[i]
-                .try_apply_transition(
-                    transition.chars_read[i + 1],
-                    transition.chars_write[i].0,
-                    &transition.chars_write[i].1,
-                )
-                .unwrap();
-        }
-
-        // Move to the next state
-        tm.set_state_pointer(transition.index_to_state.unwrap());
-
-        Some(TuringExecutionSteps::TransitionTaken {
-            previous_state: curr_state.clone(),
-            reached_state: tm
-                .graph_ref()
-                .get_state(tm.get_state_pointer())
-                .unwrap()
-                .clone(),
-            transition_index_taken: ind,
-            transition_taken: transition.clone(),
-            reading_tape: tm.get_reading_tape_mut().clone(),
-            writing_tapes: tm.get_writting_tapes_mut().clone(),
-            iteration: prev_iter,
-            state_pointer: tm.get_state_pointer(),
-        })
-    }
-    // otherwise it's also the end
-    else {
-        None
-    }
+            .get_info()
+            .clone(),
+        transition_index_taken: (to, index),
+        transition_taken: transition.clone(),
+        reading_tape: tm.get_reading_tape_mut().clone(),
+        writing_tapes: tm.get_writting_tapes_mut().clone(),
+        iteration: prev_iter,
+        state_pointer: tm.get_state_pointer(),
+    })
 }
 
 impl Display for TuringExecutionSteps {

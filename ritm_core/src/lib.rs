@@ -1,11 +1,12 @@
 use crate::{
     turing_graph::{TuringMachineGraph, TuringState},
+    turing_machine::TuringMachines,
     turing_transition::TuringTransition,
 };
 
 pub mod turing_graph;
 
-// pub mod turing_machine;
+pub mod turing_machine;
 
 pub mod turing_tape;
 
@@ -36,3 +37,5 @@ impl TuringState for EmptyState {
 impl TuringTransition for EmptyTransition {}
 
 pub type SimpleTuringGraph = TuringMachineGraph<EmptyState, EmptyTransition>;
+
+pub type SimpleTuringMachine = TuringMachines<EmptyState, EmptyTransition>;
