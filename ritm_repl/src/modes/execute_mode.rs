@@ -3,8 +3,9 @@ use std::fmt::Display;
 
 use colored::{Color, ColoredString, Colorize};
 use ritm_core::{
-    turing_machine::{Mode, TuringExecutionSteps, TuringMachines},
-    turing_state::{TuringState, TuringStateType},
+    SimpleTuringMachine,
+    turing_graph::{TuringStateInfo, TuringStateType},
+    turing_machine::{Mode, TuringExecutionSteps},
     turing_tape::{TuringReadingTape, TuringWritingTape},
 };
 use strum_macros::EnumIter;
@@ -270,7 +271,7 @@ impl ModeEvent for ExecuteTuringMode {
 
 pub fn next_step(
     rl: &mut rustyline::Editor<(), rustyline::history::FileHistory>,
-    mut tm: &mut TuringMachines,
+    mut tm: &mut SimpleTuringMachine,
     clear_after: bool,
 ) -> bool {
     match tm.next() {
@@ -324,7 +325,7 @@ fn print_step(
             writing_tapes: _,
             iteration: _,
         } => {
-            if let TuringStateType::Accepting = reached_state.state_type {
+            if let TuringStateType::Accepting = reached_state.get_type() {
                 println!(
                     "{} {}",
                     "* Iteration: ".bold().green(),
@@ -393,10 +394,10 @@ fn print_step(
     }
 }
 
-fn color_state(state: &TuringState) -> ColoredString {
-    format!("q_{}", state.name).color(match state.state_type {
-        ritm_core::turing_state::TuringStateType::Accepting => Color::Green,
-        ritm_core::turing_state::TuringStateType::Rejecting => Color::Red,
+fn color_state(state: &TuringStateInfo) -> ColoredString {
+    format!("q_{}", state.get_name()).color(match state.get_type() {
+        TuringStateType::Accepting => Color::Green,
+        TuringStateType::Rejecting => Color::Red,
         _ => Color::White,
     })
 }
@@ -458,7 +459,7 @@ fn query_mode(
 
 fn summarise_execution(
     rl: &mut rustyline::Editor<(), rustyline::history::FileHistory>,
-    tm: &TuringMachines,
+    tm: &SimpleTuringMachine,
 ) {
     // Show the last iteration
     if let Some(it) = tm.get_last_step().as_ref() {
@@ -495,7 +496,8 @@ fn summarise_execution(
             "At state : {}",
             tm.graph_ref()
                 .get_state(saved_state.saved_state_index)
-                .unwrap()
+                .expect("present")
+                .get_info()
         );
         println!(
             "Saved Tapes :\n{}",

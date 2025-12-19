@@ -5,8 +5,7 @@ use std::{
     sync::{Arc, atomic::AtomicBool},
 };
 
-use ritm_core::turing_machine::Mode;
-use ritm_core::{turing_graph::TuringMachineGraph, turing_machine::TuringMachines};
+use ritm_core::{SimpleTuringGraph, SimpleTuringMachine, turing_machine::Mode};
 use rustyline::{Editor, history::FileHistory};
 
 use crate::ripl_error::RiplError;
@@ -16,8 +15,8 @@ pub mod modes;
 pub mod ripl_error;
 
 pub struct DataStorage {
-    pub graph: Option<TuringMachineGraph>,
-    pub iterator: Option<TuringMachines>,
+    pub graph: Option<SimpleTuringGraph>,
+    pub iterator: Option<SimpleTuringMachine>,
     pub is_running: Arc<AtomicBool>,
     pub curr_path: Option<PathBuf>,
     pub clear_after_step: bool,
