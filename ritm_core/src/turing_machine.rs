@@ -6,9 +6,7 @@ use std::{
 use thiserror::Error;
 
 use crate::{
-    turing_graph::{
-        TuringGraphError, TuringGraph, TuringState, TuringStateInfo, TuringStateType,
-    },
+    turing_graph::{TuringGraph, TuringGraphError, TuringState, TuringStateInfo, TuringStateType},
     turing_tape::{TuringReadingTape, TuringTape, TuringTapeError, TuringWritingTape},
     turing_transition::{TuringTransition, TuringTransitionError, TuringTransitionInfo},
 };
