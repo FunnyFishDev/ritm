@@ -4,7 +4,7 @@ use std::{fmt::Display, fs, io};
 use thiserror::Error;
 
 use crate::{
-    turing_graph::{TuringMachineGraph, TuringState, TuringStateType},
+    turing_graph::{TuringGraph, TuringState, TuringStateType},
     turing_machine::TuringMachineError,
     turing_transition::{TuringDirection, TuringTransition, TuringTransitionInfo},
 };
@@ -88,13 +88,13 @@ pub struct TuringGrammar;
 /// Important to note that if the given string is empty, then a default [`TuringMachineGraph`] will be returned.
 pub fn parse_turing_graph_file_path<S, T>(
     file_path: String,
-) -> Result<TuringMachineGraph<S, T>, TuringParserError>
+) -> Result<TuringGraph<S, T>, TuringParserError>
 where
     S: TuringState,
     T: TuringTransition,
 {
     if file_path.trim().is_empty() {
-        return Ok(TuringMachineGraph::default());
+        return Ok(TuringGraph::default());
     }
     match fs::read_to_string(&file_path) {
         Ok(unparsed_file) => parse_turing_graph_string(unparsed_file),
@@ -110,7 +110,7 @@ where
 /// Important to note that if the given string is empty, then an empty [TuringMachineGraph] with a *k* of 1 is returned.
 pub fn parse_turing_graph_string<S, T>(
     turing_mach: String,
-) -> Result<TuringMachineGraph<S, T>, TuringParserError>
+) -> Result<TuringGraph<S, T>, TuringParserError>
 where
     S: TuringState,
     T: TuringTransition,
@@ -125,7 +125,7 @@ where
     }
     let file = file.unwrap().next().unwrap(); // get and unwrap the `file` rule; never fails
 
-    let mut turing_machine: Option<TuringMachineGraph<S, T>> = None;
+    let mut turing_machine: Option<TuringGraph<S, T>> = None;
 
     for turing_machine_rule in file.into_inner() {
         let rule_cp = turing_machine_rule.clone();
@@ -140,7 +140,7 @@ where
                 // If the MT doesn't already exists, create it
                 if turing_machine.is_none() {
                     // With the collected number of tapes
-                    let tm = TuringMachineGraph::new(
+                    let tm = TuringGraph::new(
                         transitions
                             .first()
                             .expect("At least one rule should be given in a transition")
@@ -185,7 +185,7 @@ where
     match turing_machine {
         Some(t) => Ok(t),
         // If no parse value was given, simply return a read only one
-        None => Ok(TuringMachineGraph::default()),
+        None => Ok(TuringGraph::default()),
     }
 }
 
@@ -359,7 +359,7 @@ fn get_line_col(error: &Error<Rule>) -> Option<(usize, usize)> {
 /// The returned value can then be parsed by the parser to return the same graph.
 ///
 /// This function is therefore very useful to save graphs.
-pub fn graph_to_string<S, T>(tm: &TuringMachineGraph<S, T>) -> String
+pub fn graph_to_string<S, T>(tm: &TuringGraph<S, T>) -> String
 where
     S: TuringState,
     T: TuringTransition,

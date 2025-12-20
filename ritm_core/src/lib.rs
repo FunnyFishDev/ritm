@@ -1,5 +1,5 @@
 use crate::{
-    turing_graph::{TuringMachineGraph, TuringState},
+    turing_graph::{TuringGraph, TuringState},
     turing_machine::TuringMachines,
     turing_transition::TuringTransition,
 };
@@ -30,12 +30,10 @@ impl TuringState for EmptyState {
     fn new_accepting() -> Self {
         Self
     }
-
-    fn visited(&mut self) {}
 }
 
 impl TuringTransition for EmptyTransition {}
 
-pub type SimpleTuringGraph = TuringMachineGraph<EmptyState, EmptyTransition>;
+pub type SimpleTuringGraph = TuringGraph<EmptyState, EmptyTransition>;
 
 pub type SimpleTuringMachine = TuringMachines<EmptyState, EmptyTransition>;

@@ -1,7 +1,7 @@
 use crate::turing_transition::TuringTransitionInfo;
 use std::fmt::Display;
 
-/// Can be used to try to find a state in the graph
+/// Can be used to try to find a state in the graph.
 #[derive(Debug, Clone, PartialEq)]
 pub enum TuringStateIndex {
     /// Represents the index value of the state to get.
@@ -58,7 +58,7 @@ impl From<&usize> for TuringStateIndex {
     }
 }
 
-/// Can be used to try to find a state in the graph
+/// Can be used to try to find a transition in the graph
 #[derive(Debug, Clone, PartialEq)]
 pub enum TuringTransitionIndex {
     /// Represents the index value of the transition to get in the list of transitions present.

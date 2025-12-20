@@ -7,7 +7,7 @@ use thiserror::Error;
 
 use crate::{
     turing_graph::{
-        TuringGraphError, TuringMachineGraph, TuringState, TuringStateInfo, TuringStateType,
+        TuringGraphError, TuringGraph, TuringState, TuringStateInfo, TuringStateType,
     },
     turing_tape::{TuringReadingTape, TuringTape, TuringTapeError, TuringWritingTape},
     turing_transition::{TuringTransition, TuringTransitionError, TuringTransitionInfo},
@@ -70,7 +70,7 @@ where
 {
     TuringMachine {
         /// The turing machine graph that will execute a word
-        graph: TuringMachineGraph<S, T>,
+        graph: TuringGraph<S, T>,
         data: IterationData,
         /// The current number of iterations already done
         iteration: usize,
@@ -107,9 +107,9 @@ where
     S: TuringState,
     T: TuringTransition,
 {
-    // Create a new [TuringMachineWithRef] for a given word.
+    // Create a new turing machine for a given word.
     pub fn new(
-        mt: TuringMachineGraph<S, T>,
+        mt: TuringGraph<S, T>,
         word: String,
         mode: Mode,
     ) -> Result<Self, TuringMachineError> {
@@ -281,7 +281,7 @@ where
     T: TuringTransition,
 {
     /// Gets *reference* of the stored turing machine graph.
-    pub fn graph_ref(&self) -> &TuringMachineGraph<S, T> {
+    pub fn graph_ref(&self) -> &TuringGraph<S, T> {
         match self {
             TuringMachines::TuringMachine {
                 graph,
@@ -294,7 +294,7 @@ where
     }
 
     /// Gets *mutable reference* of the stored turing machine graph.
-    pub fn graph_mut(&mut self) -> &mut TuringMachineGraph<S, T> {
+    pub fn graph_mut(&mut self) -> &mut TuringGraph<S, T> {
         match self {
             TuringMachines::TuringMachine {
                 graph,
@@ -309,7 +309,7 @@ where
     /// Gets the stored turing machine graph.
     ///
     /// This will free the turing machine since it will drop the ownership
-    pub fn graph(self) -> TuringMachineGraph<S, T> {
+    pub fn graph(self) -> TuringGraph<S, T> {
         match self {
             TuringMachines::TuringMachine {
                 graph,
