@@ -72,8 +72,6 @@ pub trait TuringState: Clone + Default + Debug {
     fn new_init() -> Self;
     /// Creates a new accepting state
     fn new_accepting() -> Self;
-    // /// Called when the node is being explored
-    // fn visited(&mut self);
 }
 
 impl Display for TuringStateInfo {
@@ -100,7 +98,7 @@ impl<S: TuringState> From<&TuringStateWrapper<S>> for TuringStateInfo {
 /// Represents a node in this graph.
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct TuringStateWrapper<S: TuringState> {
-    inner_state: S,
+    pub inner_state: S,
     info: TuringStateInfo,
 }
 
@@ -108,6 +106,10 @@ impl<S: TuringState> TuringStateWrapper<S> {
     /// Returns the important information of this state (name, type, id).
     pub fn get_info(&self) -> &TuringStateInfo {
         &self.info
+    }
+    /// Returns the additional information carried in this state.
+    pub fn get_inner(&self) -> &S {
+        &self.inner_state
     }
     /// Returns the name of this state.
     pub fn get_name(&self) -> &String {
