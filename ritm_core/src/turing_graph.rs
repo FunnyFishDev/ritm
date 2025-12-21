@@ -604,6 +604,42 @@ where
     ) -> &IndexMap<(usize, usize), Vec<TuringTransitionWrapper<T>>> {
         &self.transition_hasmap
     }
+
+    /// Checks that the given state has no outgoing transitions.
+    /// # Errors
+    /// * [`TuringGraphError::UnknownStateIndex`] if the given index is not present in the graph.
+    pub fn is_state_dead_end(
+        &self,
+        index: impl Into<TuringStateIndex>,
+    ) -> Result<bool, TuringGraphError> {
+        let state = self.try_get_state(index)?.get_id();
+
+        let mut is_end = true;
+        for transition in self.transition_hasmap.keys() {
+            if transition.0 == state {
+                is_end = false;
+            }
+        }
+        Ok(is_end)
+    }
+
+    /// Checks that the given state has some ingoing transitions.
+    /// # Errors
+    /// * [`TuringGraphError::UnknownStateIndex`] if the given index is not present in the graph.
+    pub fn is_state_accessible(
+        &self,
+        index: impl Into<TuringStateIndex>,
+    ) -> Result<bool, TuringGraphError> {
+        let state = self.try_get_state(index)?.get_id();
+
+        let mut is_accessible = false;
+        for transition in self.transition_hasmap.keys() {
+            if transition.1 == state {
+                is_accessible = true;
+            }
+        }
+        Ok(is_accessible)
+    }
 }
 
 impl<S: TuringState, T: TuringTransition> Display for TuringGraph<S, T> {
