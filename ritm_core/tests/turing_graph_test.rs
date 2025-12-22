@@ -236,6 +236,37 @@ fn add_transitions() {
 }
 
 #[test]
+fn add_default_transitions() {
+    let mut graph = SimpleTuringGraph::new(3, true).unwrap();
+
+    graph
+        .append_default_transition(0, None, 1)
+        .expect("no erros");
+    assert_eq!(
+        graph
+            .get_transitions(0, 1)
+            .expect("no errors")
+            .expect("present")[0]
+            .info,
+        TuringTransitionInfo::create_default(3)
+    );
+
+    // Try to add a default transition already added
+    graph
+        .append_transition(1, TuringTransitionInfo::create_default(3), 0)
+        .expect("no errors");
+
+    assert!(matches!(
+        graph.append_default_transition(1, None, 0),
+        Err(TuringGraphError::AlreadyPresentTransitionError {
+            from: _,
+            to: _,
+            transition: _
+        })
+    ));
+}
+
+#[test]
 fn delete_transitions() {
     let mut graph = SimpleTuringGraph::new(1, true).unwrap();
     let t1 = TuringTransitionInfo::create(

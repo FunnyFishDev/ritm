@@ -283,6 +283,30 @@ where
         Ok(())
     }
 
+    /// Creates a valid default transitions between two states.
+    /// See [`TuringTransitionInfo::create_default`] for more informations.
+    pub fn append_default_transition(
+        &mut self,
+        from: impl Into<TuringStateIndex>,
+        additional_info: Option<T>,
+        to: impl Into<TuringStateIndex>,
+    ) -> Result<(), TuringGraphError> {
+        let default_transition = TuringTransitionInfo::create_default(self.k);
+
+        if let Some(inner_transition) = additional_info {
+            self.append_transition(
+                from,
+                TuringTransitionWrapper {
+                    info: default_transition,
+                    inner_transition,
+                },
+                to,
+            )
+        } else {
+            self.append_transition(from, default_transition, to)
+        }
+    }
+
     /// Adds a new state using a name and a type to the turing machine graph and returns its index if not already present.
     /// # Errors :
     /// * [`TuringGraphError::AlreadyPresentNameError`] if the given name is already present in the graph.

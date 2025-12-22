@@ -205,6 +205,27 @@ impl TuringTransitionInfo {
         })
     }
 
+    /// Creates a valid default transition using the given number of working ribbons.
+    /// For example if *k* is equal to 3:
+    ///   * `{ ç, ç, ç, ç -> N, ç, N, ç, N, ç, N }`
+    pub fn create_default(nb_working_ribbons: usize) -> Self {
+        let mut chars_read = Vec::new();
+        let mut chars_write = Vec::new();
+
+        chars_read.push('ç');
+
+        (0..nb_working_ribbons).for_each(|_| {
+            chars_read.push('ç');
+            chars_write.push(('ç', TuringDirection::None));
+        });
+
+        Self {
+            chars_read,
+            move_read: TuringDirection::None,
+            chars_write,
+        }
+    }
+
     /// Returns the number of tapes that are going to be affected by this transition.
     pub fn get_number_of_affected_tapes(&self) -> usize {
         self.chars_write.len() + 1
