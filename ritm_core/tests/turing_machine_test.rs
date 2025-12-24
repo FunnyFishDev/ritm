@@ -61,7 +61,7 @@ fn save_all_accept() {
             TuringExecutionSteps::TransitionTaken {
                 previous_state: _,
                 reached_state,
-                transition_index_taken: _,
+                transition_index: _,
                 transition_taken: _,
                 reading_tape: _,
                 writing_tapes: _,
@@ -106,7 +106,7 @@ fn save_all_not_accept() {
             TuringExecutionSteps::TransitionTaken {
                 previous_state: _,
                 reached_state,
-                transition_index_taken: _,
+                transition_index: _,
                 transition_taken: _,
                 reading_tape: _,
                 writing_tapes: _,
@@ -163,7 +163,7 @@ fn stop_first_reject() {
         && let TuringExecutionSteps::TransitionTaken {
             previous_state: _,
             reached_state,
-            transition_index_taken: _,
+            transition_index: _,
             transition_taken: _,
             reading_tape: _,
             writing_tapes: _,
@@ -356,7 +356,7 @@ fn get_path_to_accept_test() {
                 previous_state: _,
                 reached_state: _,
                 state_pointer: _,
-                transition_index_taken: _,
+                transition_index: _,
                 transition_taken,
                 reading_tape: _,
                 writing_tapes: _,

@@ -287,19 +287,19 @@ fn delete_transitions() {
     graph.append_transition("i", t2.clone(), "a").unwrap();
 
     assert!(matches!(
-        graph.remove_transition("i", t1.clone(), "d"),
+        graph.remove_transition(("i", t1.clone(), "d")),
         Err(TuringGraphError::UnknownStateIndex {
             accessed_index
          } ) if accessed_index == TuringStateIndex::from("d")
     ));
 
     assert!(matches!(
-        graph.remove_transition("d", t1.clone(), "a"),
+        graph.remove_transition(("d", t1.clone(), "a")),
         Err(TuringGraphError::UnknownStateIndex { accessed_index } ) if accessed_index == TuringStateIndex::from("d")
     ));
 
     // Remove transition
-    graph.remove_transition("i", t1.clone(), "a").unwrap();
+    graph.remove_transition(("i", t1.clone(), "a")).unwrap();
 
     // Check that it was indeed removed
     assert!(
@@ -343,7 +343,7 @@ fn delete_transitions_with_indexes() {
     graph.append_transition("i", t2.clone(), "a").unwrap();
 
     // Remove transition
-    graph.remove_transition("i", 1, "a").unwrap();
+    graph.remove_transition(("i", 1, "a")).unwrap();
 
     // Check that it was indeed removed
     assert!(
