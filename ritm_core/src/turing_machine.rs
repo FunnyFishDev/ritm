@@ -237,7 +237,7 @@ where
                     previous_state: _,
                     reached_state: _,
                     state_pointer: _,
-                    transition_index_taken: _,
+                    transition_index: _,
                     transition_taken: _,
                     reading_tape: _,
                     writing_tapes: _,
@@ -626,12 +626,16 @@ pub enum TuringExecutionSteps {
     TransitionTaken {
         /// A clone of the state that was just left
         previous_state: TuringStateInfo,
+
+        /// Triplets to identify the transition taken in the graph
+        transition_index: (usize, usize, usize),
+
+        // TODO: Remove useless values
         /// A clone of the state that was just reached
         reached_state: TuringStateInfo,
         /// The index of the currently reached state
         state_pointer: usize,
-        /// The index of the transition taken from the current state to the next one.
-        transition_index_taken: (usize, usize),
+
         /// A clone of the transition that was just taken
         transition_taken: TuringTransitionInfo,
         /// A clone representing the current state of the reading tape after taking that transition.
@@ -854,6 +858,7 @@ where
     tm.set_state_pointer(to);
 
     Some(TuringExecutionSteps::TransitionTaken {
+        transition_index: (curr_state.get_id(), index, to),
         previous_state: curr_state.clone(),
         reached_state: tm
             .graph_ref()
@@ -861,7 +866,6 @@ where
             .unwrap()
             .get_info()
             .clone(),
-        transition_index_taken: (to, index),
         transition_taken: transition.clone(),
         reading_tape: tm.get_reading_tape_mut().clone(),
         writing_tapes: tm.get_writting_tapes_mut().clone(),
@@ -892,7 +896,7 @@ impl Display for TuringExecutionSteps {
             TuringExecutionSteps::TransitionTaken {
                 previous_state,
                 reached_state,
-                transition_index_taken: _,
+                transition_index: _,
                 transition_taken,
                 reading_tape,
                 writing_tapes: writing_tape,
@@ -949,7 +953,7 @@ impl TuringExecutionSteps {
                 previous_state: _,
                 reached_state,
                 state_pointer: _,
-                transition_index_taken: _,
+                transition_index: _,
                 transition_taken: _,
                 reading_tape: _,
                 writing_tapes: _,
@@ -978,7 +982,7 @@ impl TuringExecutionSteps {
                 previous_state,
                 reached_state: _,
                 state_pointer: _,
-                transition_index_taken: _,
+                transition_index: _,
                 transition_taken: _,
                 reading_tape: _,
                 writing_tapes: _,
@@ -1007,7 +1011,7 @@ impl TuringExecutionSteps {
                 previous_state: _,
                 reached_state: _,
                 state_pointer: _,
-                transition_index_taken: _,
+                transition_index: _,
                 transition_taken: _,
                 reading_tape: _,
                 writing_tapes: _,
@@ -1036,7 +1040,7 @@ impl TuringExecutionSteps {
                 previous_state: _,
                 reached_state: _,
                 state_pointer,
-                transition_index_taken: _,
+                transition_index: _,
                 transition_taken: _,
                 reading_tape: _,
                 writing_tapes: _,
@@ -1065,7 +1069,7 @@ impl TuringExecutionSteps {
                 previous_state: _,
                 reached_state: _,
                 state_pointer: _,
-                transition_index_taken: _,
+                transition_index: _,
                 transition_taken: _,
                 reading_tape,
                 writing_tapes: _,
@@ -1094,7 +1098,7 @@ impl TuringExecutionSteps {
                 previous_state: _,
                 reached_state: _,
                 state_pointer: _,
-                transition_index_taken: _,
+                transition_index: _,
                 transition_taken: _,
                 reading_tape: _,
                 writing_tapes: writing_tape,

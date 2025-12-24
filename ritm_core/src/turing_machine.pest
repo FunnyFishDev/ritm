@@ -1,7 +1,12 @@
 WHITESPACE = _{ " " | "\t" | NEWLINE }
 COMMENT = _{ "//" ~ (!"\n" ~ ANY)* }
 
-turing_machine = { (WHITESPACE* ~ (transition ~ semicolon)+) ~ EOI }
+turing_machine = { options* ~ (WHITESPACE* ~ (transition ~ semicolon)+) ~ EOI }
+
+options = { (rename_initial | accepting_states) ~ ";" }
+
+rename_initial = {"init" ~ "=" ~ state_name } 
+accepting_states = {"accepting" ~ "=" ~ (state_name ~ ("," ~ state_name)*)}
 
 // Used when only reading a transition
 transition_only = _{ transition ~ EOI }

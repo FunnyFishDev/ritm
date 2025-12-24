@@ -2,7 +2,7 @@ use indexmap::IndexMap;
 use thiserror::Error;
 
 use crate::{
-    turing_index::{TuringStateIndex, TuringTransitionIndex},
+    turing_index::{TransitionId, TuringStateIndex, TuringTransitionIndex},
     turing_tape::TuringTapeError,
     turing_transition::{TuringTransition, TuringTransitionInfo, TuringTransitionWrapper},
 };
@@ -30,9 +30,15 @@ pub enum TuringGraphError {
         transition: TuringTransitionInfo,
     },
     #[error(
-        "Tried to access a state using index \"{accessed_index}\" but it is present in the graph"
+        "Tried to access a state using index \"{accessed_index}\" but it is not present in the graph"
     )]
     UnknownStateIndex { accessed_index: TuringStateIndex },
+    #[error(
+        "Tried to access a transition using index \"{accessed_index}\" but it is not present in the graph"
+    )]
+    UnknownTransitionIndex {
+        accessed_index: TuringTransitionIndex,
+    },
     #[error("Encountered a tape error : {0}")]
     TuringTapeError(#[from] TuringTapeError),
     #[error(
@@ -150,6 +156,16 @@ impl TuringStateInfo {
         self.name.clone()
     }
 }
+
+/// A tuple containing three values in relation to an existing transitions.
+/// * The first one, is the state the transition starts from.
+/// * The second one, is the transition itself.
+/// * The third one, is the destination of the transition.
+type TransitionRefs<'a, S, T> = (
+    &'a TuringStateWrapper<S>,
+    &'a TuringTransitionWrapper<T>,
+    &'a TuringStateWrapper<S>,
+);
 
 #[derive(Debug, Clone)]
 /// A struct representing a Turing Machine graph with `k` **writting** tapes (`k >= 1`).
@@ -509,21 +525,21 @@ where
     /// * [TuringGraphError::UnknownStateIndex] if one of the given index is not present in the graph.
     pub fn remove_transition(
         &mut self,
-        from: impl Into<TuringStateIndex>,
-        to_remove: impl Into<TuringTransitionIndex>,
-        to: impl Into<TuringStateIndex>,
+        transition_id: impl Into<TuringTransitionIndex>,
     ) -> Result<(), TuringGraphError> {
-        let to_remove = to_remove.into();
-        let state_from = self.try_get_state(from)?.info.id;
-        let state_to = self.try_get_state(to)?.info.id;
+        let transition_id = transition_id.into();
+
+        let to_remove = transition_id.transition_id;
+        let state_from = self.try_get_state(transition_id.source_id)?.info.id;
+        let state_to = self.try_get_state(transition_id.target_id)?.info.id;
         if let Some(transitions) = self.transition_hasmap.get_mut(&(state_from, state_to)) {
             match to_remove {
-                TuringTransitionIndex::ID(id) => {
+                TransitionId::ID(id) => {
                     if id <= transitions.len() {
                         transitions.remove(id);
                     }
                 }
-                TuringTransitionIndex::Value(turing_transition_info) => {
+                TransitionId::Value(turing_transition_info) => {
                     // Only keep transition not fitting the given information
                     transitions.retain(|trans| trans.info != turing_transition_info);
                 }
@@ -577,6 +593,47 @@ where
         // Finally remove the state itself
         self.state_hashmap.swap_remove(&state_id);
         Ok(())
+    }
+
+    /// Gets references all indexed values from the given [`TuringTransitionIndex`].
+    pub fn try_get_states_transition(
+        &self,
+        transition_id: impl Into<TuringTransitionIndex>,
+    ) -> Result<TransitionRefs<'_, S, T>, TuringGraphError> {
+        // Retourne ref to source, transition and target
+        let transition_id = transition_id.into();
+        let transition_clone = transition_id.clone();
+
+        let source = self.try_get_state(transition_id.source_id)?;
+        let target = self.try_get_state(transition_id.target_id)?;
+
+        let transition = match self
+            .transition_hasmap
+            .get(&(source.get_id(), target.get_id()))
+        {
+            Some(transitions) => match transition_id.transition_id {
+                TransitionId::ID(id) => transitions.get(id),
+                TransitionId::Value(turing_transition_info) => transitions
+                    .iter()
+                    .find(|t| t.info == turing_transition_info),
+            },
+            None => None,
+        };
+        if let Some(transition) = transition {
+            Ok((source, transition, target))
+        } else {
+            Err(TuringGraphError::UnknownTransitionIndex {
+                accessed_index: transition_clone,
+            })
+        }
+    }
+
+    /// Gets the transition referenced by the given index if it exists.
+    pub fn try_get_transition(
+        &self,
+        transition_id: impl Into<TuringTransitionIndex>,
+    ) -> Result<&TuringTransitionWrapper<T>, TuringGraphError> {
+        Ok(self.try_get_states_transition(transition_id)?.1)
     }
 
     /// Returns the number of writting ribbons.

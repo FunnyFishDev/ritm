@@ -58,18 +58,27 @@ impl From<&usize> for TuringStateIndex {
     }
 }
 
-/// Can be used to try to find a transition in the graph
+
+
 #[derive(Debug, Clone, PartialEq)]
-pub enum TuringTransitionIndex {
-    /// Represents the index value of the transition to get in the list of transitions present.
-    ID(usize),
-    /// Represents the value of the transition to try to get.
-    Value(TuringTransitionInfo),
+pub struct TuringTransitionIndex {
+    pub source_id: TuringStateIndex,
+    pub transition_id: TransitionId,
+    pub target_id: TuringStateIndex,
 }
 
-impl TuringTransitionIndex {
-    pub fn from(index: impl Into<TuringTransitionIndex>) -> Self {
-        index.into()
+impl<S, F, T> From<(S, F, T)> for TuringTransitionIndex
+where
+    S: Into<TuringStateIndex>,
+    F: Into<TransitionId>,
+    T: Into<TuringStateIndex>,
+{
+    fn from(value: (S, F, T)) -> Self {
+        Self {
+            source_id: value.0.into(),
+            transition_id: value.1.into(),
+            target_id: value.2.into(),
+        }
     }
 }
 
@@ -77,37 +86,62 @@ impl Display for TuringTransitionIndex {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
+            "({} -> {} -> {})",
+            self.source_id, self.transition_id, self.target_id
+        )
+    }
+}
+
+/// Can be used to try to find a transition in the graph
+#[derive(Debug, Clone, PartialEq)]
+pub enum TransitionId {
+    /// Represents the index value of the transition to get in the list of transitions present.
+    ID(usize),
+    /// Represents the value of the transition to try to get.
+    Value(TuringTransitionInfo),
+}
+
+impl TransitionId {
+    pub fn from(index: impl Into<TransitionId>) -> Self {
+        index.into()
+    }
+}
+
+impl Display for TransitionId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
             "{}",
             match self {
-                TuringTransitionIndex::ID(val) => val.to_string(),
-                TuringTransitionIndex::Value(val) => val.to_string(),
+                TransitionId::ID(val) => val.to_string(),
+                TransitionId::Value(val) => val.to_string(),
             }
         )
     }
 }
 
-impl<T> From<T> for TuringTransitionIndex
+impl<T> From<T> for TransitionId
 where
     T: Into<TuringTransitionInfo>,
 {
     fn from(value: T) -> Self {
-        TuringTransitionIndex::Value(value.into())
+        TransitionId::Value(value.into())
     }
 }
 
-impl From<&TuringTransitionIndex> for TuringTransitionIndex {
-    fn from(value: &TuringTransitionIndex) -> Self {
+impl From<&TransitionId> for TransitionId {
+    fn from(value: &TransitionId) -> Self {
         value.clone()
     }
 }
 
-impl From<usize> for TuringTransitionIndex {
+impl From<usize> for TransitionId {
     fn from(value: usize) -> Self {
-        TuringTransitionIndex::ID(value)
+        TransitionId::ID(value)
     }
 }
 
-impl From<&usize> for TuringTransitionIndex {
+impl From<&usize> for TransitionId {
     fn from(value: &usize) -> Self {
         (*value).into()
     }
