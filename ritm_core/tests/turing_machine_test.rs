@@ -42,7 +42,7 @@ fn save_all_accept() {
     let mut saved_state = None;
     let mut counter = 0;
     for steps in &mut turing_machine {
-        println!("_______________\nExec. step ::\n{}", steps);
+        // println!("_______________\nExec. step ::\n{}", steps);
         counter += 1;
 
         if counter == 1000 {
@@ -92,7 +92,7 @@ fn save_all_not_accept() {
 
     let mut saved_state = None;
     for steps in &mut turing_machine {
-        println!("_______________\nExec. step ::\n{}", steps);
+        // println!("_______________\nExec. step ::\n{}", steps);
         saved_state = Some(steps);
     }
 

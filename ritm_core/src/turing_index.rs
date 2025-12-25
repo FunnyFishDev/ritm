@@ -58,8 +58,6 @@ impl From<&usize> for TuringStateIndex {
     }
 }
 
-
-
 #[derive(Debug, Clone, PartialEq)]
 pub struct TuringTransitionIndex {
     pub source_id: TuringStateIndex,

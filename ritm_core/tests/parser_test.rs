@@ -305,3 +305,60 @@ fn test_parse_graph_bad_transition() {
         },
     }
 }
+
+#[test]
+fn test_rename_init() {
+    let machine = String::from(
+        "init = q_init;
+        q_init {ç, ç -> R, ç, R} q_1;
+        q1 {  0, _ -> R, a, R 
+           |  1, _ -> R, a, R} q1;",
+    );
+
+    let res = parse_turing_graph_string::<EmptyState, EmptyTransition>(machine);
+    let parsed_graph = res.expect("no errors");
+
+    assert_eq!(
+        parsed_graph.get_state("init").expect("no problem").get_id(),
+        0
+    )
+}
+
+#[test]
+fn test_add_accepting() {
+    let machine = String::from(
+        "init = qinit;
+        accepting = q_1, q_2;
+        q_init {ç, ç -> R, ç, R} q_1;
+        q1 {  0, _ -> R, a, R 
+           |  1, _ -> R, a, R} q3;",
+    );
+
+    let res = parse_turing_graph_string::<EmptyState, EmptyTransition>(machine);
+    let parsed_graph = res.expect("no errors");
+
+    assert_eq!(
+        parsed_graph
+            .get_state("1")
+            .expect("no problem")
+            .get_info()
+            .get_type(),
+        TuringStateType::Accepting,
+    );
+    assert_eq!(
+        parsed_graph
+            .get_state("2")
+            .expect("no problem")
+            .get_info()
+            .get_type(),
+        TuringStateType::Accepting,
+    );
+    assert_eq!(
+        parsed_graph
+            .get_state("3")
+            .expect("no problem")
+            .get_info()
+            .get_type(),
+        TuringStateType::Normal,
+    )
+}

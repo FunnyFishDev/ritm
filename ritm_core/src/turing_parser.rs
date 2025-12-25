@@ -4,7 +4,7 @@ use std::{fmt::Display, fs, io};
 use thiserror::Error;
 
 use crate::{
-    turing_graph::{TuringGraph, TuringState, TuringStateType},
+    turing_graph::{TuringGraph, TuringGraphError, TuringState, TuringStateType},
     turing_machine::TuringMachineError,
     turing_transition::{TuringDirection, TuringTransition, TuringTransitionInfo},
 };
@@ -125,68 +125,60 @@ where
     }
     let file = file.unwrap().next().unwrap(); // get and unwrap the `file` rule; never fails
 
-    let mut turing_machine: Option<TuringGraph<S, T>> = None;
+    let mut turing_graph = TuringGraph::default();
 
     for turing_machine_rule in file.into_inner() {
         let rule_cp = turing_machine_rule.clone();
         // Inside the 'turing_machine' rule, only two things can be matched : a transition (or multiple in one), and EOI
-        match turing_machine_rule.as_rule() {
+        let res = match turing_machine_rule.as_rule() {
+            Rule::options => {
+                let mut inner_res = Ok(());
+                if let Some(option_rule) = turing_machine_rule.into_inner().next() {
+                    inner_res = match &option_rule.as_rule() {
+                        Rule::rename_initial => parse_rename_init(&mut turing_graph, option_rule),
+                        Rule::accepting_states => {
+                            parse_add_accepting_states(&mut turing_graph, option_rule)
+                        }
+                        _ => unreachable!(),
+                    };
+                }
+
+                inner_res
+            }
             // For every rule matched :
             Rule::transition => {
                 let (from_var, transitions, to_var) = parse_transition(turing_machine_rule)?;
 
                 /* Add the colected transitions to the MT */
 
-                // If the MT doesn't already exists, create it
-                if turing_machine.is_none() {
-                    // With the collected number of tapes
-                    let tm = TuringGraph::new(
-                        transitions
-                            .first()
-                            .expect("At least one rule should be given in a transition")
-                            .get_number_of_affected_tapes()
-                            - 1,
-                        true,
-                    );
-
-                    if let Err(e) = tm {
-                        return Err(TuringParserError::TuringError {
-                            line_col_pos: Some(rule_cp.line_col()),
-                            turing_error: Box::new(e.into()),
-                            value: rule_cp.as_str().to_string(),
-                        });
-                    }
-                    turing_machine = Some(tm.unwrap());
-                }
-                // If the MT existed
-                if let Some(mt) = &mut turing_machine {
-                    // Add the states to the mt (if they didn't already exists)
-                    // and get their index
-                    let var1 = mt.add_state(&from_var, TuringStateType::Normal);
-                    let var2 = mt.add_state(&to_var, TuringStateType::Normal);
-                    // Adds all the collected transitions for these states
-                    for transition in transitions {
-                        if let Err(e) = mt.append_transition(var1, transition, var2) {
-                            return Err(TuringParserError::TuringError {
-                                line_col_pos: Some(rule_cp.line_col()),
-                                turing_error: Box::new(e.into()),
-                                value: rule_cp.as_str().to_string(),
-                            });
-                        }
+                // Add the states to the mt (if they didn't already exists)
+                // and get their index
+                let var1 = turing_graph.add_state(&from_var, TuringStateType::Normal);
+                let var2 = turing_graph.add_state(&to_var, TuringStateType::Normal);
+                let mut inner_res = Ok(());
+                // Adds all the collected transitions for these states
+                for transition in transitions {
+                    if let Err(e) = turing_graph.append_transition(var1, transition, var2) {
+                        inner_res = Err(e);
+                        break;
                     }
                 }
+                inner_res
             }
-            Rule::semicolon => {}
-            // The file has ended, this means we reached the last matched rule
-            Rule::EOI => {}
+            Rule::semicolon => Ok(()),
+            // The input has ended, this means we reached the last matched rule
+            Rule::EOI => Ok(()),
             _ => unreachable!(),
+        };
+        if let Err(e) = res {
+            return Err(TuringParserError::TuringError {
+                line_col_pos: Some(rule_cp.line_col()),
+                turing_error: Box::new(e.into()),
+                value: rule_cp.as_str().to_string(),
+            });
         }
     }
-    match turing_machine {
-        Some(t) => Ok(t),
-        // If no parse value was given, simply return a read only one
-        None => Ok(TuringGraph::default()),
-    }
+    Ok(turing_graph)
 }
 
 /// Parses a string containing a transition of the form :
@@ -226,6 +218,54 @@ pub fn parse_transition_content_string(
     }
     todo!("test");
     // FIXME: test this
+}
+
+fn parse_rename_init<S, T>(
+    tm: &mut TuringGraph<S, T>,
+    init_rule: Pair<Rule>,
+) -> Result<(), TuringGraphError>
+where
+    S: TuringState,
+    T: TuringTransition,
+{
+    let mut state_name = String::from("i");
+
+    if let Some(rule) = init_rule.into_inner().next() {
+        match &rule.as_rule() {
+            Rule::state_name => {
+                state_name = parse_str_token(rule);
+            }
+            _ => unreachable!(),
+        };
+    }
+
+    tm.rename_state(0, state_name)
+}
+
+fn parse_add_accepting_states<S, T>(
+    tm: &mut TuringGraph<S, T>,
+    init_rule: Pair<Rule>,
+) -> Result<(), TuringGraphError>
+where
+    S: TuringState,
+    T: TuringTransition,
+{
+    let mut renamed_a = false;
+
+    for rule in init_rule.into_inner() {
+        match &rule.as_rule() {
+            Rule::state_name => {
+                if renamed_a {
+                    tm.try_add_state(parse_str_token(rule), TuringStateType::Accepting)?;
+                } else {
+                    renamed_a = true;
+                    tm.rename_state(1, parse_str_token(rule))?;
+                }
+            }
+            _ => unreachable!(),
+        };
+    }
+    Ok(())
 }
 
 fn parse_transition(
