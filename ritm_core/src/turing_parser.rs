@@ -395,7 +395,7 @@ fn get_line_col(error: &Error<Rule>) -> Option<(usize, usize)> {
     }
 }
 
-/// Turns the given [TuringMachineGraph] into its equivalent [String] value.
+/// Turns the given [`TuringGraph`] into its equivalent [String] value.
 /// The returned value can then be parsed by the parser to return the same graph.
 ///
 /// This function is therefore very useful to save graphs.
@@ -404,14 +404,8 @@ where
     S: TuringState,
     T: TuringTransition,
 {
-    let mut res = String::from("States:\n");
+    // TODO: Add accepting and rename init options !!
 
-    // Print all states
-    for state in tm.get_state_hashmap().values() {
-        res.push_str(format!("{}: {}\n", state.get_name(), state.get_type()).as_str());
-    }
-
-    res.push_str("\nTransitions:\n");
     let mut res_tr = String::new();
     // Print all transitions btw states
     for ((q1, q2), transitions) in tm.get_transitions_hashmap() {
@@ -430,11 +424,6 @@ where
 
         res_tr.push_str(format!("{} q_{};\n\n", "}", q2.get_name()).as_str());
     }
-    if res_tr.is_empty() {
-        res.push_str("None");
-    } else {
-        res.push_str(res_tr.as_str());
-    }
 
-    res
+    res_tr
 }

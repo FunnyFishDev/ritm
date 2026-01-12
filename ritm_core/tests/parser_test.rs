@@ -95,6 +95,7 @@ fn test_parse_transition_valid_mult() {
             TuringDirection::Right,
             vec!(('a', TuringDirection::Left))
         )
+        .expect("no issues")
     );
     assert_eq!(
         transitions[1],
@@ -103,6 +104,7 @@ fn test_parse_transition_valid_mult() {
             TuringDirection::None,
             vec!(('p', TuringDirection::Right))
         )
+        .expect("no issues")
     );
 }
 
@@ -123,6 +125,7 @@ fn test_parse_transition_valid_single() {
             TuringDirection::Right,
             vec!(('a', TuringDirection::Left))
         )
+        .expect("no issues")
     );
 }
 

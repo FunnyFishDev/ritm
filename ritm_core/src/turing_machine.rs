@@ -851,7 +851,7 @@ where
                 transition.chars_write[i].0,
                 &transition.chars_write[i].1,
             )
-            .unwrap();
+            .expect("no errors after transitions");
     }
 
     // Move to the next state

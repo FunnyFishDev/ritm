@@ -82,17 +82,23 @@ impl<T: TuringTransition> From<TuringTransitionInfo> for TuringTransitionWrapper
 }
 
 impl TuringTransitionInfo {
-    /// Creates a new [TuringTransitions].
+    /// Creates a new [`TuringTransitionInfo`].
     pub fn new(
         char_read: Vec<char>,
         move_read: TuringDirection,
         chars_read_write: Vec<(char, TuringDirection)>,
-    ) -> Self {
-        Self {
-            chars_read: char_read,
-            move_read,
-            chars_write: chars_read_write,
-        }
+    ) -> Result<Self, TuringTransitionError> {
+        let mut directions = Vec::with_capacity(chars_read_write.len() + 1);
+        directions.push(move_read);
+
+        let mut chars_write = Vec::with_capacity(chars_read_write.len());
+
+        chars_read_write.into_iter().for_each(|(c, dir)| {
+            chars_write.push(c);
+            directions.push(dir);
+        });
+
+        Self::create(char_read, chars_write, directions)
     }
 
     /// Simplifies the creation of a new [TuringTransition] of the form :
