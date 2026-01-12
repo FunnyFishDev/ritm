@@ -42,7 +42,7 @@ fn save_all_accept() {
     let mut saved_state = None;
     let mut counter = 0;
     for steps in &mut turing_machine {
-        println!("_______________\nExec. step ::\n{}", steps);
+        // println!("_______________\nExec. step ::\n{}", steps);
         counter += 1;
 
         if counter == 1000 {
@@ -61,7 +61,7 @@ fn save_all_accept() {
             TuringExecutionSteps::TransitionTaken {
                 previous_state: _,
                 reached_state,
-                transition_index_taken: _,
+                transition_index: _,
                 transition_taken: _,
                 reading_tape: _,
                 writing_tapes: _,
@@ -92,7 +92,7 @@ fn save_all_not_accept() {
 
     let mut saved_state = None;
     for steps in &mut turing_machine {
-        println!("_______________\nExec. step ::\n{}", steps);
+        // println!("_______________\nExec. step ::\n{}", steps);
         saved_state = Some(steps);
     }
 
@@ -106,7 +106,7 @@ fn save_all_not_accept() {
             TuringExecutionSteps::TransitionTaken {
                 previous_state: _,
                 reached_state,
-                transition_index_taken: _,
+                transition_index: _,
                 transition_taken: _,
                 reading_tape: _,
                 writing_tapes: _,
@@ -163,7 +163,7 @@ fn stop_first_reject() {
         && let TuringExecutionSteps::TransitionTaken {
             previous_state: _,
             reached_state,
-            transition_index_taken: _,
+            transition_index: _,
             transition_taken: _,
             reading_tape: _,
             writing_tapes: _,
@@ -356,7 +356,7 @@ fn get_path_to_accept_test() {
                 previous_state: _,
                 reached_state: _,
                 state_pointer: _,
-                transition_index_taken: _,
+                transition_index: _,
                 transition_taken,
                 reading_tape: _,
                 writing_tapes: _,
