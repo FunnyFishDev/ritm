@@ -78,11 +78,11 @@ pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
                 TuringExecutionSteps::TransitionTaken {
                     previous_state,
                     reached_state,
-                    transition_index_taken,
+                    transition_index,
                     ..
                 } => Some((
                         previous_state.get_id(),
-                        transition_index_taken.1,
+                        transition_index.1,
                         reached_state.get_id(),
                     )),
                 TuringExecutionSteps::Backtracked { .. } => None,

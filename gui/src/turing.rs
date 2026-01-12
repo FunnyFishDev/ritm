@@ -145,7 +145,7 @@ impl Turing {
 
         self.tm
             .graph_mut()
-            .remove_transition(source_id, id, target_id)
+            .remove_transition((source_id, id, target_id))
             .map_err(|e| RitmError::CoreError(e.to_string()))
     }
 
@@ -413,18 +413,6 @@ pub struct Transition {}
 
 impl TuringTransition for Transition {}
 
-/// Copy of the [`TuringTransition`] but with string to allow empty char
-#[derive(Clone, PartialEq, Debug)]
-pub struct TuringTransitionString {
-    pub chars_read: Vec<String>,
-    pub move_read: TuringDirection,
-    pub chars_write: Vec<(String, TuringDirection)>,
-}
-
-/// Because a char cannot be "empty", we use this char instead.
-/// This char should not be displayed or available on most keyboard.
-pub(crate) const ARBITRARY_EMPTY_CHAR: char = ' ';
-
 #[derive(Clone, PartialEq, Debug)]
 pub struct TransitionWrapperCopy {
     pub inner_transition: Transition,
@@ -471,7 +459,7 @@ impl TransitionWrapperCopy {
             .iter()
             .map(|e| e.chars().nth(0).expect("Shouldn't have empty char"))
             .collect();
-        let (chars_write, mut direction) = self
+        let chars_write = self
             .chars_write
             .iter()
             .map(|(string, td)| {
@@ -480,13 +468,12 @@ impl TransitionWrapperCopy {
                     td.clone(),
                 )
             })
-            .unzip();
-        let mut directions = vec![self.move_read.clone()];
-        directions.append(&mut direction);
+            .collect();
         Ok(TransitionWrapper {
             // TODO: use new new() method
-            info: TuringTransitionInfo::create(chars_read, chars_write, directions)
-                .map_err(|e| RitmError::CoreError(e.to_string()))?,
+            info: TuringTransitionInfo::new(chars_read, self.move_read.clone(), chars_write)
+            .map_err(|e| RitmError::CoreError(e.to_string()))?,
+                
             inner_transition: self.inner_transition.clone(),
         })
     }
