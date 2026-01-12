@@ -319,7 +319,7 @@ fn print_step(
             previous_state,
             reached_state,
             state_pointer: _,
-            transition_index_taken: _,
+            transition_index: _,
             transition_taken,
             reading_tape: _,
             writing_tapes: _,

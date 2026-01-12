@@ -233,7 +233,7 @@ fn remove_transition(
     )?;
 
     for transition in vec_tm {
-        if let Err(e) = turing_graph.remove_transition(&q1, transition.clone(), &q2) {
+        if let Err(e) = turing_graph.remove_transition((&q1, transition.clone(), &q2)) {
             print_error_help(RiplError::EncounteredTuringError { error: e.into() });
         } else {
             println!(
