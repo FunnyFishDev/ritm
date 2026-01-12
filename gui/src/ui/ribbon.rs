@@ -9,7 +9,7 @@ use ritm_core::turing_tape::TuringTape;
 use crate::{App, ui::constant::Constant};
 
 pub fn show(app: &mut App, ui: &mut Ui) {
-    let ribbon_count = app.turing.graph_ref().get_k() + 1;
+    let ribbon_count = app.turing.tm.graph_ref().get_k() + 1;
 
     // Apply a scale correction to element for small screen
     let square_size = Constant::scale(ui, Constant::SQUARE_SIZE);
@@ -91,11 +91,11 @@ fn ribbon(app: &mut App, ui: &mut Ui, width: f32, ribbon_id: usize) {
             // Get the chars and pointer from reading or writing ribbon
             let (chars, pointer): (&Vec<char>, i32) = if ribbon_id == 0 {
                 (
-                    app.step.get_reading_tape().get_contents(),
-                    app.step.get_reading_tape().get_pointer() as i32,
+                    app.turing.current_step.get_reading_tape().get_contents(),
+                    app.turing.current_step.get_reading_tape().get_pointer() as i32,
                 )
             } else {
-                let write_ribbon = &app.step.get_writing_tapes()[ribbon_id - 1_usize];
+                let write_ribbon = &app.turing.current_step.get_writing_tapes()[ribbon_id - 1_usize];
                 (
                     write_ribbon.get_contents(),
                     write_ribbon.get_pointer() as i32,

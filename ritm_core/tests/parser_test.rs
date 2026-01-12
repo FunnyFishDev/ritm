@@ -1,8 +1,9 @@
 use ritm_core::{
-    turing_graph::TuringMachineGraph,
+    EmptyState, EmptyTransition, SimpleTuringGraph,
+    turing_graph::TuringStateType,
     turing_machine::TuringMachineError,
     turing_parser::{TuringParserError, parse_transition_string, parse_turing_graph_string},
-    turing_transition::{TuringDirection, TuringTransition, TuringTransitionError},
+    turing_transition::{TuringDirection, TuringTransitionError, TuringTransitionInfo},
 };
 
 #[test]
@@ -13,55 +14,51 @@ fn test_parse_mt_valid() {
                                           | 1, _ -> R, a, R} q1;",
     );
 
-    let res = parse_turing_graph_string(machine);
+    let res = parse_turing_graph_string::<EmptyState, EmptyTransition>(machine);
     let parsed_graph = res.unwrap();
 
     // Compare to a real turing machine
-    let mut graph = TuringMachineGraph::new(1).unwrap();
+    let mut graph = SimpleTuringGraph::default();
 
     let q1 = &String::from("1");
-    graph.add_state(q1);
+    graph.add_state(q1, TuringStateType::Normal);
 
     // q_i -> {ç, ç, => R, ç, R} -> q_1
-    let mut transition = TuringTransition::create(
+    let mut transition = TuringTransitionInfo::create(
         vec!['ç', 'ç'],
         vec!['ç'],
         vec![TuringDirection::Right, TuringDirection::Right],
     )
     .unwrap();
     graph
-        .append_rule_state_by_name("i", transition.clone(), q1)
+        .append_transition("i", transition.clone(), q1)
         .unwrap();
 
-    transition = TuringTransition::create(
+    transition = TuringTransitionInfo::create(
         vec!['0', '_'],
         vec!['a'],
         vec![TuringDirection::Right, TuringDirection::Right],
     )
     .unwrap();
-    graph
-        .append_rule_state_by_name(q1, transition.clone(), q1)
-        .unwrap();
+    graph.append_transition(q1, transition.clone(), q1).unwrap();
 
-    transition = TuringTransition::create(
+    transition = TuringTransitionInfo::create(
         vec!['1', '_'],
         vec!['a'],
         vec![TuringDirection::Right, TuringDirection::Right],
     )
     .unwrap();
-    graph
-        .append_rule_state_by_name(q1, transition.clone(), q1)
-        .unwrap();
+    graph.append_transition(q1, transition.clone(), q1).unwrap();
 
     assert_eq!(parsed_graph.get_k(), graph.get_k());
-    assert_eq!(parsed_graph.get_states(), graph.get_states());
+    assert_eq!(parsed_graph.get_state_hashmap(), graph.get_state_hashmap());
 }
 
 #[test]
 fn test_parse_mt_not_valid() {
     let machine_str = String::from("q_i {ç, ç -> R, ç, R} q_1");
 
-    if let Ok(t) = parse_turing_graph_string(machine_str) {
+    if let Ok(t) = parse_turing_graph_string::<EmptyState, EmptyTransition>(machine_str) {
         panic!(
             "The parser should have returned an error not this value:  {:?}",
             t
@@ -70,7 +67,7 @@ fn test_parse_mt_not_valid() {
 
     let machine_str = String::from("q_i ç, ç -> R, ç, R} q_1;");
 
-    if let Ok(t) = parse_turing_graph_string(machine_str) {
+    if let Ok(t) = parse_turing_graph_string::<EmptyState, EmptyTransition>(machine_str) {
         panic!(
             "The parser should have returned an error not this value:  {:?}",
             t
@@ -93,19 +90,21 @@ fn test_parse_transition_valid_mult() {
     assert_eq!(transitions.len(), 2);
     assert_eq!(
         transitions[0],
-        TuringTransition::new(
+        TuringTransitionInfo::new(
             vec!('0', 'a'),
             TuringDirection::Right,
             vec!(('a', TuringDirection::Left))
         )
+        .expect("no issues")
     );
     assert_eq!(
         transitions[1],
-        TuringTransition::new(
+        TuringTransitionInfo::new(
             vec!('1', 'b'),
             TuringDirection::None,
             vec!(('p', TuringDirection::Right))
         )
+        .expect("no issues")
     );
 }
 
@@ -121,11 +120,12 @@ fn test_parse_transition_valid_single() {
     assert_eq!(transitions.len(), 1);
     assert_eq!(
         transitions[0],
-        TuringTransition::new(
+        TuringTransitionInfo::new(
             vec!('0', 'a'),
             TuringDirection::Right,
             vec!(('a', TuringDirection::Left))
         )
+        .expect("no issues")
     );
 }
 
@@ -173,7 +173,7 @@ fn test_parser_missing_semicolon() {
                                           | 1, _ -> R, a, R} q1",
     );
 
-    let res = parse_turing_graph_string(machine);
+    let res = parse_turing_graph_string::<EmptyState, EmptyTransition>(machine);
 
     match res {
         Ok(_) => panic!("An error was expected"),
@@ -201,7 +201,7 @@ fn test_parser_missing_left_bracket() {
                                           | 1, _ -> R, a, R} q1;",
     );
 
-    let res = parse_turing_graph_string(machine);
+    let res = parse_turing_graph_string::<EmptyState, EmptyTransition>(machine);
 
     match res {
         Ok(_) => panic!("An error was expected"),
@@ -229,7 +229,7 @@ fn test_parser_missing_right_bracket() {
                                           | 1, _ -> R, a, R q1;",
     );
 
-    let res = parse_turing_graph_string(machine);
+    let res = parse_turing_graph_string::<EmptyState, EmptyTransition>(machine);
 
     match res {
         Ok(_) => panic!("An error was expected"),
@@ -257,7 +257,7 @@ fn test_parse_graph_incompatible_transition() {
                                           | 1, _, _ -> R, a, R, a, R} q1;",
     );
 
-    let res = parse_turing_graph_string(machine);
+    let res = parse_turing_graph_string::<EmptyState, EmptyTransition>(machine);
     match res {
         Ok(_) => panic!("An error was expected"),
         Err(TuringParserError::TuringError {
@@ -266,7 +266,7 @@ fn test_parse_graph_incompatible_transition() {
             value: _,
         }) => {
             matches!(
-                turing_error,
+                *turing_error,
                 TuringMachineError::GraphError(
                     ritm_core::turing_graph::TuringGraphError::IncompatibleTransitionError {
                         expected: _,
@@ -287,7 +287,7 @@ fn test_parse_graph_bad_transition() {
                                           | 1, _ -> R, a, R, a, R} q1;",
     );
 
-    let res = parse_turing_graph_string(machine);
+    let res = parse_turing_graph_string::<EmptyState, EmptyTransition>(machine);
 
     match res {
         Ok(_) => panic!("An error was expected"),
@@ -298,7 +298,7 @@ fn test_parse_graph_bad_transition() {
                 value: _,
             } => {
                 assert!(matches!(
-                    turing_error,
+                    *turing_error,
                     TuringMachineError::TransitionError(
                         TuringTransitionError::TransitionArgsError(_val)
                     )
@@ -307,4 +307,61 @@ fn test_parse_graph_bad_transition() {
             _ => panic!("An EncounteredTuringError was expected"),
         },
     }
+}
+
+#[test]
+fn test_rename_init() {
+    let machine = String::from(
+        "init = q_init;
+        q_init {ç, ç -> R, ç, R} q_1;
+        q1 {  0, _ -> R, a, R 
+           |  1, _ -> R, a, R} q1;",
+    );
+
+    let res = parse_turing_graph_string::<EmptyState, EmptyTransition>(machine);
+    let parsed_graph = res.expect("no errors");
+
+    assert_eq!(
+        parsed_graph.get_state("init").expect("no problem").get_id(),
+        0
+    )
+}
+
+#[test]
+fn test_add_accepting() {
+    let machine = String::from(
+        "init = qinit;
+        accepting = q_1, q_2;
+        q_init {ç, ç -> R, ç, R} q_1;
+        q1 {  0, _ -> R, a, R 
+           |  1, _ -> R, a, R} q3;",
+    );
+
+    let res = parse_turing_graph_string::<EmptyState, EmptyTransition>(machine);
+    let parsed_graph = res.expect("no errors");
+
+    assert_eq!(
+        parsed_graph
+            .get_state("1")
+            .expect("no problem")
+            .get_info()
+            .get_type(),
+        TuringStateType::Accepting,
+    );
+    assert_eq!(
+        parsed_graph
+            .get_state("2")
+            .expect("no problem")
+            .get_info()
+            .get_type(),
+        TuringStateType::Accepting,
+    );
+    assert_eq!(
+        parsed_graph
+            .get_state("3")
+            .expect("no problem")
+            .get_info()
+            .get_type(),
+        TuringStateType::Normal,
+    )
 }

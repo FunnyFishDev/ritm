@@ -1,10 +1,10 @@
 use ritm_core::{
-    turing_graph::TuringMachineGraph,
+    EmptyState, EmptyTransition, SimpleTuringGraph, SimpleTuringMachine,
+    turing_graph::TuringStateType,
     turing_machine::{Mode, TuringExecutionSteps, TuringMachines},
     turing_parser::parse_turing_graph_string,
-    turing_state::TuringStateType,
     turing_tape::TuringTape,
-    turing_transition::{TuringDirection, TuringTransition},
+    turing_transition::{TuringDirection, TuringTransitionInfo},
 };
 
 const TM_ACCEPT_XX: &str = "// Turing machine that only accepts words of the form : xx
@@ -19,14 +19,14 @@ q_2 { 0, 0 -> N, 0, L
     | 0, 1 -> N, 1, L
     | 1, 0 -> N, 0, L
     | 1, 1 -> N, 1, L} q_2;
-q_2 { 0, ç -> N, ç, R 
+q_2 { 0, ç -> N, ç, R
     | 1, ç -> N, ç, R } q_3;
 
-q_3 { 0, 0 -> R, 0, R 
+q_3 { 0, 0 -> R, 0, R
     | 1, 1 -> R, 1, R } q_3;
 q_3 { $, _ -> N, _, N } q_a;";
 
-const TM_INF: &str = "// Turing machine is infinite 
+const TM_INF: &str = "// Turing machine is infinite
 q_i {ç, ç -> N, ç, N} q_i;";
 
 #[test]
@@ -42,7 +42,7 @@ fn save_all_accept() {
     let mut saved_state = None;
     let mut counter = 0;
     for steps in &mut turing_machine {
-        println!("_______________\nExec. step ::\n{}", steps);
+        // println!("_______________\nExec. step ::\n{}", steps);
         counter += 1;
 
         if counter == 1000 {
@@ -61,14 +61,14 @@ fn save_all_accept() {
             TuringExecutionSteps::TransitionTaken {
                 previous_state: _,
                 reached_state,
-                transition_index_taken: _,
+                transition_index: _,
                 transition_taken: _,
                 reading_tape: _,
                 writing_tapes: _,
                 iteration: _,
                 state_pointer: _,
             } => {
-                assert_eq!(TuringStateType::Accepting, reached_state.state_type)
+                assert_eq!(TuringStateType::Accepting, reached_state.get_type())
             }
             TuringExecutionSteps::Backtracked {
                 previous_state: _,
@@ -92,7 +92,7 @@ fn save_all_not_accept() {
 
     let mut saved_state = None;
     for steps in &mut turing_machine {
-        println!("_______________\nExec. step ::\n{}", steps);
+        // println!("_______________\nExec. step ::\n{}", steps);
         saved_state = Some(steps);
     }
 
@@ -106,14 +106,14 @@ fn save_all_not_accept() {
             TuringExecutionSteps::TransitionTaken {
                 previous_state: _,
                 reached_state,
-                transition_index_taken: _,
+                transition_index: _,
                 transition_taken: _,
                 reading_tape: _,
                 writing_tapes: _,
                 iteration: _,
                 state_pointer: _,
             } => {
-                assert_ne!(TuringStateType::Accepting, reached_state.state_type)
+                assert_ne!(TuringStateType::Accepting, reached_state.get_type())
             }
             TuringExecutionSteps::Backtracked {
                 previous_state: _,
@@ -156,7 +156,6 @@ fn stop_first_reject() {
         if counter == 1000 {
             return;
         }
-
         last_step = Some(steps);
     }
 
@@ -164,7 +163,7 @@ fn stop_first_reject() {
         && let TuringExecutionSteps::TransitionTaken {
             previous_state: _,
             reached_state,
-            transition_index_taken: _,
+            transition_index: _,
             transition_taken: _,
             reading_tape: _,
             writing_tapes: _,
@@ -172,7 +171,7 @@ fn stop_first_reject() {
             state_pointer: _,
         } = step
     {
-        assert_ne!(reached_state.state_type, TuringStateType::Accepting);
+        assert_ne!(reached_state.get_type(), TuringStateType::Accepting);
         return;
     }
     panic!("The iteration didn't stop like it was supposed to");
@@ -180,40 +179,38 @@ fn stop_first_reject() {
 
 /// Gets a graph that forces one complete descent before doing one backtracking and finishing.
 /// Feed it `0...0` in order for it to suceed
-fn _get_smaller_non_deter_graph() -> TuringMachineGraph {
+fn _get_smaller_non_deter_graph() -> SimpleTuringGraph {
     let q2 = &String::from("q2");
-    let mut graph = TuringMachineGraph::new(1).unwrap();
+    let mut graph = SimpleTuringGraph::new(1, true).unwrap();
 
-    graph.add_state(q2);
+    graph.add_state(q2, TuringStateType::Normal);
 
-    let mut transition = TuringTransition::create(
+    let mut transition = TuringTransitionInfo::create(
         vec!['ç', 'ç'],
         vec!['ç'],
         vec![TuringDirection::Right, TuringDirection::Right],
     )
     .unwrap();
     graph
-        .append_rule_state_by_name("i", transition.clone(), q2)
+        .append_transition("i", transition.clone(), q2)
         .unwrap();
 
-    transition = TuringTransition::create(
+    transition = TuringTransitionInfo::create(
+        vec!['0', '_'],
+        vec!['_'],
+        vec![TuringDirection::Right, TuringDirection::None],
+    )
+    .unwrap();
+    graph.append_transition(q2, transition.clone(), q2).unwrap();
+
+    transition = TuringTransitionInfo::create(
         vec!['0', '_'],
         vec!['_'],
         vec![TuringDirection::Right, TuringDirection::None],
     )
     .unwrap();
     graph
-        .append_rule_state_by_name(q2, transition.clone(), q2)
-        .unwrap();
-
-    transition = TuringTransition::create(
-        vec!['0', '_'],
-        vec!['_'],
-        vec![TuringDirection::Right, TuringDirection::None],
-    )
-    .unwrap();
-    graph
-        .append_rule_state_by_name(q2, transition.clone(), "a")
+        .append_transition(q2, transition.clone(), "a")
         .unwrap();
 
     graph
@@ -221,127 +218,116 @@ fn _get_smaller_non_deter_graph() -> TuringMachineGraph {
 
 /// Gets a non determinist Turing machine graph.
 /// Return a turing machine that checks if a given inputed value is of the form `x1y` with `|x| = |y|`.
-fn get_test_non_deter_graph() -> TuringMachineGraph {
+fn get_test_non_deter_graph() -> SimpleTuringGraph {
     let q1 = &String::from("q1");
     let q2 = &String::from("q2");
-    let mut graph = TuringMachineGraph::new(1).unwrap();
+    let mut graph = SimpleTuringGraph::new(1, true).unwrap();
 
-    graph.add_state(q1);
-    graph.add_state(q2);
+    graph.add_state(q1, TuringStateType::Normal);
+    graph.add_state(q2, TuringStateType::Normal);
 
     // q_0 -> {ç, ç, => R, ç, R} -> q_1
-    let mut transition = TuringTransition::create(
+    let mut transition = TuringTransitionInfo::create(
         vec!['ç', 'ç'],
         vec!['ç'],
         vec![TuringDirection::Right, TuringDirection::Right],
     )
     .unwrap();
     graph
-        .append_rule_state_by_name("i", transition.clone(), q1)
+        .append_transition("i", transition.clone(), q1)
         .unwrap();
 
     // q_1 -> {0, _ => R, a, R} -> q_1
-    transition = TuringTransition::create(
+    transition = TuringTransitionInfo::create(
         vec!['0', '_'],
         vec!['a'],
         vec![TuringDirection::Right, TuringDirection::Right],
     )
     .unwrap();
-    graph
-        .append_rule_state_by_name(q1, transition.clone(), q1)
-        .unwrap();
+    graph.append_transition(q1, transition.clone(), q1).unwrap();
     // q_1 -> {1, _ => R, a, R} -> q_1
-    transition = TuringTransition::create(
+    transition = TuringTransitionInfo::create(
         vec!['1', '_'],
         vec!['a'],
         vec![TuringDirection::Right, TuringDirection::Right],
     )
     .unwrap();
-    graph
-        .append_rule_state_by_name(q1, transition.clone(), q1)
-        .unwrap();
+    graph.append_transition(q1, transition.clone(), q1).unwrap();
 
     // q_1 -> {1, _ => R, _, L} -> q_2
-    transition = TuringTransition::create(
+    transition = TuringTransitionInfo::create(
         vec!['1', '_'],
         vec!['_'],
         vec![TuringDirection::Right, TuringDirection::Left],
     )
     .unwrap();
-    graph
-        .append_rule_state_by_name(q1, transition.clone(), q2)
-        .unwrap();
+    graph.append_transition(q1, transition.clone(), q2).unwrap();
 
     // q_2 -> {0, a => R, a, L} -> q_2
-    transition = TuringTransition::create(
+    transition = TuringTransitionInfo::create(
         vec!['0', 'a'],
         vec!['a'],
         vec![TuringDirection::Right, TuringDirection::Left],
     )
     .unwrap();
-    graph
-        .append_rule_state_by_name(q2, transition.clone(), q2)
-        .unwrap();
+    graph.append_transition(q2, transition.clone(), q2).unwrap();
 
     // q_2 -> {1, a => R, a, L} -> q_2
-    transition = TuringTransition::create(
+    transition = TuringTransitionInfo::create(
         vec!['1', 'a'],
         vec!['a'],
         vec![TuringDirection::Right, TuringDirection::Left],
     )
     .unwrap();
-    graph
-        .append_rule_state_by_name(q2, transition.clone(), q2)
-        .unwrap();
+    graph.append_transition(q2, transition.clone(), q2).unwrap();
 
     // q_2 -> {$, ç => N, ç, N} -> a
-    transition = TuringTransition::create(
+    transition = TuringTransitionInfo::create(
         vec!['$', 'ç'],
         vec!['ç'],
         vec![TuringDirection::None, TuringDirection::None],
     )
     .unwrap();
     graph
-        .append_rule_state_by_name(q2, transition.clone(), "a")
+        .append_transition(q2, transition.clone(), "a")
         .unwrap();
 
     graph
 }
 
-fn get_small_inf_machine(mode: Mode) -> TuringMachines {
+fn get_small_inf_machine(mode: Mode) -> SimpleTuringMachine {
     let q1 = &String::from("q1");
 
-    let mut graph = TuringMachineGraph::new(1).unwrap();
-    graph.add_state(q1);
+    let mut graph = SimpleTuringGraph::new(1, true).unwrap();
+    graph.add_state(q1, TuringStateType::Normal);
 
     // q_0 -> {ç, ç, => R, ç, R} -> q_1
-    let transition = TuringTransition::create(
+    let transition = TuringTransitionInfo::create(
         vec!['ç', 'ç'],
         vec!['ç'],
         vec![TuringDirection::Right, TuringDirection::Right],
     )
     .unwrap();
     graph
-        .append_rule_state_by_name("i", transition.clone(), q1)
+        .append_transition("i", transition.clone(), q1)
         .unwrap();
 
     // q_1 -> {1, _, => N, _, N} -> q_1
-    let transition = TuringTransition::create(
+    let transition = TuringTransitionInfo::create(
         vec!['1', '_'],
         vec!['_'],
         vec![TuringDirection::None, TuringDirection::None],
     )
     .unwrap();
-    graph
-        .append_rule_state_by_name(q1, transition.clone(), q1)
-        .unwrap();
+    graph.append_transition(q1, transition.clone(), q1).unwrap();
 
-    TuringMachines::new(graph,String::from("1"), mode).unwrap()
+    TuringMachines::new(graph, String::from("1"), mode).unwrap()
 }
 
 #[test]
 fn get_path_to_accept_test() {
-    let tm = parse_turing_graph_string(TM_ACCEPT_XX.to_string()).unwrap();
+    let tm =
+        parse_turing_graph_string::<EmptyState, EmptyTransition>(TM_ACCEPT_XX.to_string()).unwrap();
 
     let mut tm = TuringMachines::new(tm, String::from("1010"), Mode::SaveAll).unwrap();
 
@@ -360,17 +346,17 @@ fn get_path_to_accept_test() {
     let mut reading_tape = first_step.get_reading_tape().clone();
     let mut writting_tapes = first_step.get_writing_tapes().clone();
 
-    let mut last_step_type = first_step.get_current_state().state_type.clone();
+    let mut last_step_type = first_step.get_current_state().get_type();
     // Check that the path leads to the correct output.
     tm.reset();
     for step in path_iter {
-        last_step_type = step.get_current_state().state_type.clone();
+        last_step_type = step.get_current_state().get_type();
         match &step {
             TuringExecutionSteps::TransitionTaken {
                 previous_state: _,
                 reached_state: _,
                 state_pointer: _,
-                transition_index_taken: _,
+                transition_index: _,
                 transition_taken,
                 reading_tape: _,
                 writing_tapes: _,
@@ -425,7 +411,7 @@ fn get_path_to_accept_test() {
 #[test]
 fn get_path_to_accept_exit_condition_test() {
     // Checks that the exist condition works by using an infinite turing machine
-    let tm = parse_turing_graph_string(TM_INF.to_string()).unwrap();
+    let tm = parse_turing_graph_string::<EmptyState, EmptyTransition>(TM_INF.to_string()).unwrap();
 
     // Here the mode will not allow the machine to end, therefore only the exit condition can force the execution to stop
     let mut tm = TuringMachines::new(tm, String::from("1"), Mode::SaveAll).unwrap();
@@ -443,7 +429,7 @@ fn get_path_to_accept_exit_condition_test() {
 #[test]
 fn get_path_to_accept_exit_mode_test() {
     // Checks that the exist condition works by using an infinite turing machine
-    let tm = parse_turing_graph_string(TM_INF.to_string()).unwrap();
+    let tm = parse_turing_graph_string::<EmptyState, EmptyTransition>(TM_INF.to_string()).unwrap();
 
     let mut tm = TuringMachines::new(tm, String::from("1"), Mode::StopAfter(10)).unwrap();
     // No exit condition, therefore it could loop forever, if not for the mode
@@ -456,7 +442,8 @@ fn get_path_to_accept_exit_mode_test() {
 
 #[test]
 fn get_path_to_accept_rejected_test() {
-    let tm = parse_turing_graph_string(TM_ACCEPT_XX.to_string()).unwrap();
+    let tm =
+        parse_turing_graph_string::<EmptyState, EmptyTransition>(TM_ACCEPT_XX.to_string()).unwrap();
 
     let mut tm = TuringMachines::new(tm, String::from("10101"), Mode::SaveAll).unwrap();
 

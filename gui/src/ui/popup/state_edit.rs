@@ -1,6 +1,6 @@
 use egui::{
-    Align, AtomExt, Button, Color32, Image, Layout, RichText,
-    Stroke, TextEdit, Ui, Vec2, include_image, vec2,
+    Align, AtomExt, Button, Color32, Image, Layout, RichText, Stroke, TextEdit, Ui, Vec2,
+    include_image, vec2,
 };
 
 use crate::{
@@ -11,7 +11,7 @@ use crate::{
 pub fn show(ui: &mut Ui, app: &mut App) {
     ui.allocate_ui_with_layout(
         vec2(200.0, 0.0),
-        Layout::top_down(Align::Center).with_cross_justify(true),
+        Layout::right_to_left(Align::Center),
         |ui| {
             ui.style_mut().spacing.item_spacing = vec2(0.0, 10.0);
 
@@ -28,29 +28,35 @@ pub fn show(ui: &mut Ui, app: &mut App) {
                             .tint(app.theme.gray),
                     );
 
-                    let state = app.temp_state.as_mut().unwrap();
+                    let Some((_state_id, state)) = &mut app.turing.state_edit else {
+                        app.popup = RitmPopup::None;
+                        return;
+                    };
 
-                    let edit = TextEdit::singleline(&mut state.name)
+                    let edit = TextEdit::singleline(&mut state.get_edit().name)
                         .font(Font::default_big())
                         .background_color(Color32::from_black_alpha(20))
                         .char_limit(5);
 
-                    ui.add(edit)
+                    ui.add(edit);
                 },
             );
-
-            let state = app.temp_state.as_mut().unwrap();
 
             let text = RichText::new("Save")
                 .color(Theme::constrast_color(app.theme.valid))
                 .font(Font::default_medium())
                 .atom_grow(true);
 
+            let Some((_state_id, state)) = &app.turing.state_edit else {
+                app.popup = RitmPopup::None;
+                return;
+            };
+
             if ui
                 .add(
                     Button::new(text)
                         .stroke(Stroke::new(2.0, app.theme.gray))
-                        .fill(if state.name.is_empty() {
+                        .fill(if state.to().name.is_empty() {
                             app.theme.gray
                         } else {
                             app.theme.valid
@@ -60,16 +66,10 @@ pub fn show(ui: &mut Ui, app: &mut App) {
                 .clicked()
             {
                 // no mut borrow
-                let state = app.temp_state.as_ref().unwrap();
-                app.add_state(state.position, state.name.clone());
+                // let state = app.temp_state.as_ref().unwrap();
+                app.turing.add_state(state.to().name.to_string());
                 app.event.close_popup = true;
             };
         },
     );
-
-    if app.event.close_popup {
-        app.event.close_popup = false;
-        app.popup = RitmPopup::None;
-        app.temp_state = None;
-    }
 }

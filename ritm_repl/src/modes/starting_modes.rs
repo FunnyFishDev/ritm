@@ -10,7 +10,7 @@ use crate::{
     ripl_error::{RiplError, print_error_help},
 };
 use colored::Colorize;
-use ritm_core::{turing_graph::TuringMachineGraph, turing_parser::parse_turing_graph_file_path};
+use ritm_core::{SimpleTuringGraph, turing_parser::parse_turing_graph_file_path};
 use rustyline::{Editor, history::FileHistory};
 use strum_macros::EnumIter;
 
@@ -73,7 +73,7 @@ impl ModeEvent for StartingMode {
     }
 }
 
-fn create_tm(rl: &mut Editor<(), FileHistory>) -> Result<TuringMachineGraph, RiplError> {
+fn create_tm(rl: &mut Editor<(), FileHistory>) -> Result<SimpleTuringGraph, RiplError> {
     let res = query_usize(
         rl,
         format!(
@@ -83,7 +83,7 @@ fn create_tm(rl: &mut Editor<(), FileHistory>) -> Result<TuringMachineGraph, Rip
         ),
     )?;
 
-    let tm = TuringMachineGraph::new(res);
+    let tm = SimpleTuringGraph::new(res, true);
     if let Err(e) = tm {
         return Err(RiplError::EncounteredTuringError { error: e.into() });
     }
@@ -94,7 +94,7 @@ fn create_tm(rl: &mut Editor<(), FileHistory>) -> Result<TuringMachineGraph, Rip
 fn query_load_tm(
     rl: &mut Editor<(), FileHistory>,
     current_path: &Option<PathBuf>,
-) -> Result<TuringMachineGraph, RiplError> {
+) -> Result<SimpleTuringGraph, RiplError> {
     let path_str = query_string(
         rl,
         format!("Enter the {} the Turing machine to read:", "path".blue()),
@@ -106,7 +106,7 @@ fn query_load_tm(
 pub fn load_tm(
     current_path: &Option<PathBuf>,
     given_input: &String,
-) -> Result<TuringMachineGraph, RiplError> {
+) -> Result<SimpleTuringGraph, RiplError> {
     // Check if the path is absolute or not
     let path = Path::new(&given_input);
 

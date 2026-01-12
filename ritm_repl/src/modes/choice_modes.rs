@@ -34,7 +34,7 @@ where
     }
 }
 
-pub fn print_help_gen<E>(vec: &Vec<E>)
+pub fn print_help_gen<E>(vec: &[E])
 where
     E: IntoEnumIterator + Display + ModeEvent,
 {

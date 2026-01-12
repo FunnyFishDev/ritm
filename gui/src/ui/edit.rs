@@ -6,12 +6,12 @@ use egui::{
 use crate::{
     App,
     app::take_screenshot,
-    turing::{State, Transition, TransitionEdit},
+    error::RitmError,
     ui::{constant::Constant, popup::RitmPopup, theme::Theme},
 };
 
 /// Control of the graph
-pub fn show(app: &mut App, ui: &mut Ui, rect: Rect) {
+pub fn show(app: &mut App, ui: &mut Ui, rect: Rect) -> Result<(), RitmError> {
     let icon_size = Constant::scale(ui, Constant::ICON_SIZE);
 
     // Floating control absolute position
@@ -43,24 +43,24 @@ pub fn show(app: &mut App, ui: &mut Ui, rect: Rect) {
                         color: Color32::from_black_alpha(25),
                     })
                     .show(ui, |ui| {
-                        let state_selected = app.selected_state.is_some();
-                        let transition_selected = app.selected_transition.is_some();
+                        let state_selected = app.selected_state;
+                        let transition_selected = app.selected_transition;
 
                         // Need to compute the width of the menu to center it
                         // Recenter/Unpin/Pin
                         let mut count = 2;
-                        if !state_selected && !transition_selected {
+                        if !state_selected.is_some() && !transition_selected.is_some() {
                             count += 1;
                         }
-                        if state_selected {
+                        if state_selected.is_some() {
                             // Create transition from the selected state
                             count += 1;
                         }
-                        if state_selected || transition_selected {
+                        if state_selected.is_some() || transition_selected.is_some() {
                             // Delete/Edit state/transition
                             count += 1;
                         }
-                        if transition_selected {
+                        if transition_selected.is_some() {
                             count += 1;
                         }
                         let width = icon_size * count as f32 + 20.0 * (count - 1) as f32;
@@ -136,12 +136,15 @@ pub fn show(app: &mut App, ui: &mut Ui, rect: Rect) {
                                         )
                                         .clicked()
                                 {
-                                    if state_selected {
-                                        app.remove_state();
+                                    if let Some(state_selected) = state_selected {
+                                        app.turing.remove_state(state_selected)?;
                                     }
 
-                                    if transition_selected {
-                                        app.remove_transitions();
+                                    if let Some(transition_selected) = transition_selected {
+                                        app.turing.remove_transitions(
+                                            transition_selected.source_id,
+                                            transition_selected.target_id,
+                                        )?;
                                     }
                                 }
 
@@ -159,28 +162,23 @@ pub fn show(app: &mut App, ui: &mut Ui, rect: Rect) {
                                         )
                                         .clicked()
                                 {
-                                    if state_selected {
-                                        app.popup = RitmPopup::StateEdit(format!("State {}",
-                                            State::get(app, app.selected_state.unwrap()).name,
+                                    if let Some(state_selected) = state_selected {
+                                        app.popup = RitmPopup::StateEdit(format!(
+                                            "State {}",
+                                            app.turing.get_state(state_selected)?.get_name()
                                         ));
                                     }
-                                    if transition_selected {
-                                        let transition =
-                                            Transition::get(app, app.selected_transition.unwrap());
+                                    if let Some(transition_selected) = transition_selected {
                                         app.popup = RitmPopup::TransitionEdit(format!(
                                             "Transition {} -> {}",
-                                            State::get(app, transition.parent_id).name,
-                                            State::get(app, transition.target_id).name
+                                            app.turing.get_state(transition_selected.source_id)?.get_name(),
+                                            app.turing.get_state(transition_selected.target_id)?.get_name()
                                         ));
-                                        app.rules_edit = app
-                                            .turing
-                                            .graph_ref()
-                                            .get_state(app.selected_transition.unwrap().0)
-                                            .unwrap()
-                                            .transitions
-                                            .iter()
-                                            .map(TransitionEdit::from)
-                                            .collect::<Vec<TransitionEdit>>();
+                                        
+                                        app.turing.prepare_transition_edit(
+                                            transition_selected.source_id,
+                                            transition_selected.target_id,
+                                        );
                                     }
                                 }
 
@@ -213,8 +211,9 @@ pub fn show(app: &mut App, ui: &mut Ui, rect: Rect) {
                                     )
                                     .clicked()
                                 {
-                                    app.unpin();
+                                    app.turing.unpin();
                                 }
+                                Ok::<(), RitmError>(())
                             },
                         );
                     });
@@ -222,4 +221,5 @@ pub fn show(app: &mut App, ui: &mut Ui, rect: Rect) {
             });
         },
     );
+    Ok(())
 }

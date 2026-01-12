@@ -57,11 +57,7 @@ fn input(app: &mut App, ui: &mut Ui) {
                 ))
                 .clicked()
             {
-                let res = app.turing.reset_word(&app.input);
-                match res {
-                    Ok(_) => app.next(),
-                    Err(e) => println!("{:?}", e),
-                }
+                app.turing.set_word(&app.input);
             }
 
             if ui
@@ -93,7 +89,7 @@ fn input(app: &mut App, ui: &mut Ui) {
 fn control(app: &mut App, ui: &mut Ui) {
     let icon_size = Vec2::splat(Constant::scale(ui, Constant::CONTROL_ICON_SIZE));
     let finished = app.event.is_accepted.is_some();
-    let started = finished || app.step.get_nb_iterations() != 0;
+    let started = finished || app.turing.current_step.get_nb_iterations() != 0;
 
     Flex::horizontal()
         .align_items(FlexAlign::Center)
@@ -179,7 +175,7 @@ fn control(app: &mut App, ui: &mut Ui) {
                 )
                 .clicked()
             {
-                app.next();
+                app.turing.next_step();
             }
 
             // Reset button
@@ -274,7 +270,7 @@ fn step(app: &mut App, ui: &mut Ui) {
             flex.add(
                 item(),
                 Label::new(
-                    RichText::new(format!("Steps : {}", app.step.get_nb_iterations()))
+                    RichText::new(format!("Steps : {}", app.turing.current_step.get_nb_iterations()))
                         .font(Font::default(Constant::scale(flex.ui(), Font::MEDIUM_SIZE))),
                 ),
             );
@@ -291,7 +287,7 @@ fn state(app: &mut App, ui: &mut Ui) {
         .h_full()
         .show(ui, |flex| {
             flex.grow();
-            let (text, color) = if let Some(r) = app.event.is_accepted {
+            let (text, color) = if let Some(r) = app.turing.accepted {
                 if r {
                     ("Accepted", app.theme.valid)
                 } else {

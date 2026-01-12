@@ -6,10 +6,11 @@ use std::{
 };
 
 use ritm_core::{
-    turing_graph::TuringMachineGraph,
+    SimpleTuringGraph,
+    turing_graph::TuringStateType,
     turing_machine::TuringMachines,
     turing_parser::{self, parse_transition_string},
-    turing_transition::TuringTransition,
+    turing_transition::TuringTransitionInfo,
 };
 use rustyline::{Editor, history::FileHistory};
 use strum_macros::EnumIter;
@@ -85,7 +86,7 @@ impl ModeEvent for ModifyTuringMode {
                     print_error_help(e);
                 } else {
                     let name = &res.unwrap();
-                    tm.add_state(name);
+                    tm.add_state(name, TuringStateType::Normal);
                     println!(
                         "{}",
                         format!("Successfully added the state \'q_{}\'.", name.yellow()).green()
@@ -108,7 +109,7 @@ impl ModeEvent for ModifyTuringMode {
                     print_error_help(e);
                 } else {
                     let name = &res.unwrap();
-                    if let Err(e) = tm.remove_state_with_name(name) {
+                    if let Err(e) = tm.remove_state(name) {
                         print_error_help(RiplError::EncounteredTuringError { error: e.into() });
                     } else {
                         println!("{}", format!("Successfully removed the state \'q_{}\' and all related transitions.", name.yellow()).green())
@@ -193,7 +194,7 @@ fn get_state_name(rl: &mut Editor<(), FileHistory>) -> Result<String, RiplError>
 
 fn add_transition(
     rl: &mut Editor<(), FileHistory>,
-    turing_graph: &mut TuringMachineGraph,
+    turing_graph: &mut SimpleTuringGraph,
 ) -> Result<(), RiplError> {
     let (q1, vec_tm, q2) = query_transition(
         rl,
@@ -204,7 +205,7 @@ fn add_transition(
     )?;
 
     for transition in vec_tm {
-        if let Err(e) = turing_graph.append_rule_state_by_name(&q1, transition.clone(), &q2) {
+        if let Err(e) = turing_graph.append_transition(&q1, transition.clone(), &q2) {
             print_error_help(RiplError::EncounteredTuringError { error: e.into() });
         } else {
             println!(
@@ -220,7 +221,7 @@ fn add_transition(
 
 fn remove_transition(
     rl: &mut Editor<(), FileHistory>,
-    turing_graph: &mut TuringMachineGraph,
+    turing_graph: &mut SimpleTuringGraph,
 ) -> Result<(), RiplError> {
     let (q1, vec_tm, q2) = query_transition(
         rl,
@@ -232,7 +233,7 @@ fn remove_transition(
     )?;
 
     for transition in vec_tm {
-        if let Err(e) = turing_graph.remove_transition(&q1, &transition, &q2) {
+        if let Err(e) = turing_graph.remove_transition((&q1, transition.clone(), &q2)) {
             print_error_help(RiplError::EncounteredTuringError { error: e.into() });
         } else {
             println!(
@@ -246,14 +247,18 @@ fn remove_transition(
     Ok(())
 }
 
-fn format_transition(from: &String, transition: &TuringTransition, to: &String) -> ColoredString {
+fn format_transition(
+    from: &String,
+    transition: &TuringTransitionInfo,
+    to: &String,
+) -> ColoredString {
     format!("q_{} {}{}{} q_{}", from, "{", transition, "}", to).yellow()
 }
 
 pub fn query_transition(
     rl: &mut Editor<(), FileHistory>,
     query: String,
-) -> Result<(String, Vec<TuringTransition>, String), RiplError> {
+) -> Result<(String, Vec<TuringTransitionInfo>, String), RiplError> {
     println!("{}", query);
     loop {
         let readline = rl.readline("==> ");
@@ -282,7 +287,7 @@ pub fn query_transition(
 
 fn save_tm(
     rl: &mut Editor<(), FileHistory>,
-    tm: &TuringMachineGraph,
+    tm: &SimpleTuringGraph,
     current_path: &Option<PathBuf>,
 ) -> Result<(), RiplError> {
     let tm_string = turing_parser::graph_to_string(tm);

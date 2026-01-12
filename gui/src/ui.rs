@@ -16,11 +16,10 @@ pub mod theme;
 pub mod utils;
 
 use crate::{
-    App,
-    ui::font::Font,
+    App, error::RitmError, ui::font::Font
 };
 
-pub fn show(app: &mut App, ctx: &egui::Context) {
+pub fn show(app: &mut App, ctx: &egui::Context) -> Result<(), RitmError> {
     // Display the current popup/modal
     popup::show(ctx, app);
 
@@ -82,7 +81,8 @@ pub fn show(app: &mut App, ctx: &egui::Context) {
                         ..Default::default()
                     })
                     .show_inside(ui, |ui| {
-                        graph::show(app, ui);
+                        graph::show(app, ui)?;
+                        Ok::<(), RitmError>(())
                     });
             } else {
                 // Code and file loading
@@ -177,9 +177,12 @@ pub fn show(app: &mut App, ctx: &egui::Context) {
                                 ..Default::default()
                             })
                             .show_inside(ui, |ui| {
-                                graph::show(app, ui);
+                                graph::show(app, ui)?;
+                                Ok::<(), RitmError>(())
                             });
                     });
             }
         });
+
+    Ok(())
 }
