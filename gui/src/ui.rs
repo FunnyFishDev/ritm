@@ -16,18 +16,17 @@ pub mod theme;
 pub mod utils;
 
 use crate::{
-    App,
-    ui::{
+    App, error::RitmError, ui::{
         font::Font,
         popup::{help, setting, state_edit, transition_edit},
-    },
+    }
 };
 
-pub fn show(app: &mut App, ctx: &egui::Context) {
+pub fn show(app: &mut App, ctx: &egui::Context) -> Result<(), RitmError> {
     // Display the popup
     match app.popup {
         popup::RitmPopup::None => {}
-        popup::RitmPopup::TransitionEdit => transition_edit::show(app, ctx),
+        popup::RitmPopup::TransitionEdit => transition_edit::show(app, ctx)?,
         popup::RitmPopup::StateEdit => state_edit::show(app, ctx),
         popup::RitmPopup::Setting => setting::show(app, ctx),
         popup::RitmPopup::Help => help::show(app, ctx),
@@ -91,7 +90,8 @@ pub fn show(app: &mut App, ctx: &egui::Context) {
                         ..Default::default()
                     })
                     .show_inside(ui, |ui| {
-                        graph::show(app, ui);
+                        graph::show(app, ui)?;
+                        Ok::<(), RitmError>(())
                     });
             } else {
                 // Code and file loading
@@ -186,9 +186,12 @@ pub fn show(app: &mut App, ctx: &egui::Context) {
                                 ..Default::default()
                             })
                             .show_inside(ui, |ui| {
-                                graph::show(app, ui);
+                                graph::show(app, ui)?;
+                                Ok::<(), RitmError>(())
                             });
                     });
             }
         });
+
+    Ok(())
 }

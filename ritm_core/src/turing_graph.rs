@@ -487,6 +487,23 @@ where
         Ok(self.transition_hasmap.get(&(state_from, state_to)))
     }
 
+    /// Get the transitions between two nodes if any.
+    /// # Errors
+    /// * [TuringGraphError::UnknownStateIndex] if one of the given index is not present in the graph.
+    pub fn get_transitions_mut(
+        &mut self,
+        from: impl Into<TuringStateIndex>,
+        to: impl Into<TuringStateIndex>,
+    ) -> Result<Option<&mut Vec<TuringTransitionWrapper<T>>>, TuringGraphError> {
+        let from = from.into();
+        let to = to.into();
+
+        let state_from = self.try_get_state(from)?.info.id;
+        let state_to = self.try_get_state(to)?.info.id;
+
+        Ok(self.transition_hasmap.get_mut(&(state_from, state_to)))
+    }
+
     /// Removes **all** the transitions from this state to the given node.
     /// # Errors
     /// * [TuringGraphError::UnknownStateIndex] if one of the given index is not present in the graph.
@@ -592,6 +609,11 @@ where
     /// Returns a vector with a reference of all state contained in the graph.
     pub fn get_states(&self) -> Vec<&TuringStateWrapper<S>> {
         self.state_hashmap.values().collect()
+    }
+
+    /// Returns a vector with a mutable reference of all state contained in the graph.
+    pub fn get_states_mut(&mut self) -> Vec<&mut TuringStateWrapper<S>> {
+        self.state_hashmap.values_mut().collect()
     }
 
     /// Chnages the name of an already present state in the graph.

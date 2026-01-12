@@ -5,7 +5,8 @@ use std::{
 
 use crate::{
     App,
-    turing::{State, Transition, TransitionId},
+    error::RitmError,
+    turing::TransitionId,
     ui::{
         constant::Constant,
         font::Font,
@@ -23,109 +24,107 @@ use egui::{
 use ritm_core::turing_machine::TuringExecutionSteps;
 
 /// Draw every transition of the turing machine
-pub fn show(app: &mut App, ui: &mut Ui) {
+pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
     // We use this binary tree mapping structure to group every transition by source and target state
     let mut transitions_hashmap: BTreeMap<(usize, usize), Vec<(TransitionId, bool)>> =
         BTreeMap::new();
 
     // Used to compute the center of every state position
-    let mut graph_center = Vec2::ZERO;
+    let graph_center = app
+        .turing
+        .tm
+        .graph_ref()
+        .get_states()
+        .iter()
+        .fold(Vec2::ZERO, |acc, e| acc + e.inner_state.position.to_vec2())
+        / app.turing.tm.graph_ref().get_state_hashmap().len() as f32;
 
     let mut neighbors: HashMap<usize, HashSet<usize>> = HashMap::new();
 
     // Extract each keys to avoid borrowing the whole App struct when iterating every state
-    let keys: Vec<usize> = app.states.keys().copied().collect::<Vec<usize>>();
+    let keys: Vec<usize> = app
+        .turing
+        .tm
+        .graph_ref()
+        .get_state_hashmap()
+        .keys()
+        .copied()
+        .collect::<Vec<usize>>();
 
-    for i in &keys {
-        let state = State::get(app, *i);
-        let transitions_count = state.transitions.len();
-
-        for j in 0..transitions_count {
-            let transition = Transition::get(app, (*i, j));
-            let target_state_index = transition.target_id;
-
-            if target_state_index != *i {
+    let transition_data: Vec<(usize, usize, usize)> = app
+        .turing
+        .tm
+        .graph_ref()
+        .get_transitions_hashmap()
+        .iter()
+        .map(|(k, v)| (k.0, k.1, v.len()))
+        .collect();
+    for (source_id, target_id, count) in transition_data {
+        for i in 0..count {
+            if source_id != target_id {
                 neighbors
-                    .entry(*i)
-                    .or_insert(HashSet::from([target_state_index]))
-                    .insert(target_state_index);
+                    .entry(source_id)
+                    .or_insert(HashSet::from([target_id]))
+                    .insert(target_id);
                 neighbors
-                    .entry(target_state_index)
-                    .or_insert(HashSet::from([*i]))
-                    .insert(*i);
+                    .entry(target_id)
+                    .or_insert(HashSet::from([source_id]))
+                    .insert(source_id);
             }
 
             // check if the current transition has been used to get to the current state
-            let (transition_taken, index) = match &app.step {
-                TuringExecutionSteps::FirstIteration { .. } => (None, 0),
+            let transition_taken = match &app.turing.current_step {
+                TuringExecutionSteps::FirstIteration { .. } => None,
                 TuringExecutionSteps::TransitionTaken {
-                    transition_taken,
+                    previous_state,
+                    reached_state,
                     transition_index_taken,
                     ..
-                } => (Some(transition_taken), *transition_index_taken),
-                TuringExecutionSteps::Backtracked { .. } => (None, 0),
+                } => Some((
+                        previous_state.get_id(),
+                        transition_index_taken.1,
+                        reached_state.get_id(),
+                    )),
+                TuringExecutionSteps::Backtracked { .. } => None,
             };
 
-            let is_previous = transition_taken.is_some_and(|f| {
-                transition.id == index
-                    && f == app
-                        .turing
-                        .graph_ref()
-                        .get_state(*i)
-                        .unwrap()
-                        .transitions
-                        .get(transition.id)
-                        .unwrap()
-            });
+            let is_previous = transition_taken.is_some_and(|f| f == (source_id, i, target_id));
 
-            match transitions_hashmap.entry((*i, target_state_index)) {
+            match transitions_hashmap.entry((source_id, target_id)) {
                 Entry::Occupied(mut e) => {
-                    e.get_mut().push(((*i, j), is_previous));
+                    e.get_mut().push(((source_id, i, target_id).into(), is_previous));
                 }
                 Entry::Vacant(e) => {
-                    e.insert(vec![((*i, j), is_previous)]);
+                    e.insert(vec![((source_id, i, target_id).into(), is_previous)]);
                 }
             }
         }
-
-        // add every state position for later computation
-        graph_center += state.position.to_vec2();
     }
 
-    // compute the center of the graph by computing the mean of every state position
-    graph_center /= app.states.len() as f32;
 
     for ((from, to), transitions) in transitions_hashmap.iter() {
         if from == to {
-            draw_self_transition(
-                app,
-                ui,
-                *from,
-                neighbors
-                    .entry(*from)
-                    .or_insert(HashSet::from_iter(keys.iter().cloned()))
-                    .iter()
-                    .fold(Vec2::ZERO, |acc, e| {
-                        acc + (State::get(app, *e).position - State::get(app, *from).position)
-                            .normalized()
-                    }),
-                transitions,
-            );
+            let transition_vector = neighbors
+                .entry(*from)
+                .or_insert(HashSet::from_iter(keys.iter().cloned()))
+                .iter()
+                .try_fold(Vec2::ZERO, |acc, e| {
+                    let target_position = app.turing.get_state(*e)?.inner_state.position;
+                    let source_position = app.turing.get_state(*from)?.inner_state.position;
+                    Ok(acc + (target_position - source_position).normalized())
+                })?;
+
+            draw_self_transition(app, ui, *from, transition_vector, transitions)?;
         } else {
-            draw_transition(
-                app,
-                ui,
-                *from,
-                *to,
-                graph_center,
-                app.turing
-                    .graph_ref()
-                    .get_transitions_by_index(*to, *from)
-                    .is_ok_and(|x| !x.is_empty() && from > to),
-                transitions,
-            );
+            let reverse = app
+                .turing
+                .get_transitions(*from, *to)
+                .is_ok_and(|x| !x.is_empty() && from > to);
+
+            draw_transition(app, ui, *from, *to, graph_center, reverse, transitions)?;
         }
     }
+    Ok(())
 }
 
 /// Draw transition between 2 different state
@@ -137,9 +136,9 @@ fn draw_transition(
     graph_center: Vec2,
     reverse: bool,
     transitions: &[(TransitionId, bool)],
-) {
-    let source_position = State::get(app, source).position;
-    let target_position = State::get(app, target).position;
+) -> Result<(), RitmError> {
+    let source_position = app.turing.get_state(source)?.inner_state.position;
+    let target_position = app.turing.get_state(target)?.inner_state.position;
     // compute the center between the 2 states
     let center = Pos2::new(
         (source_position.x + target_position.x) / 2.0,
@@ -208,7 +207,8 @@ fn draw_transition(
         ui,
         transitions,
         (center, delta * Constant::TRANSITION_CURVATURE),
-    );
+    )?;
+    Ok(())
 }
 
 /// Draw self-transition, aka with the target being the source
@@ -218,8 +218,8 @@ fn draw_self_transition(
     state_id: usize,
     transition_vec: Vec2,
     transitions: &[(TransitionId, bool)],
-) {
-    let state_position = State::get(app, state_id).position;
+) -> Result<(), RitmError> {
+    let state_position = app.turing.get_state(state_id)?.inner_state.position;
     // normalize the delta
     let delta = -transition_vec.normalized();
 
@@ -287,7 +287,8 @@ fn draw_self_transition(
         ui,
         transitions,
         (state_position, delta * Constant::SELF_TRANSITION_SIZE),
-    );
+    )?;
+    Ok(())
 }
 
 /// draw the transitions rules as superposed label
@@ -296,35 +297,40 @@ fn draw_labels(
     ui: &mut Ui,
     transitions: &[(TransitionId, bool)],
     placement: (Pos2, Vec2),
-) {
+) -> Result<(), RitmError> {
     // compute the position of the apsis of the curved transition
     let position = placement.0 + placement.1;
 
     // debug
     // ui.painter().circle(position, 2.0, Color32::RED, Stroke::NONE);
 
-    let sample_transition = Transition::get(app, transitions[0].0);
+    let sample_transition_id = &transitions[0].0;
+    let source_state = app.turing.get_state(sample_transition_id.source_id)?;
+    let target_state = app.turing.get_state(sample_transition_id.target_id)?;
 
-    let vector = if sample_transition.parent_id != sample_transition.target_id {
-        State::get(app, sample_transition.parent_id).position
-            - State::get(app, sample_transition.target_id).position
+    let vector = if sample_transition_id.source_id != sample_transition_id.target_id {
+        source_state.inner_state.position - target_state.inner_state.position
     } else {
-        (State::get(app, sample_transition.parent_id).position - position).rot90()
+        (source_state.inner_state.position - position).rot90()
     };
 
     let angle = ((vector.angle() + PI / 2.0 - 0.00001).rem_euclid(PI)) - PI / 2.0;
 
     let reverse = placement.1.y.is_sign_positive();
     let selected = app.selected_transition.is_some_and(|transitions| {
-        transitions == (sample_transition.parent_id, sample_transition.target_id)
+        transitions
+            == (
+                sample_transition_id.source_id,
+                sample_transition_id.target_id,
+            )
     });
 
     let mut clicked = false;
 
     // place each rules
-    for (i, (identifier, is_previous)) in transitions.iter().enumerate() {
-        let transition = Transition::get(app, *identifier);
-        let text = transition.text.to_string();
+    for (i, (transition_id, is_previous)) in transitions.iter().enumerate() {
+        let transition = app.turing.get_transition(*transition_id)?;
+        let text = transition.info.to_string();
 
         let job = LayoutJob::single_section(
             text,
@@ -413,8 +419,12 @@ fn draw_labels(
     }
 
     if clicked {
-        app.selected_transition = Some((sample_transition.parent_id, sample_transition.target_id));
+        app.selected_transition = Some((
+            sample_transition_id.source_id,
+            sample_transition_id.target_id,
+        ));
     }
+    Ok(())
 }
 
 /// return a point on the curve of a quadratic bezier

@@ -4,14 +4,11 @@ use egui::{
 };
 
 use crate::{
-    App,
-    app::take_screenshot,
-    turing::TransitionEdit,
-    ui::{constant::Constant, popup::RitmPopup, theme::Theme},
+    App, app::take_screenshot, error::RitmError, ui::{constant::Constant, popup::RitmPopup, theme::Theme}
 };
 
 /// Control of the graph
-pub fn show(app: &mut App, ui: &mut Ui, rect: Rect) {
+pub fn show(app: &mut App, ui: &mut Ui, rect: Rect) -> Result<(), RitmError> {
     let icon_size = Constant::scale(ui, Constant::ICON_SIZE);
 
     // Floating control absolute position
@@ -74,7 +71,8 @@ pub fn show(app: &mut App, ui: &mut Ui, rect: Rect) {
                                 // State
                                 // Only possible to add a state if nothing is selected
                                 // IDEA : maybe permit it for state selected, and create a transition directly
-                                if app.selected_state.is_none() && app.selected_transition.is_none()
+                                if app.selected_state.is_none()
+                                    && app.selected_transition.is_none()
                                     && ui
                                         .add(
                                             ImageButton::new(
@@ -91,9 +89,9 @@ pub fn show(app: &mut App, ui: &mut Ui, rect: Rect) {
                                             .frame(false),
                                         )
                                         .clicked()
-                                    {
-                                        app.event.is_adding_state ^= true;
-                                    }
+                                {
+                                    app.event.is_adding_state ^= true;
+                                }
 
                                 // Transition
                                 // Only possible to create transition if a state is selected
@@ -114,9 +112,9 @@ pub fn show(app: &mut App, ui: &mut Ui, rect: Rect) {
                                             .frame(false),
                                         )
                                         .clicked()
-                                    {
-                                        app.event.is_adding_transition ^= true;
-                                    }
+                                {
+                                    app.event.is_adding_transition ^= true;
+                                }
 
                                 // Delete
                                 // If a state or transition is selected, then display the delete button
@@ -136,11 +134,15 @@ pub fn show(app: &mut App, ui: &mut Ui, rect: Rect) {
                                         .clicked()
                                 {
                                     if state_selected {
-                                        app.remove_state();
+                                        app.turing.remove_state(
+                                            app.selected_state.expect("state selected"),
+                                        )?;
                                     }
 
                                     if transition_selected {
-                                        app.remove_transitions();
+                                        let (source, target) =
+                                            app.selected_transition.expect("transitions selected");
+                                        app.turing.remove_transitions(source, target)?;
                                     }
                                 }
 
@@ -163,15 +165,12 @@ pub fn show(app: &mut App, ui: &mut Ui, rect: Rect) {
                                     }
                                     if transition_selected {
                                         app.popup = RitmPopup::TransitionEdit;
-                                        app.rules_edit = app
-                                            .turing
-                                            .graph_ref()
-                                            .get_state(app.selected_transition.unwrap().0)
-                                            .unwrap()
-                                            .transitions
-                                            .iter()
-                                            .map(|transition| TransitionEdit::from(transition))
-                                            .collect::<Vec<TransitionEdit>>();
+                                        let selected_transition =
+                                            app.selected_transition.expect("transitions selected");
+                                        app.turing.prepare_transition_edit(
+                                            selected_transition.0,
+                                            selected_transition.1,
+                                        );
                                     }
                                 }
 
@@ -204,8 +203,9 @@ pub fn show(app: &mut App, ui: &mut Ui, rect: Rect) {
                                     )
                                     .clicked()
                                 {
-                                    app.unpin();
+                                    app.turing.unpin();
                                 }
+                                Ok::<(), RitmError>(())
                             },
                         );
                     });
@@ -213,4 +213,5 @@ pub fn show(app: &mut App, ui: &mut Ui, rect: Rect) {
             });
         },
     );
+    Ok(())
 }

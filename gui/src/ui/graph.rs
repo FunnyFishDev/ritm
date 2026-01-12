@@ -3,11 +3,10 @@ use std::collections::HashMap;
 use egui::{
     Id, Image, ImageButton, LayerId, Rect, Scene, Ui, UiBuilder, Vec2, include_image, vec2,
 };
+use ritm_core::turing_graph::TuringStateWrapper;
 
 use crate::{
-    App,
-    turing::State,
-    ui::{constant::Constant, edit, popup::RitmPopup, utils},
+    App, error::RitmError, turing::State, ui::{constant::Constant, edit, popup::RitmPopup, utils}
 };
 
 pub mod state;
@@ -16,7 +15,7 @@ pub mod transition;
 /// Show the graph display of the turing machine
 ///
 /// User can edit the graph and update the code and turing machine
-pub fn show(app: &mut App, ui: &mut Ui) {
+pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
     // current rect of the element inside the scene
     let mut inner_rect = Rect::ZERO;
     let mut scene_rect = app.graph_rect;
@@ -32,13 +31,15 @@ pub fn show(app: &mut App, ui: &mut Ui) {
         .zoom_range(0.0..=1.5)
         .show(ui, &mut scene_rect, |ui| {
             // Draw the transitions of the turing machine
-            transition::show(app, ui);
+            transition::show(app, ui)?;
 
             // Draw the states of the turing machine
-            state::show(app, ui);
+            state::show(app, ui)?;
 
             // This Rect can be used to "Reset" the view of the graph
             inner_rect = ui.min_rect();
+
+            Ok::<(), RitmError>(())
         })
         .response;
 
@@ -101,7 +102,7 @@ pub fn show(app: &mut App, ui: &mut Ui) {
                 )
                 .clicked()
             {
-                app.reset_graph();
+                app.turing.reset();
             }
         },
     );
@@ -109,11 +110,10 @@ pub fn show(app: &mut App, ui: &mut Ui) {
     // If the graph scene is clicked
     if scene_response.clicked() {
         if app.event.is_adding_state {
-            app.temp_state = Some(State::new_at_pos(
-                0,
-                "temp".to_string(),
-                scene_response.interact_pointer_pos().unwrap(),
-            ));
+            let click_pos = scene_response
+                .interact_pointer_pos()
+                .expect("no click position found");
+            app.turing.add_state_with_pos("temp".to_string(), click_pos);
             app.popup = RitmPopup::StateEdit;
         }
 
@@ -124,12 +124,13 @@ pub fn show(app: &mut App, ui: &mut Ui) {
         app.selected_transition = None;
     }
 
-    edit::show(app, ui, ui_rect);
+    edit::show(app, ui, ui_rect)?;
 
     // Repaint the canvas
     if !app.event.is_stable {
         ui.ctx().request_repaint();
     }
+    Ok(())
 }
 
 /// Apply natural force on the node
@@ -142,36 +143,35 @@ pub fn apply_force(app: &mut App) {
     // register the max force applied on a state to check if the system is stable
     let mut max_force_applied: f32 = 0.0;
 
-    for (i, state_1) in app.states.iter() {
+    let states = app
+        .turing
+        .tm
+        .graph_ref()
+        .get_states();
+
+    for i in 0..states.len() {
         let mut force: f32 = 0.0;
         let mut final_force: Vec2 = Vec2::ZERO;
 
-        for (j, state_2) in app.states.iter() {
+        for j in 0..states.len() {
             // continue if it's the same state
             if j == i {
                 continue;
             }
 
             // true if there is a transition between the two states
-            let are_adjacent = app
-                .turing
-                .graph_ref()
-                .get_transitions_by_index(*i, *j)
-                .is_ok_and(|v| !v.is_empty())
-                || app
-                    .turing
-                    .graph_ref()
-                    .get_transitions_by_index(*j, *i)
-                    .is_ok_and(|v| !v.is_empty());
+            let transition_hashmap = app.turing.tm.graph_ref().get_transitions_hashmap();
+            let are_adjacent = transition_hashmap.contains_key(&(i, j))
+                || transition_hashmap.contains_key(&(j, i));
 
-            let distance = utils::distance(state_1.position, state_2.position);
-            let direction = utils::direction(state_1.position, state_2.position);
+            let distance = utils::distance(states[i].inner_state.position, states[j].inner_state.position);
+            let direction = utils::direction(states[i].inner_state.position, states[j].inner_state.position);
 
             // different equations are use based on the adjacency of the states
             if are_adjacent {
-                force = utils::attract_force(state_1.position, state_2.position);
+                force = utils::attract_force(states[i].inner_state.position, states[j].inner_state.position);
             } else if distance < Constant::L {
-                force = -utils::rep_force(state_1.position, state_2.position);
+                force = -utils::rep_force(states[i].inner_state.position, states[j].inner_state.position);
             };
 
             // apply the force on the final force vector
@@ -184,12 +184,15 @@ pub fn apply_force(app: &mut App) {
         }
 
         // store the compute force to not alter the current physical state
-        forces.insert(*i, final_force);
+        forces.insert(i, final_force);
     }
 
-    for (i, state) in app.states.iter_mut().filter(|f| !f.1.is_pinned) {
+    let mut states_mut: Vec<&mut TuringStateWrapper<State>> =
+        app.turing.tm.graph_mut().get_states_mut();
+
+    for (i, state_mut) in states_mut.iter_mut().enumerate() {
         // translate the state by the amount of force
-        state.position += *forces.get(i).unwrap();
+        state_mut.inner_state.position += *forces.get(&i).unwrap();
     }
 
     app.event.is_stable = max_force_applied < Constant::STABILITY_TRESHOLD;

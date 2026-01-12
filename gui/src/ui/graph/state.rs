@@ -1,54 +1,47 @@
 use egui::{Align, Label, Rect, RichText, Sense, Stroke, Ui, vec2};
 
 use crate::{
-    App,
-    turing::State,
-    ui::{constant::Constant, font::Font, theme::Theme},
+    App, error::RitmError, ui::{constant::Constant, font::Font, theme::Theme}
 };
 
 /// Display every state of the turing machine
-pub fn show(app: &mut App, ui: &mut Ui) {
+pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
     // This line copy every keys of the hasmap to avoid borrowing the struct App that we need in each call.
-    let keys: Vec<usize> = app.states.keys().copied().collect::<Vec<usize>>();
+    let keys: Vec<usize> = app.turing.tm.graph_ref().get_state_hashmap().keys().copied().collect();
     for i in keys {
-        draw_node(app, ui, i);
+        draw_node(app, ui, i)?;
     }
+    Ok(())
 }
 
 /// Draw a single state
-fn draw_node(app: &mut App, ui: &mut Ui, state_id: usize) {
+fn draw_node(app: &mut App, ui: &mut Ui, state_id: usize) -> Result<(), RitmError> {
     // Get the state information
-    let state = State::get(app, state_id);
+    let state = app.turing.tm.graph_mut().get_state(state_id).expect("state exist");
 
     // Define the boundaries of the node
     let rect = Rect::from_center_size(
-        state.position,
+        state.inner_state.position,
         vec2(Constant::STATE_RADIUS, Constant::STATE_RADIUS) * 2.0,
     );
 
     // Draw the node circle
     ui.painter().circle(
-        state.position,
+        state.inner_state.position,
         Constant::STATE_RADIUS,
-        state.color,
+        state.inner_state.color,
         if app.selected_state.is_some_and(|id| id == state_id) {
             Stroke::new(4.0, app.theme.selected)
-        } else if let Some(current_state_id) = app
-            .turing
-            .graph_ref()
-            .get_name_index_hashmap()
-            .get(&app.step.get_current_state().name)
-            && *current_state_id == state_id
-        {
+        } else if app.turing.current_step.get_state_pointer() == state_id {
             Stroke::new(4.0, app.theme.highlight)
         } else {
             Stroke::new(2.0, app.theme.gray)
         },
     );
 
-    let name = RichText::new(&state.name)
+    let name = RichText::new(state.get_name())
         .font(Font::default_big())
-        .color(Theme::constrast_color(state.color));
+        .color(Theme::constrast_color(state.inner_state.color));
 
     let label = Label::new(name).wrap().halign(Align::Center);
 
@@ -60,17 +53,25 @@ fn draw_node(app: &mut App, ui: &mut Ui, state_id: usize) {
 
     if response.clicked() {
         if app.event.is_adding_transition {
-            app.add_transition(state_id);
+            app.turing.add_transition(app.selected_state.expect("state selected"), state_id)?;
         } else {
             app.selected_transition = None;
             app.selected_state = Some(state_id)
         }
     }
 
+    // Reborrow the state as a mut this time
+    let state = app
+        .turing
+        .tm
+        .graph_mut()
+        .try_get_state_mut(state_id)
+        .expect("state exist");
+
     // If dragged, make the node follow the pointer
     if response.dragged() {
-        app.states.get_mut(&state_id).unwrap().position = response.interact_pointer_pos().unwrap();
-        State::get_mut(app, state_id).is_pinned = true;
+        state.inner_state.position = response.interact_pointer_pos().unwrap();
+        state.inner_state.is_pinned = true;
     }
 
     if response.drag_started() {
@@ -79,4 +80,5 @@ fn draw_node(app: &mut App, ui: &mut Ui, state_id: usize) {
     if response.drag_stopped() {
         app.event.is_dragging = false
     }
+    Ok(())
 }
