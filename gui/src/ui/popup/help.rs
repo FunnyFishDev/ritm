@@ -6,7 +6,7 @@ use egui::{
 
 use crate::{
     App,
-    ui::{font::Font, popup::RitmPopup},
+    ui::font::Font,
 };
 
 pub fn show(ui: &mut Ui, app: &mut App) {
@@ -107,11 +107,6 @@ pub fn show(ui: &mut Ui, app: &mut App) {
                 );
             });
         });
-
-    if app.event.close_popup {
-        app.event.close_popup = false;
-        app.popup = RitmPopup::None;
-    }
 }
 
 fn title(text: impl Into<String>) -> Label {

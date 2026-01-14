@@ -6,7 +6,7 @@ use ritm_core::turing_machine::Mode;
 
 use crate::{
     App,
-    ui::{component::combobox::ComboBox, font::Font, popup::RitmPopup, theme::Theme},
+    ui::{component::combobox::ComboBox, font::Font, theme::Theme},
 };
 
 pub fn show(ui: &mut Ui, app: &mut App) {
@@ -71,9 +71,4 @@ pub fn show(ui: &mut Ui, app: &mut App) {
                 ui.end_row();
             });
     });
-
-    if app.event.close_popup {
-        app.event.close_popup = false;
-        app.popup = RitmPopup::None;
-    }
 }

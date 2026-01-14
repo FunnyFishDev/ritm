@@ -9,7 +9,7 @@ use crate::{
     App,
     error::RitmError,
     turing::{Transition, TransitionEdit, TransitionWrapper},
-    ui::{component::combobox::ComboBox, font::Font, popup::RitmPopup, theme::Theme},
+    ui::{component::combobox::ComboBox, font::Font, theme::Theme},
 };
 
 pub fn show(ui: &mut Ui, app: &mut App) -> Result<(), RitmError> {
@@ -35,7 +35,7 @@ pub fn show(ui: &mut Ui, app: &mut App) -> Result<(), RitmError> {
         );
 
         // List of the rule
-        let width = ui.vertical_centered(|ui| {
+        let _width = ui.vertical_centered(|ui| {
             ui.style_mut().spacing.item_spacing = vec2(0.0, 10.0);
 
             Frame::new()
@@ -127,7 +127,7 @@ pub fn show(ui: &mut Ui, app: &mut App) -> Result<(), RitmError> {
             )
             .clicked()
         {
-            app.popup = RitmPopup::None;
+            app.popup.close();
             app.turing.cancel_transition_change();
         };
 

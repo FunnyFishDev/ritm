@@ -4,11 +4,10 @@ use egui::{
 };
 
 use crate::{
-    App,
-    ui::{font::Font, popup::RitmPopup, theme::Theme},
+    App, error::RitmError, ui::{font::Font, theme::Theme}
 };
 
-pub fn show(ui: &mut Ui, app: &mut App) {
+pub fn show(ui: &mut Ui, app: &mut App) -> Result<(), RitmError> {
     ui.allocate_ui_with_layout(
         vec2(200.0, 0.0),
         Layout::right_to_left(Align::Center),
@@ -29,7 +28,7 @@ pub fn show(ui: &mut Ui, app: &mut App) {
                     );
 
                     let Some((_state_id, state)) = &mut app.turing.state_edit else {
-                        app.popup = RitmPopup::None;
+                        app.popup.close();
                         return;
                     };
 
@@ -48,7 +47,7 @@ pub fn show(ui: &mut Ui, app: &mut App) {
                 .atom_grow(true);
 
             let Some((_state_id, state)) = &app.turing.state_edit else {
-                app.popup = RitmPopup::None;
+                app.popup.close();
                 return;
             };
 
@@ -68,8 +67,9 @@ pub fn show(ui: &mut Ui, app: &mut App) {
                 // no mut borrow
                 // let state = app.temp_state.as_ref().unwrap();
                 app.turing.add_state(state.to().name.to_string());
-                app.event.close_popup = true;
+                app.popup.close();
             };
         },
     );
+    Ok(())
 }

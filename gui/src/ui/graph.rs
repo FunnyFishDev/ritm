@@ -6,7 +6,7 @@ use egui::{
 use ritm_core::turing_graph::TuringStateWrapper;
 
 use crate::{
-    App, error::RitmError, turing::State, ui::{constant::Constant, edit, popup::RitmPopup, utils}
+    App, error::RitmError, turing::State, ui::{constant::Constant, edit, popup::RitmPopupEnum, utils}
 };
 
 pub mod state;
@@ -114,7 +114,7 @@ pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
                 .interact_pointer_pos()
                 .expect("no click position found");
             app.turing.add_state_with_pos("temp".to_string(), click_pos);
-            app.popup = RitmPopup::StateEdit("temp".to_string());
+            app.popup.switch_to(RitmPopupEnum::StateEdit("temp".to_string()));
         }
 
         // CLick on the scene reset selection and editing

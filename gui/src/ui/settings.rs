@@ -7,7 +7,7 @@ use include_directory::{Dir, include_directory};
 
 use crate::{
     App,
-    ui::{constant::Constant, font::Font, popup::RitmPopup},
+    ui::{constant::Constant, font::Font, popup::RitmPopupEnum},
 };
 
 static EXAMPLES: Dir = include_directory!("ritm_core/resources");
@@ -62,7 +62,7 @@ pub fn show(app: &mut App, ui: &mut Ui) {
             )
             .clicked()
         {
-            app.popup = RitmPopup::Settings;
+            app.popup.switch_to(RitmPopupEnum::Settings);
         }
 
         if ui
@@ -153,7 +153,7 @@ pub fn show(app: &mut App, ui: &mut Ui) {
             )
             .clicked()
         {
-            app.popup = RitmPopup::Help;
+            app.popup.switch_to(RitmPopupEnum::Help);
         }
 
         if !app.event.is_code_closed {

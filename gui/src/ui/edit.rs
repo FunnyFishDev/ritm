@@ -7,7 +7,7 @@ use crate::{
     App,
     app::take_screenshot,
     error::RitmError,
-    ui::{constant::Constant, popup::RitmPopup, theme::Theme},
+    ui::{constant::Constant, popup::RitmPopupEnum, theme::Theme},
 };
 
 /// Control of the graph
@@ -49,7 +49,7 @@ pub fn show(app: &mut App, ui: &mut Ui, rect: Rect) -> Result<(), RitmError> {
                         // Need to compute the width of the menu to center it
                         // Recenter/Unpin/Pin
                         let mut count = 2;
-                        if !state_selected.is_some() && !transition_selected.is_some() {
+                        if state_selected.is_none() && transition_selected.is_none() {
                             count += 1;
                         }
                         if state_selected.is_some() {
@@ -163,17 +163,17 @@ pub fn show(app: &mut App, ui: &mut Ui, rect: Rect) -> Result<(), RitmError> {
                                         .clicked()
                                 {
                                     if let Some(state_selected) = state_selected {
-                                        app.popup = RitmPopup::StateEdit(format!(
+                                        app.popup.switch_to(RitmPopupEnum::StateEdit(format!(
                                             "State {}",
                                             app.turing.get_state(state_selected)?.get_name()
-                                        ));
+                                        )));
                                     }
                                     if let Some(transition_selected) = transition_selected {
-                                        app.popup = RitmPopup::TransitionEdit(format!(
+                                        app.popup.switch_to(RitmPopupEnum::TransitionEdit(format!(
                                             "Transition {} -> {}",
                                             app.turing.get_state(transition_selected.source_id)?.get_name(),
                                             app.turing.get_state(transition_selected.target_id)?.get_name()
-                                        ));
+                                        )));
                                         
                                         app.turing.prepare_transition_edit(
                                             transition_selected.source_id,

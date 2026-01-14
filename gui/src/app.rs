@@ -14,7 +14,7 @@ use ritm_core::{
 };
 
 use crate::{
-    error::RitmError, turing::{State, StateWrapper, TransitionId, TransitionWrapper, Turing}, ui::{self, popup::RitmPopup, theme::Theme, utils::FileDialog}
+    error::RitmError, turing::{State, TransitionId, Turing}, ui::{self, popup::RitmPopup, theme::Theme, utils::FileDialog}
 };
 
 /// The only structure that is persistent each redraw of the application
@@ -100,8 +100,6 @@ pub struct Event {
 
     pub is_small_window: bool,
 
-    pub close_popup: bool,
-
     pub listen_to_keybind: bool,
 
     pub take_screenshot: bool,
@@ -126,7 +124,7 @@ impl Default for App {
             selected_transition: None,
             interval: 0,
             file: FileDialog::default(),
-            popup: RitmPopup::None,
+            popup: RitmPopup::default(),
             last_step_time: 0.0,
             settings: Settings {
                 toggle_after_action: true,
@@ -157,7 +155,6 @@ impl Default for Event {
             are_settings_visible: false,
             is_code_closed: false,
             is_small_window: false,
-            close_popup: false,
             listen_to_keybind: true,
             take_screenshot: false,
         }
@@ -235,9 +232,9 @@ impl eframe::App for App {
 
         ctx.input(|r| {
             if r.key_pressed(Key::Escape) {
-                if self.popup != RitmPopup::None {
+                if self.popup.current().is_some() {
                     // Request graceful exit of popup
-                    self.event.close_popup = true;
+                    self.popup.close();
                 } else {
                     // Unselect what is selected
                     self.selected_state = None;
@@ -246,7 +243,7 @@ impl eframe::App for App {
             }
         });
 
-        if self.event.listen_to_keybind && self.popup == RitmPopup::None {
+        if self.event.listen_to_keybind && self.popup.current().is_none() {
             ctx.input(|r| {
                 // Press A to create a state
                 if r.key_pressed(Key::A) {

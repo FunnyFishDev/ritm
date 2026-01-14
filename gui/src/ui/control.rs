@@ -5,8 +5,7 @@ use egui::{
 use egui_flex::{Flex, FlexAlign, FlexAlignContent, item};
 
 use crate::{
-    App,
-    ui::{component::grid::Grid, constant::Constant, font::Font},
+    App, error::RitmError, ui::{component::grid::Grid, constant::Constant, font::Font}
 };
 
 pub fn show(app: &mut App, ui: &mut Ui) {
@@ -57,7 +56,7 @@ fn input(app: &mut App, ui: &mut Ui) {
                 ))
                 .clicked()
             {
-                app.turing.set_word(&app.input);
+                app.turing.set_word(&app.input)?;
             }
 
             if ui
@@ -81,6 +80,7 @@ fn input(app: &mut App, ui: &mut Ui) {
             {
                 app.event.listen_to_keybind = false;
             }
+            Ok::<(), RitmError>(())
         },
     );
 }
