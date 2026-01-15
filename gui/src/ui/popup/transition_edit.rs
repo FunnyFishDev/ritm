@@ -13,7 +13,10 @@ use crate::{
 };
 
 pub fn show(ui: &mut Ui, app: &mut App) -> Result<(), RitmError> {
-    let selected_transition = app.selected_transitions()?;
+    let selected_transition = app
+        .graph
+        .selected_transitions()
+        .ok_or(RitmError::GuiError("No transition selected !".to_string()))?;
     ui.set_max_width(300.0);
 
     // Main layout

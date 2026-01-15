@@ -43,8 +43,8 @@ pub fn show(app: &mut App, ui: &mut Ui, rect: Rect) -> Result<(), RitmError> {
                         color: Color32::from_black_alpha(25),
                     })
                     .show(ui, |ui| {
-                        let state_selected = app.selected_state;
-                        let transition_selected = app.selected_transition;
+                        let state_selected = app.graph.selected_state();
+                        let transition_selected = app.graph.selected_transitions();
 
                         // Need to compute the width of the menu to center it
                         // Recenter/Unpin/Pin
@@ -74,8 +74,8 @@ pub fn show(app: &mut App, ui: &mut Ui, rect: Rect) -> Result<(), RitmError> {
                                 // State
                                 // Only possible to add a state if nothing is selected
                                 // IDEA : maybe permit it for state selected, and create a transition directly
-                                if app.selected_state.is_none()
-                                    && app.selected_transition.is_none()
+                                if app.graph.selected_state().is_none()
+                                    && app.graph.selected_transitions().is_none()
                                     && ui
                                         .add(
                                             ImageButton::new(
@@ -98,7 +98,7 @@ pub fn show(app: &mut App, ui: &mut Ui, rect: Rect) -> Result<(), RitmError> {
 
                                 // Transition
                                 // Only possible to create transition if a state is selected
-                                if app.selected_state.is_some()
+                                if app.graph.selected_state().is_some()
                                     && ui
                                         .add(
                                             ImageButton::new(
@@ -121,8 +121,8 @@ pub fn show(app: &mut App, ui: &mut Ui, rect: Rect) -> Result<(), RitmError> {
 
                                 // Delete
                                 // If a state or transition is selected, then display the delete button
-                                if (app.selected_state.is_some()
-                                    || app.selected_transition.is_some())
+                                if (app.graph.selected_state().is_some()
+                                    || app.graph.selected_transitions().is_some())
                                     && ui
                                         .add(
                                             ImageButton::new(
@@ -148,7 +148,7 @@ pub fn show(app: &mut App, ui: &mut Ui, rect: Rect) -> Result<(), RitmError> {
                                     }
                                 }
 
-                                if (app.selected_transition.is_some())
+                                if (app.graph.selected_transitions().is_some())
                                     && ui
                                         .add(
                                             ImageButton::new(

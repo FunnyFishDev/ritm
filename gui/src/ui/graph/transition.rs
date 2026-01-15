@@ -318,7 +318,8 @@ fn draw_labels(
 
     let reverse = placement.1.y.is_sign_positive();
     let selected = app
-        .selected_transition
+        .graph
+        .selected_transitions
         .is_some_and(|transitions| transitions == *sample_transition_id);
 
     let mut clicked = false;
@@ -415,7 +416,7 @@ fn draw_labels(
     }
 
     if clicked {
-        app.selected_transition = Some(*sample_transition_id);
+        app.graph.select_transitions(*sample_transition_id);
     }
     Ok(())
 }

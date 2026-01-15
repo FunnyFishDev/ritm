@@ -88,7 +88,7 @@ fn input(app: &mut App, ui: &mut Ui) {
 /// Control the iteration of the application, automatic or manual
 fn control(app: &mut App, ui: &mut Ui) {
     let icon_size = Vec2::splat(Constant::scale(ui, Constant::CONTROL_ICON_SIZE));
-    let finished = app.event.is_accepted.is_some();
+    let finished = app.turing.accepted.is_some();
     let started = finished || app.turing.current_step.get_nb_iterations() != 0;
 
     Flex::horizontal()

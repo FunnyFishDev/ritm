@@ -14,13 +14,15 @@ use ritm_core::{
 };
 
 use crate::{
-    error::RitmError, turing::{State, TransitionId, Turing}, ui::{self, popup::RitmPopup, theme::Theme, utils::FileDialog}
+    turing::Turing, ui::{self, graph::Graph, popup::RitmPopup, theme::Theme, utils::FileDialog}
 };
 
 /// The only structure that is persistent each redraw of the application
 pub struct App {
     /// The turing machine itself
     pub turing: Turing,
+
+    pub graph: Graph,
 
     /// User input for the turing machine
     pub input: String,
@@ -37,12 +39,6 @@ pub struct App {
     /// Current theme
     pub theme: Theme,
 
-    /// Selected state
-    pub selected_state: Option<usize>,
-
-    /// Selected transition
-    pub selected_transition: Option<TransitionId>,
-
     /// Interval between each iteration
     pub interval: i32,
 
@@ -57,8 +53,6 @@ pub struct App {
     pub settings: Settings,
 
     pub help_slide_index: usize,
-
-    pub temp_state: Option<State>,
 }
 
 /// Keep the state of the application
@@ -73,9 +67,6 @@ pub struct Event {
 
     /// Is the machine running ?
     pub is_running: bool,
-
-    /// Is the input accepted ? None if result is not computed
-    pub is_accepted: Option<bool>,
 
     /// Is the graph stable ?
     pub is_stable: bool,
@@ -115,13 +106,12 @@ impl Default for App {
     fn default() -> Self {
         let mut sf = Self {
             turing: Turing::default(),
+            graph: Graph::default(),
             input: "".to_string(),
             graph_rect: Rect::ZERO,
             code: "".to_string(), // TODO display a message as comment instead
             event: Event::default(),
             theme: Theme::DEFAULT,
-            selected_state: None,
-            selected_transition: None,
             interval: 0,
             file: FileDialog::default(),
             popup: RitmPopup::default(),
@@ -131,7 +121,6 @@ impl Default for App {
                 turing_machine_mode: Mode::StopAfter(500),
             },
             help_slide_index: 0,
-            temp_state: None,
         };
 
         sf.turing.layer_graph();
@@ -143,7 +132,6 @@ impl Default for App {
 impl Default for Event {
     fn default() -> Self {
         Self {
-            is_accepted: None,
             is_adding_transition: false,
             is_adding_state: false,
             is_running: false,
@@ -172,16 +160,6 @@ impl App {
 
         Theme::set_global_theme(&app.theme, &cc.egui_ctx);
         app
-    }
-
-    /// The currently selected state
-    pub fn selected_state(&self) -> Result<usize, RitmError> {
-        self.selected_state.ok_or(RitmError::GuiError("No state selected".to_string()))
-    }
-
-    /// The currently selected transitions
-    pub fn selected_transitions(&self) -> Result<TransitionId, RitmError> {
-        self.selected_transition.ok_or(RitmError::GuiError("No transitions selected".to_string()))
     }
 
     /// Reset the machine execution
@@ -237,8 +215,7 @@ impl eframe::App for App {
                     self.popup.close();
                 } else {
                     // Unselect what is selected
-                    self.selected_state = None;
-                    self.selected_transition = None;
+                    self.graph.unselect()
                 }
             }
         });
@@ -251,7 +228,7 @@ impl eframe::App for App {
                 }
 
                 // Press T to create a transition
-                if self.selected_state.is_some() && r.key_pressed(Key::T) {
+                if self.graph.selected_state().is_some() && r.key_pressed(Key::T) {
                     self.event.is_adding_transition ^= true;
                 }
 
@@ -271,7 +248,7 @@ impl eframe::App for App {
                 }
 
                 // Press Space to make 1 iteration
-                if self.event.is_accepted.is_none() && r.key_pressed(Key::Space) {
+                if self.turing.accepted.is_none() && r.key_pressed(Key::Space) {
                     self.turing.next_step();
                 }
 
