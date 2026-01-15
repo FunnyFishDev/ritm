@@ -141,7 +141,7 @@ pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
                     )
                     .clicked()
                     {
-                        app.event.need_recenter = true;
+                        app.graph.recenter();
                     }
 
                     if button(
@@ -164,10 +164,10 @@ pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
 }
 
 fn button(ui: &mut Ui, app: &mut App, icon: ImageSource, selected: bool) -> Response {
-    let margin = 10;
+    let margin = 5;
     Frame::new()
         .stroke(Stroke::new(1.0, Color32::from_gray(200)))
-        .corner_radius(app.edit.icon_size + (margin as f32 / 2.0) / 2.0)
+        .corner_radius(app.edit.icon_size/ 2.0)
         .fill(app.theme.white)
         .inner_margin(Margin::same(margin))
         .show(ui, |ui| {

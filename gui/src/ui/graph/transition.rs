@@ -417,6 +417,8 @@ fn draw_labels(
 
     if clicked {
         app.graph.select_transitions(*sample_transition_id);
+        app.event.is_adding_transition = false;
+        app.event.is_adding_state = false;
     }
     Ok(())
 }

@@ -56,6 +56,7 @@ fn draw_node(app: &mut App, ui: &mut Ui, state_id: usize) -> Result<(), RitmErro
             app.turing.add_transition(app.graph.selected_state().expect("state selected"), state_id)?;
         } else {
             app.graph.select_state(state_id);
+            app.event.is_adding_state = false;
         }
     }
 

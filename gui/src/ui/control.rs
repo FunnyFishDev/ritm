@@ -1,12 +1,63 @@
 use egui::{
-    Align, Align2, Button, Color32, Frame, Image, ImageButton, Label, Layout, RichText, Sense,
-    TextEdit, Ui, Vec2, include_image, vec2,
+    Align, Align2, Button, Color32, Frame, Image, ImageButton, ImageSource, Label, Layout,
+    Response, RichText, Sense, TextEdit, Ui, Vec2, include_image, vec2,
 };
-use egui_flex::{Flex, FlexAlign, FlexAlignContent, item};
+use egui_flex::{Flex, FlexAlign, FlexAlignContent, FlexInstance, item};
 
 use crate::{
-    App, error::RitmError, ui::{component::grid::Grid, constant::Constant, font::Font}
+    App,
+    error::RitmError,
+    ui::{component::grid::Grid, constant::Constant, font::Font},
 };
+
+#[derive(Default)]
+pub struct Control {
+    /// User input for the turing machine
+    input: String,
+    is_running: bool,
+    /// power of 2 interval between each iteration
+    interval_power: i32,
+    last_step_time: f64,
+}
+
+
+impl Control {
+    pub fn run(&mut self) {
+        self.is_running = true;
+    }
+
+    pub fn pause(&mut self) {
+        self.is_running = false;
+    }
+
+    pub fn is_running(&self) -> bool {
+        self.is_running
+    }
+
+    pub fn update_time(&mut self, time: f64) -> bool {
+        let time_elasped = time - self.last_step_time;
+        if time_elasped >= self.interval().into() {
+            self.last_step_time = time
+        }
+        time_elasped >= self.interval().into()
+    }
+
+    pub fn interval(&self) -> f32 {
+        2.0_f32.powi(self.interval_power)
+    }
+
+    pub fn speed_up(&mut self) {
+        self.interval_power += 1
+    }
+
+    pub fn speed_down(&mut self) {
+        self.interval_power -= 1
+    }
+
+    pub fn input(&self) -> &String {
+        &self.input
+    }
+}
 
 pub fn show(app: &mut App, ui: &mut Ui) {
     Frame::new().show(ui, |ui| {
@@ -21,6 +72,255 @@ pub fn show(app: &mut App, ui: &mut Ui) {
         grid.place(ui, 1, 3, |ui| step(app, ui));
         grid.place(ui, 2, 3, |ui| state(app, ui));
     });
+}
+
+/// Input section of the controls
+///
+/// User cna enter the input of the turing machine and submit it
+fn input(app: &mut App, ui: &mut Ui) {
+    ui.allocate_ui_with_layout(
+        ui.available_size(),
+        Layout::right_to_left(Align::Center),
+        |ui| {
+            if ui
+                .add(Button::new(
+                    RichText::new("Submit")
+                        .font(Font::default(Constant::scale(ui, Font::MEDIUM_SIZE))),
+                ))
+                .clicked()
+            {
+                app.turing.set_word(&app.control.input)?;
+            }
+
+            if ui
+                .add_sized(
+                    vec2(
+                        ui.available_width(),
+                        4.0 + Font::get_heigth(
+                            ui,
+                            &Font::default(Constant::scale(ui, Font::MEDIUM_SIZE)),
+                        ),
+                    ), // 4.0 is 2 times the hardcoded default vertical margin of textedit
+                    TextEdit::singleline(&mut app.control.input)
+                        .font(Font::default(Constant::scale(ui, Font::MEDIUM_SIZE)))
+                        .hint_text(
+                            RichText::new("Input...")
+                                .font(Font::default(Constant::scale(ui, Font::MEDIUM_SIZE)))
+                                .color(Color32::from_black_alpha(100)),
+                        ),
+                )
+                .has_focus()
+            {
+                app.event.listen_to_keybind = false;
+            }
+            Ok::<(), RitmError>(())
+        },
+    );
+}
+
+/// Control the iteration of the application, automatic or manual
+fn control(app: &mut App, ui: &mut Ui) {
+    let finished = app.turing.accepted.is_some();
+    let initial = app.turing.current_step.get_nb_iterations() == 0 && !finished;
+
+    Flex::horizontal()
+        .align_items(FlexAlign::Center)
+        .align_content(FlexAlignContent::Center)
+        .align_items_content(Align2::CENTER_CENTER)
+        .gap(vec2(Constant::scale(ui, 10.0), 0.0))
+        .h_full()
+        .w_full()
+        .show(ui, |flex| {
+            flex.grow();
+            // If playing
+            if app.control.is_running() {
+                // Display pause button
+                if button(
+                    flex,
+                    app,
+                    include_image!("../../assets/icon/pause.svg"),
+                    finished,
+                )
+                .clicked()
+                {
+                    app.control.pause();
+                }
+            } else {
+                // Else display play button
+                if button(
+                    flex,
+                    app,
+                    include_image!("../../assets/icon/play.svg"),
+                    finished,
+                )
+                .clicked()
+                {
+                    app.control.run();
+                }
+            }
+
+            // Next button
+            if button(
+                flex,
+                app,
+                include_image!("../../assets/icon/next.svg"),
+                finished,
+            )
+            .clicked()
+            {
+                app.turing.next_step();
+            }
+
+            // Reset button
+            if button(
+                flex,
+                app,
+                include_image!("../../assets/icon/reset.svg"),
+                initial,
+            )
+            .clicked()
+            {
+                app.reset();
+            }
+
+            flex.grow();
+        });
+}
+
+/// Control the speed of the automatic iteration
+fn speed_control(app: &mut App, ui: &mut Ui) {
+    let min = app.control.interval_power >= 3;
+    let max = app.control.interval_power <= -5;
+
+    Flex::horizontal()
+        .align_content(FlexAlignContent::Center)
+        .align_items_content(Align2::CENTER_CENTER)
+        .align_items(FlexAlign::Center)
+        .w_full()
+        .h_full()
+        .show(ui, |flex| {
+            flex.grow();
+            if flex
+                .add(
+                    item(),
+                    ImageButton::new(
+                        Image::new(include_image!("../../assets/icon/less.svg"))
+                            .fit_to_exact_size(Vec2::splat(Constant::scale(flex.ui(), 25.0)))
+                            .tint(if min { app.theme.gray } else { app.theme.white }),
+                    )
+                    .frame(false),
+                )
+                .clicked()
+                && app.control.interval_power < 3
+            {
+                app.control.speed_up();
+            }
+
+            flex.add(
+                item(),
+                Label::new(
+                    RichText::new(format!("{}X", 1.0/app.control.interval()))
+                        .font(Font::default(Constant::scale(flex.ui(), Font::MEDIUM_SIZE)))
+                        .color(app.theme.gray),
+                ),
+            );
+
+            if flex
+                .add(
+                    item(),
+                    ImageButton::new(
+                        Image::new(include_image!("../../assets/icon/add.svg"))
+                            .fit_to_exact_size(Vec2::splat(Constant::scale(flex.ui(), 25.0)))
+                            .tint(if max { app.theme.gray } else { app.theme.white }),
+                    )
+                    .frame(false),
+                )
+                .clicked()
+                && app.control.interval_power > -5
+            {
+                app.control.speed_down();
+            }
+
+            flex.grow()
+        });
+}
+
+fn step(app: &mut App, ui: &mut Ui) {
+    Flex::horizontal()
+        .align_content(FlexAlignContent::Center)
+        .align_items_content(Align2::CENTER_CENTER)
+        .align_items(FlexAlign::Center)
+        .w_full()
+        .h_full()
+        .show(ui, |flex| {
+            flex.grow();
+            flex.add(
+                item(),
+                Label::new(
+                    RichText::new(format!(
+                        "Steps : {}",
+                        app.turing.current_step.get_nb_iterations()
+                    ))
+                    .font(Font::default(Constant::scale(flex.ui(), Font::MEDIUM_SIZE))),
+                ),
+            );
+            flex.grow();
+        });
+}
+
+fn state(app: &mut App, ui: &mut Ui) {
+    Flex::horizontal()
+        .align_content(FlexAlignContent::Center)
+        .align_items_content(Align2::CENTER_CENTER)
+        .align_items(FlexAlign::Center)
+        .w_full()
+        .h_full()
+        .show(ui, |flex| {
+            flex.grow();
+            let (text, color) = if let Some(r) = app.turing.accepted {
+                if r {
+                    ("Accepted", app.theme.valid)
+                } else {
+                    ("Rejected", app.theme.invalid)
+                }
+            } else if app.control.is_running() {
+                ("Running", app.theme.gray)
+            } else {
+                ("Idle", app.theme.gray)
+            };
+
+            flex.add(
+                item(),
+                Label::new(
+                    RichText::new(text)
+                        .color(color)
+                        .font(Font::default(Constant::scale(flex.ui(), Font::MEDIUM_SIZE))),
+                ),
+            );
+            flex.grow();
+        });
+}
+
+fn button(flex: &mut FlexInstance, app: &mut App, icon: ImageSource, disabled: bool) -> Response {
+    let icon_size = Vec2::splat(Constant::scale(flex.ui(), Constant::CONTROL_ICON_SIZE));
+    flex.add(
+        item(),
+        ImageButton::new(
+            Image::new(icon)
+                .fit_to_exact_size(icon_size)
+                .tint(if disabled {
+                    app.theme.gray
+                } else {
+                    app.theme.white
+                }),
+        )
+        .frame(false)
+        .sense(if disabled {
+            Sense::empty()
+        } else {
+            Sense::click()
+        }),
+    )
 }
 
 // #[cfg(not(target_arch = "wasm32"))]
@@ -43,270 +343,3 @@ pub fn show(app: &mut App, ui: &mut Ui) {
 //         ctx.request_repaint();
 //     });
 // }
-
-fn input(app: &mut App, ui: &mut Ui) {
-    ui.allocate_ui_with_layout(
-        ui.available_size(),
-        Layout::right_to_left(Align::Center),
-        |ui| {
-            if ui
-                .add(Button::new(
-                    RichText::new("Submit")
-                        .font(Font::default(Constant::scale(ui, Font::MEDIUM_SIZE))),
-                ))
-                .clicked()
-            {
-                app.turing.set_word(&app.input)?;
-            }
-
-            if ui
-                .add_sized(
-                    vec2(
-                        ui.available_width(),
-                        4.0 + Font::get_heigth(
-                            ui,
-                            &Font::default(Constant::scale(ui, Font::MEDIUM_SIZE)),
-                        ),
-                    ), // 4.0 is 2 times the hardcoded default vertical margin of textedit
-                    TextEdit::singleline(&mut app.input)
-                        .font(Font::default(Constant::scale(ui, Font::MEDIUM_SIZE)))
-                        .hint_text(
-                            RichText::new("Input...")
-                                .font(Font::default(Constant::scale(ui, Font::MEDIUM_SIZE)))
-                                .color(Color32::from_black_alpha(100)),
-                        ),
-                )
-                .has_focus()
-            {
-                app.event.listen_to_keybind = false;
-            }
-            Ok::<(), RitmError>(())
-        },
-    );
-}
-
-/// Control the iteration of the application, automatic or manual
-fn control(app: &mut App, ui: &mut Ui) {
-    let icon_size = Vec2::splat(Constant::scale(ui, Constant::CONTROL_ICON_SIZE));
-    let finished = app.turing.accepted.is_some();
-    let started = finished || app.turing.current_step.get_nb_iterations() != 0;
-
-    Flex::horizontal()
-        .align_items(FlexAlign::Center)
-        .align_content(FlexAlignContent::Center)
-        .align_items_content(Align2::CENTER_CENTER)
-        .gap(vec2(Constant::scale(ui, 10.0), 0.0))
-        .h_full()
-        .w_full()
-        .show(ui, |flex| {
-            flex.grow();
-            // If playing
-            if app.event.is_running {
-                // Display pause button
-                if flex
-                    .add(
-                        item(),
-                        ImageButton::new(
-                            Image::new(include_image!("../../assets/icon/pause.svg"))
-                                .fit_to_exact_size(icon_size)
-                                .tint(if finished {
-                                    app.theme.gray
-                                } else {
-                                    app.theme.white
-                                }),
-                        )
-                        .frame(false)
-                        .sense(if finished {
-                            Sense::empty()
-                        } else {
-                            Sense::click()
-                        }),
-                    )
-                    .clicked()
-                {
-                    app.event.is_running = false;
-                }
-            } else {
-                // Else display play button
-                if flex
-                    .add(
-                        item(),
-                        ImageButton::new(
-                            Image::new(include_image!("../../assets/icon/play.svg"))
-                                .fit_to_exact_size(icon_size)
-                                .tint(if finished {
-                                    app.theme.gray
-                                } else {
-                                    app.theme.white
-                                }),
-                        )
-                        .frame(false)
-                        .sense(if finished {
-                            Sense::empty()
-                        } else {
-                            Sense::click()
-                        }),
-                    )
-                    .clicked()
-                {
-                    app.event.is_running = true;
-                }
-            }
-
-            // Next button
-            if flex
-                .add(
-                    item(),
-                    ImageButton::new(
-                        Image::new(include_image!("../../assets/icon/next.svg"))
-                            .fit_to_exact_size(icon_size)
-                            .tint(if finished {
-                                app.theme.gray
-                            } else {
-                                app.theme.white
-                            }),
-                    )
-                    .frame(false)
-                    .sense(if finished {
-                        Sense::empty()
-                    } else {
-                        Sense::click()
-                    }),
-                )
-                .clicked()
-            {
-                app.turing.next_step();
-            }
-
-            // Reset button
-            if flex
-                .add(
-                    item(),
-                    ImageButton::new(
-                        Image::new(include_image!("../../assets/icon/reset.svg"))
-                            .fit_to_exact_size(icon_size)
-                            .tint(if started {
-                                app.theme.white
-                            } else {
-                                app.theme.gray
-                            }),
-                    )
-                    .frame(false),
-                )
-                .clicked()
-            {
-                app.reset();
-            }
-
-            flex.grow();
-        });
-}
-
-/// Control the speed of the automatic iteration
-fn speed_control(app: &mut App, ui: &mut Ui) {
-    let min = app.interval >= 3;
-    let max = app.interval <= -5;
-
-    Flex::horizontal()
-        .align_content(FlexAlignContent::Center)
-        .align_items_content(Align2::CENTER_CENTER)
-        .align_items(FlexAlign::Center)
-        .w_full()
-        .h_full()
-        .show(ui, |flex| {
-            flex.grow();
-            if flex
-                .add(
-                    item(),
-                    ImageButton::new(
-                        Image::new(include_image!("../../assets/icon/less.svg"))
-                            .fit_to_exact_size(Vec2::splat(Constant::scale(flex.ui(), 25.0)))
-                            .tint(if min { app.theme.gray } else { app.theme.white }),
-                    )
-                    .frame(false),
-                )
-                .clicked()
-                && app.interval < 3 {
-                    app.interval += 1;
-                }
-
-            flex.add(
-                item(),
-                Label::new(
-                    RichText::new(format!("{}X", 2.0_f32.powi(-app.interval)))
-                        .font(Font::default(Constant::scale(flex.ui(), Font::MEDIUM_SIZE)))
-                        .color(app.theme.gray),
-                ),
-            );
-
-            if flex
-                .add(
-                    item(),
-                    ImageButton::new(
-                        Image::new(include_image!("../../assets/icon/add.svg"))
-                            .fit_to_exact_size(Vec2::splat(Constant::scale(flex.ui(), 25.0)))
-                            .tint(if max { app.theme.gray } else { app.theme.white }),
-                    )
-                    .frame(false),
-                )
-                .clicked()
-                && app.interval > -5 {
-                    app.interval -= 1;
-                }
-
-            flex.grow()
-        });
-}
-
-fn step(app: &mut App, ui: &mut Ui) {
-    Flex::horizontal()
-        .align_content(FlexAlignContent::Center)
-        .align_items_content(Align2::CENTER_CENTER)
-        .align_items(FlexAlign::Center)
-        .w_full()
-        .h_full()
-        .show(ui, |flex| {
-            flex.grow();
-            flex.add(
-                item(),
-                Label::new(
-                    RichText::new(format!("Steps : {}", app.turing.current_step.get_nb_iterations()))
-                        .font(Font::default(Constant::scale(flex.ui(), Font::MEDIUM_SIZE))),
-                ),
-            );
-            flex.grow();
-        });
-}
-
-fn state(app: &mut App, ui: &mut Ui) {
-    Flex::horizontal()
-        .align_content(FlexAlignContent::Center)
-        .align_items_content(Align2::CENTER_CENTER)
-        .align_items(FlexAlign::Center)
-        .w_full()
-        .h_full()
-        .show(ui, |flex| {
-            flex.grow();
-            let (text, color) = if let Some(r) = app.turing.accepted {
-                if r {
-                    ("Accepted", app.theme.valid)
-                } else {
-                    ("Rejected", app.theme.invalid)
-                }
-            } else if app.event.is_running {
-                ("Running", app.theme.gray)
-            } else {
-                ("Idle", app.theme.gray)
-            };
-
-            flex.add(
-                item(),
-                Label::new(
-                    RichText::new(text)
-                        .color(color)
-                        .font(Font::default(Constant::scale(flex.ui(), Font::MEDIUM_SIZE))),
-                ),
-            );
-            flex.grow();
-        });
-}

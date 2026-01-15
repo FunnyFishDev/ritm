@@ -104,7 +104,7 @@ pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
 
     // Save scene border and recenter if asked
     // TODO better way to recenter, avoid sticking to top
-    app.graph_rect = if app.graph.recenter {
+    app.graph.graph_rect = if app.graph.recenter {
         app.graph.recenter = false;
         inner_rect
     } else {

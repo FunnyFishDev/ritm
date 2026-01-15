@@ -1,8 +1,4 @@
-use std::{
-    collections::BTreeMap,
-    sync::{Arc, atomic::AtomicBool},
-    time::Duration,
-};
+use std::{collections::BTreeMap, time::Duration};
 
 use egui::{FontData, FontDefinitions, FontFamily, Key, Rect};
 use egui_extras::install_image_loaders;
@@ -12,7 +8,11 @@ use ritm_core::{
 };
 
 use crate::{
-    turing::Turing, ui::{self, edit::Edit, graph::Graph, popup::RitmPopup, theme::Theme, utils::FileDialog}
+    turing::Turing,
+    ui::{
+        self, control::Control, edit::Edit, graph::Graph, popup::RitmPopup, theme::Theme,
+        utils::FileDialog,
+    },
 };
 
 /// The only structure that is persistent each redraw of the application
@@ -24,8 +24,10 @@ pub struct App {
 
     pub graph: Graph,
 
-    /// User input for the turing machine
-    pub input: String,
+    pub control: Control,
+
+    /// Which popup to display
+    pub popup: RitmPopup,
 
     /// Used for graph display, zooming and moving
     pub graph_rect: Rect,
@@ -39,16 +41,8 @@ pub struct App {
     /// Current theme
     pub theme: Theme,
 
-    /// Interval between each iteration
-    pub interval: i32,
-
     /// File loaded
     pub file: FileDialog,
-
-    /// Which popup to display
-    pub popup: RitmPopup,
-
-    pub last_step_time: f64,
 
     pub settings: Settings,
 
@@ -65,23 +59,11 @@ pub struct Event {
     /// Is the user adding a state ?
     pub is_adding_state: bool,
 
-    /// Is the machine running ?
-    pub is_running: bool,
-
     /// Is the graph stable ?
     pub is_stable: bool,
 
     /// Is the user moving as state around ?
     pub is_dragging: bool,
-
-    /// Has the Graph changed ?
-    pub has_changed: bool,
-
-    /// Do we need to go to the next iteration ?
-    pub is_next: Arc<AtomicBool>,
-
-    /// Do we need to recenter the graph ?
-    pub need_recenter: bool,
 
     /// Do we need to display the settings interface ?
     pub are_settings_visible: bool,
@@ -108,20 +90,18 @@ impl Default for App {
             turing: Turing::default(),
             edit: Edit::default(),
             graph: Graph::default(),
-            input: "".to_string(),
             graph_rect: Rect::ZERO,
             code: "".to_string(), // TODO display a message as comment instead
             event: Event::default(),
             theme: Theme::DEFAULT,
-            interval: 0,
             file: FileDialog::default(),
             popup: RitmPopup::default(),
-            last_step_time: 0.0,
             settings: Settings {
                 toggle_after_action: true,
                 turing_machine_mode: Mode::StopAfter(500),
             },
             help_slide_index: 0,
+            control: Control::default(),
         };
 
         sf.turing.layer_graph();
@@ -135,12 +115,8 @@ impl Default for Event {
         Self {
             is_adding_transition: false,
             is_adding_state: false,
-            is_running: false,
             is_stable: false,
             is_dragging: false,
-            has_changed: false,
-            is_next: AtomicBool::new(false).into(),
-            need_recenter: false,
             are_settings_visible: false,
             is_code_closed: false,
             is_small_window: false,
@@ -171,7 +147,7 @@ impl App {
     /// Reset the machine execution with the new input
     /// TODO: stop ignoring result to avoid cloudflare global shutdown
     pub fn set_input(&mut self) {
-        let _ = self.turing.tm.reset_word(&self.input);
+        let _ = self.turing.tm.reset_word(self.control.input());
         self.turing.reset();
     }
 
@@ -189,7 +165,7 @@ impl App {
                 println!("{:?}", e);
             }
         }
-        self.event.need_recenter = true;
+        self.graph.recenter();
     }
 }
 
@@ -202,11 +178,17 @@ impl eframe::App for App {
             println!("Error ! {}", res)
         }
 
-        if self.event.is_running
-            && ctx.input(|r| r.time) - self.last_step_time >= 2.0_f32.powi(self.interval) as f64
-        {
+        if self.control.is_running() && self.control.update_time(ctx.input(|r| r.time)) {
             self.turing.next_step();
-            self.last_step_time = ctx.input(|r| r.time);
+            if self.turing.accepted.is_some() {
+                self.control.pause();
+                ctx.request_repaint(); // To update the ui one last time
+            }
+        }
+
+        // While the machine is running we update the application 100 times per step
+        if self.control.is_running() {
+            ctx.request_repaint_after(Duration::from_millis((self.control.interval() * 10.0) as u64));
         }
 
         ctx.input(|r| {
@@ -245,7 +227,7 @@ impl eframe::App for App {
 
                 // Press R to recenter
                 if r.key_pressed(Key::R) {
-                    self.event.need_recenter = true;
+                    self.graph.recenter();
                 }
 
                 // Press Space to make 1 iteration
@@ -255,7 +237,7 @@ impl eframe::App for App {
 
                 // Press P to autoplay the machine
                 if r.key_pressed(Key::P) {
-                    self.event.is_running ^= true;
+                    self.control.run();
                 }
 
                 // Press Backspace to reset the machine
@@ -270,8 +252,6 @@ impl eframe::App for App {
         } else {
             self.event.listen_to_keybind = true;
         }
-
-        ctx.request_repaint_after(Duration::from_secs(2.0_f32.powi(self.interval) as u64));
     }
 }
 
