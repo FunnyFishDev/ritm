@@ -5,11 +5,10 @@ use egui::{
 use ritm_core::turing_machine::Mode;
 
 use crate::{
-    App,
-    ui::{component::combobox::ComboBox, font::Font, theme::Theme},
+    App, error::RitmError, ui::{component::combobox::ComboBox, font::Font, theme::Theme}
 };
 
-pub fn show(ui: &mut Ui, app: &mut App) {
+pub fn show(ui: &mut Ui, app: &mut App) -> Result<(), RitmError> {
     ui.set_max_size(ui.ctx().screen_rect().size() * 0.8);
     ui.set_min_size(ui.ctx().screen_rect().size() * 0.8);
 
@@ -71,4 +70,5 @@ pub fn show(ui: &mut Ui, app: &mut App) {
                 ui.end_row();
             });
     });
+    Ok(())
 }

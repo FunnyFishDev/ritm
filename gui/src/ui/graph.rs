@@ -19,9 +19,7 @@ pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
     // current rect of the element inside the scene
     let mut inner_rect = Rect::ZERO;
     let mut scene_rect = app.graph_rect;
-
-    let ui_rect = ui.available_rect_before_wrap();
-
+    
     // Compute the force applied on every node
     if !app.event.is_dragging {
         apply_force(app);
@@ -124,7 +122,7 @@ pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
         app.selected_transition = None;
     }
 
-    edit::show(app, ui, ui_rect)?;
+    edit::show(app, ui)?;
 
     // Repaint the canvas
     if !app.event.is_stable {

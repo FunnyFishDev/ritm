@@ -5,11 +5,10 @@ use egui::{
 };
 
 use crate::{
-    App,
-    ui::font::Font,
+    App, error::RitmError, ui::font::Font
 };
 
-pub fn show(ui: &mut Ui, app: &mut App) {
+pub fn show(ui: &mut Ui, app: &mut App) -> Result<(), RitmError> {
     ui.set_max_size(ui.ctx().screen_rect().size() * 0.8);
     ui.set_min_size(ui.ctx().screen_rect().size() * 0.8);
 
@@ -107,6 +106,7 @@ pub fn show(ui: &mut Ui, app: &mut App) {
                 );
             });
         });
+        Ok(())
 }
 
 fn title(text: impl Into<String>) -> Label {

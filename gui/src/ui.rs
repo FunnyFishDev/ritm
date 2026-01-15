@@ -21,7 +21,7 @@ use crate::{
 
 pub fn show(app: &mut App, ctx: &egui::Context) -> Result<(), RitmError> {
     // Display the current popup/modal
-    popup::show(ctx, app);
+    popup::show(ctx, app)?;
 
     CentralPanel::default()
         .frame(Frame {

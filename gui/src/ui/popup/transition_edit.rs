@@ -13,6 +13,7 @@ use crate::{
 };
 
 pub fn show(ui: &mut Ui, app: &mut App) -> Result<(), RitmError> {
+    println!("show");
     let selected_transition = app.selected_transitions()?;
     ui.set_max_width(300.0);
 

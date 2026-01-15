@@ -6,6 +6,7 @@ use egui_flex::{Flex, FlexAlignContent, item};
 
 use crate::{
     App,
+    error::RitmError,
     ui::{font::Font, theme::Theme},
 };
 
@@ -41,29 +42,30 @@ impl RitmPopup {
     }
 }
 
-pub fn show(ctx: &Context, app: &mut App) {
+pub fn show(ctx: &Context, app: &mut App) -> Result<(), RitmError> {
     if let Some(popup) = app.popup.current_popup.clone() {
         match popup {
             RitmPopupEnum::TransitionEdit(title) => {
-                show_in(ctx, app, false, true, &title, transition_edit::show)
+                show_in(ctx, app, false, true, &title, transition_edit::show)?
             }
             RitmPopupEnum::StateEdit(title) => {
-                show_in(ctx, app, false, true, &title, state_edit::show)
+                show_in(ctx, app, false, true, &title, state_edit::show)?
             }
-            RitmPopupEnum::Help => show_in(ctx, app, true, false, "Help", help::show),
-            RitmPopupEnum::Settings => show_in(ctx, app, true, false, "Settings", settings::show),
+            RitmPopupEnum::Help => show_in(ctx, app, true, false, "Help", help::show)?,
+            RitmPopupEnum::Settings => show_in(ctx, app, true, false, "Settings", settings::show)?,
         }
     }
+    Ok(())
 }
 
-fn show_in<R>(
+fn show_in(
     ctx: &Context,
     app: &mut App,
     can_be_closed: bool,
     can_be_moved: bool,
     title: &str,
-    content: impl FnOnce(&mut Ui, &mut App) -> R,
-) {
+    content: impl FnOnce(&mut Ui, &mut App) -> Result<(), RitmError>,
+) -> Result<(), RitmError> {
     let frame = Frame {
         fill: app.theme.white,
         stroke: Stroke::new(2.0, app.theme.gray),
@@ -73,24 +75,38 @@ fn show_in<R>(
     };
 
     if can_be_moved {
-        Popup::new(
+        if let Some(res) = Popup::new(
             Id::new("popup"),
             ctx.clone(),
-            PopupAnchor::PointerFixed,
+            PopupAnchor::Position(ctx.screen_rect().center()),
             LayerId::new(egui::Order::Foreground, Id::new("popup/modal-layer")),
         )
         .frame(frame)
         .show(|ui| {
-            header(ui, app, title, can_be_closed, can_be_moved, content);
-        });
+            header(ui, app, title, can_be_closed, can_be_moved, content)
+        }) {
+            res.inner
+        } else {
+            Ok(())
+        }
     } else {
-        Modal::new(Id::new("modal")).frame(frame).show(ctx, |ui| {
-            header(ui, app, title, can_be_closed, can_be_moved, content);
-        });
+        Modal::new(Id::new("modal"))
+            .frame(frame)
+            .show(ctx, |ui| {
+                header(ui, app, title, can_be_closed, can_be_moved, content)
+            })
+            .inner
     }
 }
 
-fn header<R>(ui: &mut Ui, app: &mut App, title: &str, can_be_closed: bool, _can_be_moved: bool, content: impl FnOnce(&mut Ui, &mut App) -> R) {
+fn header(
+    ui: &mut Ui,
+    app: &mut App,
+    title: &str,
+    can_be_closed: bool,
+    _can_be_moved: bool,
+    content: impl FnOnce(&mut Ui, &mut App) -> Result<(), RitmError>,
+) -> Result<(), RitmError> {
     Theme::set_widget(
         ui,
         WidgetVisuals {
@@ -134,5 +150,5 @@ fn header<R>(ui: &mut Ui, app: &mut App, title: &str, can_be_closed: bool, _can_
 
     ui.add(Separator::default().spacing(15.0).horizontal().grow(10.0));
 
-    ui.vertical(|ui| content(ui, app));
+    ui.vertical(|ui| content(ui, app)).inner
 }

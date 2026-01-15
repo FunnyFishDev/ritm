@@ -1,26 +1,27 @@
 use std::{
     collections::BTreeMap,
-    path::Path,
     sync::{Arc, atomic::AtomicBool},
     time::Duration,
 };
 
-use egui::{FontData, FontDefinitions, FontFamily, Key, Rect, Ui, UserData, ViewportCommand};
+use egui::{FontData, FontDefinitions, FontFamily, Key, Rect};
 use egui_extras::install_image_loaders;
-use image::{ExtendedColorType, save_buffer};
 use ritm_core::{
     turing_machine::Mode,
     turing_parser::{graph_to_string, parse_turing_graph_string},
 };
 
 use crate::{
-    error::RitmError, turing::{State, TransitionId, Turing}, ui::{self, popup::RitmPopup, theme::Theme, utils::FileDialog}
+    error::RitmError, turing::{State, TransitionId, Turing}, ui::{self, edit::Edit, popup::RitmPopup, theme::Theme, utils::FileDialog}
 };
 
 /// The only structure that is persistent each redraw of the application
 pub struct App {
     /// The turing machine itself
     pub turing: Turing,
+
+
+    pub edit: Edit,
 
     /// User input for the turing machine
     pub input: String,
@@ -115,6 +116,7 @@ impl Default for App {
     fn default() -> Self {
         let mut sf = Self {
             turing: Turing::default(),
+            edit: Edit::default(),
             input: "".to_string(),
             graph_rect: Rect::ZERO,
             code: "".to_string(), // TODO display a message as comment instead
@@ -325,28 +327,28 @@ fn load_font(cc: &eframe::CreationContext<'_>) {
     cc.egui_ctx.set_fonts(fonts);
 }
 
-pub fn take_screenshot(app: &mut App, ui: &mut Ui) {
-    let ctx = ui.ctx();
-    let rect = ui.min_rect();
-    if app.event.take_screenshot {
-        app.event.take_screenshot = false;
+// pub fn take_screenshot(app: &mut App, ui: &mut Ui) {
+//     let ctx = ui.ctx();
+//     let rect = ui.min_rect();
+//     if app.event.take_screenshot {
+//         app.event.take_screenshot = false;
 
-        ctx.send_viewport_cmd(ViewportCommand::Screenshot(UserData::default()));
+//         ctx.send_viewport_cmd(ViewportCommand::Screenshot(UserData::default()));
 
-        ctx.input(|i| {
-            i.events.iter().for_each(|e| {
-                if let egui::Event::Screenshot { image, .. } = e {
-                    let image = image.region(&rect, Some(i.pixels_per_point));
-                    save_buffer(
-                        Path::new("assets/help/screenshot.png"),
-                        image.as_raw(),
-                        image.source_size.x as u32,
-                        image.source_size.y as u32,
-                        ExtendedColorType::Rgba8,
-                    )
-                    .unwrap();
-                }
-            })
-        });
-    }
-}
+//         ctx.input(|i| {
+//             i.events.iter().for_each(|e| {
+//                 if let egui::Event::Screenshot { image, .. } = e {
+//                     let image = image.region(&rect, Some(i.pixels_per_point));
+//                     save_buffer(
+//                         Path::new("assets/help/screenshot.png"),
+//                         image.as_raw(),
+//                         image.source_size.x as u32,
+//                         image.source_size.y as u32,
+//                         ExtendedColorType::Rgba8,
+//                     )
+//                     .unwrap();
+//                 }
+//             })
+//         });
+//     }
+// }
