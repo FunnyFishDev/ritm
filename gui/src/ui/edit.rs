@@ -38,12 +38,12 @@ pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
             .layer_id(layer),
         |ui| {
             // TODO: replace with flags from bitflags crate
-            let state_selected = app.selected_state.is_some() && app.selected_transition.is_none();
+            let state_selected = app.graph.selected_state().is_some() && app.graph.selected_transitions().is_none();
             let transition_selected =
-                app.selected_transition.is_some() && app.selected_state.is_none();
-            let _both_selected = app.selected_state.is_some() && app.selected_transition.is_some();
-            let either_selected = app.selected_state.is_some() || app.selected_transition.is_some();
-            let none_selected = app.selected_state.is_none() && app.selected_transition.is_none();
+                app.graph.selected_transitions().is_some() && app.graph.selected_state().is_none();
+            let _both_selected = app.graph.selected_state().is_some() && app.graph.selected_transitions().is_some();
+            let either_selected = app.graph.selected_state().is_some() || app.graph.selected_transitions().is_some();
+            let none_selected = app.graph.selected_state().is_none() && app.graph.selected_transitions().is_none();
 
             // Vertical alignment, bottom to up
             ui.allocate_ui_with_layout(
@@ -92,11 +92,11 @@ pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
                         )
                         .clicked()
                     {
-                        if let Some(state_selected) = app.selected_state {
+                        if let Some(state_selected) = app.graph.selected_state() {
                             app.turing.remove_state(state_selected)?;
                         }
 
-                        if let Some(transition_selected) = app.selected_transition {
+                        if let Some(transition_selected) = app.graph.selected_transitions() {
                             app.turing.remove_transitions(
                                 transition_selected.source_id,
                                 transition_selected.target_id,
@@ -108,14 +108,14 @@ pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
                         && button(ui, app, include_image!("../../assets/icon/edit.svg"), false)
                             .clicked()
                     {
-                        if let Some(state_selected) = app.selected_state {
+                        if let Some(state_selected) = app.graph.selected_state() {
                             app.popup.switch_to(RitmPopupEnum::StateEdit(format!(
                                 "State {}",
                                 app.turing.get_state(state_selected)?.get_name()
                             )));
                         }
 
-                        if let Some(transition_selected) = app.selected_transition {
+                        if let Some(transition_selected) = app.graph.selected_transitions() {
                             app.popup.switch_to(RitmPopupEnum::TransitionEdit(format!(
                                 "Transition {} -> {}",
                                 app.turing

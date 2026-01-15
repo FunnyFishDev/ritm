@@ -30,7 +30,7 @@ fn draw_node(app: &mut App, ui: &mut Ui, state_id: usize) -> Result<(), RitmErro
         state.inner_state.position,
         Constant::STATE_RADIUS,
         state.inner_state.color,
-        if app.selected_state.is_some_and(|id| id == state_id) {
+        if app.graph.selected_state.is_some_and(|id| id == state_id) {
             Stroke::new(4.0, app.theme.selected)
         } else if app.turing.current_step.get_state_pointer() == state_id {
             Stroke::new(4.0, app.theme.highlight)
@@ -53,10 +53,9 @@ fn draw_node(app: &mut App, ui: &mut Ui, state_id: usize) -> Result<(), RitmErro
 
     if response.clicked() {
         if app.event.is_adding_transition {
-            app.turing.add_transition(app.selected_state.expect("state selected"), state_id)?;
+            app.turing.add_transition(app.graph.selected_state().expect("state selected"), state_id)?;
         } else {
-            app.selected_transition = None;
-            app.selected_state = Some(state_id)
+            app.graph.select_state(state_id);
         }
     }
 
