@@ -12,7 +12,7 @@ use ritm_core::{
 };
 
 use crate::{
-    error::RitmError, turing::{State, TransitionId, Turing}, ui::{self, edit::Edit, graph::Graph, popup::RitmPopup, theme::Theme, utils::FileDialog}
+    turing::Turing, ui::{self, edit::Edit, graph::Graph, popup::RitmPopup, theme::Theme, utils::FileDialog}
 };
 
 /// The only structure that is persistent each redraw of the application
