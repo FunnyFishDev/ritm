@@ -31,11 +31,11 @@ fn draw_node(app: &mut App, ui: &mut Ui, state_id: usize) -> Result<(), RitmErro
         Constant::STATE_RADIUS,
         state.inner_state.color,
         if app.graph.selected_state.is_some_and(|id| id == state_id) {
-            Stroke::new(4.0, app.theme.selected)
+            Stroke::new(4.0, app.theme.selection)
         } else if app.turing.current_step.get_state_pointer() == state_id {
             Stroke::new(4.0, app.theme.highlight)
         } else {
-            Stroke::new(2.0, app.theme.gray)
+            Stroke::new(2.0, app.theme.border)
         },
     );
 

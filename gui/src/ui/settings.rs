@@ -41,7 +41,7 @@ pub fn show(app: &mut App, ui: &mut Ui) {
                         ImageButton::new(
                             Image::new(include_image!("../../assets/icon/panel_open.svg"))
                                 .fit_to_exact_size(Vec2::splat(Constant::ICON_SIZE))
-                                .tint(app.theme.white),
+                                .tint(app.theme.icon),
                         )
                         .frame(false),
                     )
@@ -56,7 +56,7 @@ pub fn show(app: &mut App, ui: &mut Ui) {
                 ImageButton::new(
                     Image::new(include_image!("../../assets/icon/setting.svg"))
                         .fit_to_exact_size(Vec2::splat(Constant::ICON_SIZE))
-                        .tint(app.theme.white),
+                        .tint(app.theme.icon),
                 )
                 .frame(false),
             )
@@ -72,9 +72,9 @@ pub fn show(app: &mut App, ui: &mut Ui) {
                     Image::new(include_image!("../../assets/icon/save.svg"))
                         .fit_to_exact_size(Vec2::splat(Constant::ICON_SIZE))
                         .tint(if app.code.is_empty() {
-                            app.theme.gray
+                            app.theme.disabled
                         } else {
-                            app.theme.white
+                            app.theme.icon
                         }),
                 )
                 .frame(false),
@@ -89,7 +89,7 @@ pub fn show(app: &mut App, ui: &mut Ui) {
             ImageButton::new(
                 Image::new(include_image!("../../assets/icon/machine_folder.svg"))
                     .fit_to_exact_size(Vec2::splat(Constant::ICON_SIZE))
-                    .tint(app.theme.white),
+                    .tint(app.theme.icon),
             )
             .frame(false),
         );
@@ -107,7 +107,7 @@ pub fn show(app: &mut App, ui: &mut Ui) {
                     let button = Button::new(
                         RichText::new(example.path().file_stem().unwrap().to_str().unwrap())
                             .font(Font::default_small())
-                            .color(app.theme.gray),
+                            .color(app.theme.icon),
                     )
                     .frame(false)
                     .min_size(vec2(0.0, 25.0));
@@ -118,12 +118,12 @@ pub fn show(app: &mut App, ui: &mut Ui) {
                 }
 
                 ui.visuals_mut().widgets.noninteractive.bg_stroke =
-                    Stroke::new(1.0, app.theme.gray);
+                    Stroke::new(1.0, app.theme.border);
                 ui.add(Separator::default().grow(6.0));
 
                 let img = Image::new(include_image!("../../assets/icon/upload.svg"))
                     .fit_to_exact_size(Vec2::splat(25.0))
-                    .tint(app.theme.gray)
+                    .tint(app.theme.icon)
                     .atom_size(Vec2::splat(25.0));
 
                 if ui
@@ -147,7 +147,7 @@ pub fn show(app: &mut App, ui: &mut Ui) {
                 ImageButton::new(
                     Image::new(include_image!("../../assets/icon/help.svg"))
                         .fit_to_exact_size(Vec2::splat(Constant::ICON_SIZE))
-                        .tint(app.theme.white),
+                        .tint(app.theme.icon),
                 )
                 .frame(false),
             )
@@ -163,7 +163,7 @@ pub fn show(app: &mut App, ui: &mut Ui) {
                     ImageButton::new(
                         Image::new(include_image!("../../assets/icon/graph.svg"))
                             .fit_to_exact_size(Vec2::splat(Constant::ICON_SIZE))
-                            .tint(app.theme.white),
+                            .tint(app.theme.icon),
                     )
                     .frame(false),
                 )
@@ -178,7 +178,7 @@ pub fn show(app: &mut App, ui: &mut Ui) {
                     ImageButton::new(
                         Image::new(include_image!("../../assets/icon/panel_close.svg"))
                             .fit_to_exact_size(Vec2::splat(Constant::ICON_SIZE))
-                            .tint(app.theme.white),
+                            .tint(app.theme.icon),
                     )
                     .frame(false),
                 )

@@ -1,6 +1,5 @@
 use egui::{
-    Align, Align2, Button, Color32, Frame, Image, ImageButton, ImageSource, Label, Layout,
-    Response, RichText, Sense, TextEdit, Ui, Vec2, include_image, vec2,
+    Align, Align2, Button, Frame, Image, ImageButton, ImageSource, Label, Layout, Response, RichText, Sense, Stroke, TextEdit, Ui, Vec2, include_image, vec2
 };
 use egui_flex::{Flex, FlexAlign, FlexAlignContent, FlexInstance, item};
 
@@ -86,7 +85,7 @@ fn input(app: &mut App, ui: &mut Ui) {
                 .add(Button::new(
                     RichText::new("Submit")
                         .font(Font::default(Constant::scale(ui, Font::MEDIUM_SIZE))),
-                ))
+                ).stroke(Stroke::new(1.0, app.theme.border)))
                 .clicked()
             {
                 app.turing.set_word(&app.control.input)?;
@@ -106,8 +105,8 @@ fn input(app: &mut App, ui: &mut Ui) {
                         .hint_text(
                             RichText::new("Input...")
                                 .font(Font::default(Constant::scale(ui, Font::MEDIUM_SIZE)))
-                                .color(Color32::from_black_alpha(100)),
-                        ),
+                                .color(app.theme.text_secondary),
+                        ).background_color(app.theme.surface),
                 )
                 .has_focus()
             {
@@ -206,7 +205,7 @@ fn speed_control(app: &mut App, ui: &mut Ui) {
                     ImageButton::new(
                         Image::new(include_image!("../../assets/icon/less.svg"))
                             .fit_to_exact_size(Vec2::splat(Constant::scale(flex.ui(), 25.0)))
-                            .tint(if min { app.theme.gray } else { app.theme.white }),
+                            .tint(if min { app.theme.disabled } else { app.theme.icon }),
                     )
                     .frame(false),
                 )
@@ -221,7 +220,7 @@ fn speed_control(app: &mut App, ui: &mut Ui) {
                 Label::new(
                     RichText::new(format!("{}X", 1.0/app.control.interval()))
                         .font(Font::default(Constant::scale(flex.ui(), Font::MEDIUM_SIZE)))
-                        .color(app.theme.gray),
+                        .color(app.theme.icon),
                 ),
             );
 
@@ -231,7 +230,7 @@ fn speed_control(app: &mut App, ui: &mut Ui) {
                     ImageButton::new(
                         Image::new(include_image!("../../assets/icon/add.svg"))
                             .fit_to_exact_size(Vec2::splat(Constant::scale(flex.ui(), 25.0)))
-                            .tint(if max { app.theme.gray } else { app.theme.white }),
+                            .tint(if max { app.theme.disabled } else { app.theme.icon }),
                     )
                     .frame(false),
                 )
@@ -279,14 +278,14 @@ fn state(app: &mut App, ui: &mut Ui) {
             flex.grow();
             let (text, color) = if let Some(r) = app.turing.accepted {
                 if r {
-                    ("Accepted", app.theme.valid)
+                    ("Accepted", app.theme.success)
                 } else {
-                    ("Rejected", app.theme.invalid)
+                    ("Rejected", app.theme.error)
                 }
             } else if app.control.is_running() {
-                ("Running", app.theme.gray)
+                ("Running", app.theme.text_primary)
             } else {
-                ("Idle", app.theme.gray)
+                ("Idle", app.theme.text_primary)
             };
 
             flex.add(
@@ -309,9 +308,9 @@ fn button(flex: &mut FlexInstance, app: &mut App, icon: ImageSource, disabled: b
             Image::new(icon)
                 .fit_to_exact_size(icon_size)
                 .tint(if disabled {
-                    app.theme.gray
+                    app.theme.disabled
                 } else {
-                    app.theme.white
+                    app.theme.icon
                 }),
         )
         .frame(false)

@@ -21,7 +21,7 @@ pub fn show(app: &mut App, ui: &mut Ui) {
     Frame::new()
         .inner_margin(Margin::same(3))
         .outer_margin(Margin::same(0))
-        .fill(app.theme.ribbon)
+        .fill(app.theme.primary)
         .show(ui, |ui| {
             ui.spacing_mut().item_spacing = (0.0, vertical_space).into();
 
@@ -63,7 +63,7 @@ pub fn show(app: &mut App, ui: &mut Ui) {
                                 (center + 9.0 * scale, top).into(),
                                 (center, top + 12.0 * scale).into(),
                             ],
-                            app.theme.gray,
+                            app.theme.icon,
                             Stroke::NONE,
                         ));
                     }
@@ -137,9 +137,9 @@ fn square(app: &mut App, ui: &mut Ui, character: char, is_current: bool) {
         ui.painter().rect(
             rect,
             Constant::scale(ui, Constant::SQUARE_CORNER),
-            app.theme.white,
+            app.theme.surface,
             if is_current {
-                Stroke::new(Constant::scale(ui, 3.0), app.theme.gray)
+                Stroke::new(Constant::scale(ui, 3.0), app.theme.border)
             } else {
                 Stroke::NONE
             },
@@ -152,7 +152,7 @@ fn square(app: &mut App, ui: &mut Ui, character: char, is_current: bool) {
             Label::new(
                 RichText::new(character)
                     .size(square_size / 2.0)
-                    .color(app.theme.gray),
+                    .color(app.theme.text_primary),
             ),
         );
     });

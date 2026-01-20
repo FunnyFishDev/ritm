@@ -23,7 +23,7 @@ pub fn show(ui: &mut Ui, app: &mut App) -> Result<(), RitmError> {
                 Frame::new()
                     .inner_margin(0)
                     .outer_margin(0)
-                    .stroke(Stroke::new(1.0, app.theme.gray))
+                    .stroke(Stroke::new(1.0, app.theme.border))
                     .corner_radius(10)
                     .show(ui, |ui| {
                         if ui
@@ -33,7 +33,7 @@ pub fn show(ui: &mut Ui, app: &mut App) -> Result<(), RitmError> {
                                     Image::new(include_image!("../../../assets/icon/left.svg"))
                                         .fit_to_exact_size(Vec2::splat(ui.available_width())),
                                 )
-                                .tint(app.theme.gray)
+                                .tint(app.theme.icon)
                                 .frame(false),
                             )
                             .clicked()
@@ -56,7 +56,7 @@ pub fn show(ui: &mut Ui, app: &mut App) -> Result<(), RitmError> {
                 Frame::new()
                     .inner_margin(0)
                     .outer_margin(0)
-                    .stroke(Stroke::new(1.0, app.theme.gray))
+                    .stroke(Stroke::new(1.0, app.theme.border))
                     .corner_radius(10)
                     .show(ui, |ui| {
                         if ui
@@ -66,7 +66,7 @@ pub fn show(ui: &mut Ui, app: &mut App) -> Result<(), RitmError> {
                                     Image::new(include_image!("../../../assets/icon/right.svg"))
                                         .fit_to_exact_size(Vec2::splat(ui.available_width())),
                                 )
-                                .tint(app.theme.gray)
+                                .tint(app.theme.icon)
                                 .frame(false),
                             )
                             .clicked()
@@ -120,7 +120,7 @@ fn text(text: impl Into<String>) -> Label {
 fn image(app: &mut App, ui: &mut Ui, source: ImageSource) {
     Frame::new()
         .corner_radius(5)
-        .stroke(Stroke::new(1.0, app.theme.gray))
+        .stroke(Stroke::new(1.0, app.theme.border))
         .show(ui, |ui| {
             let img = Image::new(source)
                 .maintain_aspect_ratio(true)
@@ -394,7 +394,7 @@ fn _keybind(app: &mut App, ui: &mut Ui) {
 
     Frame::new()
         .corner_radius(5)
-        .stroke(Stroke::new(1.0, app.theme.gray))
+        .stroke(Stroke::new(1.0, app.theme.border))
         .show(ui, |ui| {
             let img = Image::new(include_image!("../../../assets/help/settings.png"))
                 .maintain_aspect_ratio(true)

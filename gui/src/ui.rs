@@ -58,7 +58,7 @@ pub fn show(app: &mut App, ctx: &egui::Context) -> Result<(), RitmError> {
                             sw: 5,
                             ..Default::default()
                         },
-                        fill: app.theme.ribbon,
+                        fill: app.theme.primary,
                         ..Default::default()
                     })
                     .resizable(false)
@@ -73,7 +73,7 @@ pub fn show(app: &mut App, ctx: &egui::Context) -> Result<(), RitmError> {
                     .frame(Frame {
                         outer_margin: Margin::same(0),
                         inner_margin: Margin::same(0),
-                        fill: app.theme.graph,
+                        fill: app.theme.secondary,
                         corner_radius: CornerRadius {
                             nw: 5,
                             ..Default::default()
@@ -116,7 +116,7 @@ pub fn show(app: &mut App, ctx: &egui::Context) -> Result<(), RitmError> {
                             .frame(Frame {
                                 outer_margin: Margin::same(0),
                                 inner_margin: Margin::same(0),
-                                fill: app.theme.code,
+                                fill: app.theme.code_background,
                                 corner_radius: CornerRadius {
                                     ne: 5,
                                     ..Default::default()
@@ -148,7 +148,7 @@ pub fn show(app: &mut App, ctx: &egui::Context) -> Result<(), RitmError> {
                                     sw: 5,
                                     ..Default::default()
                                 },
-                                fill: app.theme.ribbon,
+                                fill: app.theme.primary,
                                 ..Default::default()
                             })
                             .resizable(false)
@@ -169,7 +169,7 @@ pub fn show(app: &mut App, ctx: &egui::Context) -> Result<(), RitmError> {
                             .frame(Frame {
                                 outer_margin: Margin::same(0),
                                 inner_margin: Margin::same(0),
-                                fill: app.theme.graph,
+                                fill: app.theme.secondary,
                                 corner_radius: CornerRadius {
                                     nw: 5,
                                     ..Default::default()

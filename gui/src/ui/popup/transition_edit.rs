@@ -45,7 +45,7 @@ pub fn show(ui: &mut Ui, app: &mut App) -> Result<(), RitmError> {
                 .fill(Color32::LIGHT_GRAY)
                 .shadow(Shadow {
                     blur: 0,
-                    color: app.theme.gray,
+                    color: app.theme.shadow,
                     offset: [0, 2],
                     spread: 0,
                 })
@@ -86,7 +86,7 @@ pub fn show(ui: &mut Ui, app: &mut App) -> Result<(), RitmError> {
                     ImageButton::new(
                         Image::new(include_image!("../../../assets/icon/plus.svg"))
                             .fit_to_exact_size(vec2(35.0, 35.0))
-                            .tint(app.theme.gray),
+                            .tint(app.theme.icon),
                     )
                     .frame(false),
                 )
@@ -110,7 +110,7 @@ pub fn show(ui: &mut Ui, app: &mut App) -> Result<(), RitmError> {
             .add(ImageButton::new(
                 Image::new(include_image!("../../../assets/icon/plus.svg"))
                     .fit_to_exact_size(vec2(35.0, 35.0))
-                    .tint(app.theme.gray),
+                    .tint(app.theme.icon),
             ))
             .clicked()
         {
@@ -118,14 +118,14 @@ pub fn show(ui: &mut Ui, app: &mut App) -> Result<(), RitmError> {
         };
 
         let text = RichText::new("Cancel")
-            .color(Theme::constrast_color(app.theme.invalid))
+            .color(Theme::constrast_color(app.theme.error))
             .font(Font::default_medium())
             .atom_grow(true);
         if ui
             .add(
                 Button::new(text)
-                    .stroke(Stroke::new(2.0, app.theme.gray))
-                    .fill(app.theme.invalid)
+                    .stroke(Stroke::new(2.0, app.theme.border))
+                    .fill(app.theme.error)
                     .corner_radius(10.0),
             )
             .clicked()
@@ -146,7 +146,7 @@ pub fn show(ui: &mut Ui, app: &mut App) -> Result<(), RitmError> {
 fn transition(app: &mut App, ui: &mut Ui, transition_index: usize) -> Result<bool, RitmError> {
     let mut marked_to_delete = false;
     Frame::new()
-        .fill(app.theme.white)
+        .fill(app.theme.background)
         .inner_margin(Margin::symmetric(5, 3))
         .corner_radius(5)
         .show(ui, |ui| {
@@ -160,7 +160,7 @@ fn transition(app: &mut App, ui: &mut Ui, transition_index: usize) -> Result<boo
                             ImageButton::new(
                                 Image::new(include_image!("../../../assets/icon/delete.svg"))
                                     .fit_to_exact_size(vec2(35.0, 35.0))
-                                    .tint(app.theme.invalid),
+                                    .tint(app.theme.error),
                             )
                             .frame(false),
                         )
@@ -179,9 +179,9 @@ fn transition(app: &mut App, ui: &mut Ui, transition_index: usize) -> Result<boo
                                 Image::new(include_image!("../../../assets/icon/undo.svg"))
                                     .fit_to_exact_size(vec2(35.0, 35.0))
                                     .tint(if selected_transition[transition_index].has_changed() {
-                                        app.theme.gray
+                                        app.theme.icon
                                     } else {
-                                        Color32::LIGHT_GRAY
+                                        app.theme.disabled
                                     }),
                             )
                             .frame(false),
@@ -226,7 +226,7 @@ fn transition(app: &mut App, ui: &mut Ui, transition_index: usize) -> Result<boo
                                     Theme::set_widget(
                                         ui,
                                         WidgetVisuals {
-                                            bg_stroke: Stroke::new(1.0, app.theme.invalid),
+                                            bg_stroke: Stroke::new(1.0, app.theme.error),
                                             ..app.theme.default_widget()
                                         },
                                     );
@@ -323,7 +323,7 @@ fn transition(app: &mut App, ui: &mut Ui, transition_index: usize) -> Result<boo
                                     Theme::set_widget(
                                         ui,
                                         WidgetVisuals {
-                                            bg_stroke: Stroke::new(1.0, app.theme.invalid),
+                                            bg_stroke: Stroke::new(1.0, app.theme.error),
                                             ..app.theme.default_widget()
                                         },
                                     );

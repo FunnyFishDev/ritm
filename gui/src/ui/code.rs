@@ -47,7 +47,7 @@ pub fn show(app: &mut App, ui: &mut Ui) {
                                     0.0,
                                     TextFormat::simple(
                                         Font::default_medium(),
-                                        Color32::from_rgb(85, 160, 75),
+                                        app.theme.syntax_comment,
                                     ),
                                 );
                                 code = &code[end..];
@@ -58,7 +58,7 @@ pub fn show(app: &mut App, ui: &mut Ui) {
                                 layout_job.append(
                                     &code[..end],
                                     0.0,
-                                    TextFormat::simple(Font::default_medium(), app.theme.gray),
+                                    TextFormat::simple(Font::default_medium(), app.theme.code),
                                 );
                                 code = &code[end..];
                             }
@@ -72,12 +72,12 @@ pub fn show(app: &mut App, ui: &mut Ui) {
                         .font(Font::default_medium())
                         .frame(false)
                         .margin(Margin::same(0))
-                        .background_color(Color32::from_black_alpha(50))
+                        .background_color(app.theme.code_background)
                         .layouter(&mut layouter);
 
                     let line_number = Label::new(
                         RichText::new(number)
-                            .color(app.theme.gray.gamma_multiply(0.5))
+                            .color(app.theme.text_secondary.gamma_multiply(0.5))
                             .font(Font::default_medium()),
                     )
                     .halign(egui::Align::Max)

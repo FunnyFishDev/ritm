@@ -338,11 +338,11 @@ fn draw_labels(
                     Font::default_medium()
                 },
                 color: if selected {
-                    app.theme.selected
+                    app.theme.selection
                 } else if *is_previous {
                     app.theme.highlight
                 } else {
-                    Theme::constrast_color(app.theme.graph)
+                    Theme::constrast_color(app.theme.secondary)
                 },
                 ..Default::default()
             },

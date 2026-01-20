@@ -229,7 +229,7 @@ fn to_code_button(ui: &mut Ui, app: &mut App, layer: LayerId) {
                         ImageButton::new(
                             Image::new(include_image!("../../assets/icon/code.svg"))
                                 .fit_to_exact_size(vec2(35.0, 35.0))
-                                .tint(app.theme.gray),
+                                .tint(app.theme.icon),
                         )
                         .frame(false),
                     )
@@ -261,7 +261,7 @@ fn reset_button(ui: &mut Ui, app: &mut App, layer: LayerId) {
                     ImageButton::new(
                         Image::new(include_image!("../../assets/icon/erase.svg"))
                             .fit_to_exact_size(vec2(35.0, 35.0))
-                            .tint(app.theme.gray),
+                            .tint(app.theme.icon),
                     )
                     .frame(false),
                 )

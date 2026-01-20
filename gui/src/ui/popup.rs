@@ -67,8 +67,8 @@ fn show_in(
     content: impl FnOnce(&mut Ui, &mut App) -> Result<(), RitmError>,
 ) -> Result<(), RitmError> {
     let frame = Frame {
-        fill: app.theme.white,
-        stroke: Stroke::new(2.0, app.theme.gray),
+        fill: app.theme.background,
+        stroke: Stroke::new(2.0, app.theme.border),
         inner_margin: Margin::same(10),
         corner_radius: 10.into(),
         ..Default::default()
@@ -110,7 +110,7 @@ fn header(
     Theme::set_widget(
         ui,
         WidgetVisuals {
-            bg_stroke: Stroke::new(1.0, app.theme.gray),
+            bg_stroke: Stroke::new(1.0, app.theme.border),
             corner_radius: 5.into(),
             expansion: 3.0,
             ..app.theme.default_widget()
@@ -132,7 +132,7 @@ fn header(
             if can_be_closed {
                 let img = Image::new(include_image!("../../assets/icon/back.svg"))
                     .fit_to_exact_size(Vec2::splat(25.0))
-                    .tint(app.theme.gray)
+                    .tint(app.theme.icon)
                     .atom_size(Vec2::splat(25.0));
 
                 if flex

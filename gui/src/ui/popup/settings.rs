@@ -16,7 +16,7 @@ pub fn show(ui: &mut Ui, app: &mut App) -> Result<(), RitmError> {
         Theme::set_widget(
             ui,
             WidgetVisuals {
-                bg_stroke: Stroke::new(1.0, app.theme.gray),
+                bg_stroke: Stroke::new(1.0, app.theme.border),
                 corner_radius: 5.into(),
                 expansion: 3.0,
                 ..app.theme.default_widget()

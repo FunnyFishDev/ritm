@@ -24,7 +24,7 @@ pub fn show(ui: &mut Ui, app: &mut App) -> Result<(), RitmError> {
                             .fit_to_exact_size(Vec2::splat(
                                 Font::get_heigth(ui, &Font::default_big()) + 4.0,
                             ))
-                            .tint(app.theme.gray),
+                            .tint(app.theme.icon),
                     );
 
                     let Some((_state_id, state)) = &mut app.turing.state_edit else {
@@ -42,7 +42,7 @@ pub fn show(ui: &mut Ui, app: &mut App) -> Result<(), RitmError> {
             );
 
             let text = RichText::new("Save")
-                .color(Theme::constrast_color(app.theme.valid))
+                .color(Theme::constrast_color(app.theme.success))
                 .font(Font::default_medium())
                 .atom_grow(true);
 
@@ -54,11 +54,11 @@ pub fn show(ui: &mut Ui, app: &mut App) -> Result<(), RitmError> {
             if ui
                 .add(
                     Button::new(text)
-                        .stroke(Stroke::new(2.0, app.theme.gray))
+                        .stroke(Stroke::new(2.0, app.theme.border))
                         .fill(if state.to().name.is_empty() {
-                            app.theme.gray
+                            app.theme.disabled
                         } else {
-                            app.theme.valid
+                            app.theme.success
                         })
                         .corner_radius(10.0),
                 )

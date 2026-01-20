@@ -1,12 +1,12 @@
 use egui::{
-    Align, Color32, Frame, Id, Image, ImageButton, ImageSource, LayerId, Layout, Margin, Pos2,
+    Align, Frame, Id, Image, ImageButton, ImageSource, LayerId, Layout, Margin, Pos2,
     Rect, Response, Sense, Stroke, Ui, UiBuilder, Vec2, include_image, vec2,
 };
 
 use crate::{
     App,
     error::RitmError,
-    ui::{constant::Constant, popup::RitmPopupEnum, theme::Theme},
+    ui::{constant::Constant, popup::RitmPopupEnum},
 };
 
 pub struct Edit {
@@ -166,9 +166,9 @@ pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
 fn button(ui: &mut Ui, app: &mut App, icon: ImageSource, selected: bool) -> Response {
     let margin = 5;
     Frame::new()
-        .stroke(Stroke::new(1.0, Color32::from_gray(200)))
+        .stroke(Stroke::new(1.0, app.theme.border))
         .corner_radius(app.edit.icon_size/ 2.0)
-        .fill(app.theme.white)
+        .fill(app.theme.surface)
         .inner_margin(Margin::same(margin))
         .show(ui, |ui| {
             ui.add(
@@ -176,9 +176,9 @@ fn button(ui: &mut Ui, app: &mut App, icon: ImageSource, selected: bool) -> Resp
                     Image::new(icon)
                         .fit_to_exact_size(Vec2::splat(app.edit.icon_size))
                         .tint(if selected {
-                            app.theme.selected
+                            app.theme.selection
                         } else {
-                            Theme::constrast_color(app.theme.white)
+                            app.theme.icon
                         }),
                 )
                 .frame(false)

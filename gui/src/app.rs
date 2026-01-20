@@ -1,7 +1,13 @@
 use std::{collections::BTreeMap, time::Duration};
 
-use egui::{FontData, FontDefinitions, FontFamily, Key, Rect};
+use egui::{
+    CentralPanel, Color32, Context, FontData, FontDefinitions, FontFamily, Frame, Id, Key, Margin,
+    Rect, ScrollArea, ViewportBuilder, ViewportId,
+    color_picker::{Alpha, color_picker_color32},
+    vec2,
+};
 use egui_extras::install_image_loaders;
+use egui_flex::{Flex, FlexInstance, item};
 use ritm_core::{
     turing_machine::Mode,
     turing_parser::{graph_to_string, parse_turing_graph_string},
@@ -93,7 +99,7 @@ impl Default for App {
             graph_rect: Rect::ZERO,
             code: "".to_string(), // TODO display a message as comment instead
             event: Event::default(),
-            theme: Theme::DEFAULT,
+            theme: Theme::default(),
             file: FileDialog::default(),
             popup: RitmPopup::default(),
             settings: Settings {
@@ -188,7 +194,9 @@ impl eframe::App for App {
 
         // While the machine is running we update the application 100 times per step
         if self.control.is_running() {
-            ctx.request_repaint_after(Duration::from_millis((self.control.interval() * 10.0) as u64));
+            ctx.request_repaint_after(Duration::from_millis(
+                (self.control.interval() * 10.0) as u64,
+            ));
         }
 
         ctx.input(|r| {
@@ -308,3 +316,145 @@ fn load_font(cc: &eframe::CreationContext<'_>) {
 //         });
 //     }
 // }
+
+
+
+fn theme_changer(ctx: &Context, app: &mut App) {
+    ctx.show_viewport_immediate(
+        ViewportId::from_hash_of(Id::new("test")),
+        ViewportBuilder::default().with_always_on_top(),
+        |ctx, _vc| {
+            CentralPanel::default()
+                .frame(
+                    Frame::new()
+                        .fill(Color32::LIGHT_GRAY)
+                        .inner_margin(Margin::same(10)),
+                )
+                .show(ctx, |ui| {
+                    if ui.button("print theme").clicked() {
+                        print_theme(app);
+                    }
+                    ScrollArea::vertical().show(ui, |ui| {
+                        Flex::horizontal()
+                            .wrap(true)
+                            .gap(vec2(5.0, 15.0))
+                            .show(ui, |ui| {
+                                color_pick(ui, "primary", &mut app.theme.primary);
+                                color_pick(ui, "primary_variant", &mut app.theme.primary_variant);
+                                color_pick(ui, "secondary", &mut app.theme.secondary);
+                                color_pick(
+                                    ui,
+                                    "secondary_variant",
+                                    &mut app.theme.secondary_variant,
+                                );
+                                color_pick(ui, "background", &mut app.theme.background);
+                                color_pick(ui, "surface", &mut app.theme.surface);
+                                color_pick(ui, "border", &mut app.theme.border);
+                                color_pick(ui, "divider", &mut app.theme.divider);
+                                color_pick(ui, "text_primary", &mut app.theme.text_primary);
+                                color_pick(ui, "text_secondary", &mut app.theme.text_secondary);
+                                color_pick(ui, "text_disabled", &mut app.theme.text_disabled);
+                                color_pick(ui, "icon", &mut app.theme.icon);
+                                color_pick(ui, "hover", &mut app.theme.hover);
+                                color_pick(ui, "active", &mut app.theme.active);
+                                color_pick(ui, "focus", &mut app.theme.focus);
+                                color_pick(ui, "success", &mut app.theme.success);
+                                color_pick(ui, "warning", &mut app.theme.warning);
+                                color_pick(ui, "error", &mut app.theme.error);
+                                color_pick(ui, "info", &mut app.theme.info);
+                                color_pick(ui, "selection", &mut app.theme.selection);
+                                color_pick(ui, "overlay", &mut app.theme.overlay);
+                                color_pick(ui, "shadow", &mut app.theme.shadow);
+                                color_pick(ui, "code_background", &mut app.theme.code_background);
+                                color_pick(ui, "code", &mut app.theme.code);
+                                color_pick(ui, "syntax_keyword", &mut app.theme.syntax_keyword);
+                                color_pick(ui, "syntax_string", &mut app.theme.syntax_string);
+                                color_pick(ui, "syntax_comment", &mut app.theme.syntax_comment);
+                                color_pick(ui, "highlight", &mut app.theme.highlight);
+                                color_pick(ui, "disabled", &mut app.theme.disabled);
+                            });
+                    });
+                })
+        },
+    );
+}
+
+fn color_pick(ui: &mut FlexInstance, name: &str, color: &mut Color32) {
+    ui.add_ui(item(), |ui| {
+        ui.vertical(|ui| {
+            ui.label(name);
+            color_picker_color32(ui, color, Alpha::Opaque);
+        });
+    });
+}
+
+fn print_theme(app: &App) {
+    println!("primary: hex_color!(\"{}\"),", app.theme.primary.to_hex());
+    println!(
+        "primary_variant: hex_color!(\"{}\"),",
+        app.theme.primary_variant.to_hex()
+    );
+    println!(
+        "secondary: hex_color!(\"{}\"),",
+        app.theme.secondary.to_hex()
+    );
+    println!(
+        "secondary_variant: hex_color!(\"{}\"),",
+        app.theme.secondary_variant.to_hex()
+    );
+    println!(
+        "background: hex_color!(\"{}\"),",
+        app.theme.background.to_hex()
+    );
+    println!("surface: hex_color!(\"{}\"),", app.theme.surface.to_hex());
+    println!("border: hex_color!(\"{}\"),", app.theme.border.to_hex());
+    println!("divider: hex_color!(\"{}\"),", app.theme.divider.to_hex());
+    println!(
+        "text_primary: hex_color!(\"{}\"),",
+        app.theme.text_primary.to_hex()
+    );
+    println!(
+        "text_secondary: hex_color!(\"{}\"),",
+        app.theme.text_secondary.to_hex()
+    );
+    println!(
+        "text_disabled: hex_color!(\"{}\"),",
+        app.theme.text_disabled.to_hex()
+    );
+    println!("icon: hex_color!(\"{}\"),", app.theme.icon.to_hex());
+    println!("hover: hex_color!(\"{}\"),", app.theme.hover.to_hex());
+    println!("active: hex_color!(\"{}\"),", app.theme.active.to_hex());
+    println!("focus: hex_color!(\"{}\"),", app.theme.focus.to_hex());
+    println!("success: hex_color!(\"{}\"),", app.theme.success.to_hex());
+    println!("warning: hex_color!(\"{}\"),", app.theme.warning.to_hex());
+    println!("error: hex_color!(\"{}\"),", app.theme.error.to_hex());
+    println!("info: hex_color!(\"{}\"),", app.theme.info.to_hex());
+    println!(
+        "selection: hex_color!(\"{}\"),",
+        app.theme.selection.to_hex()
+    );
+    println!("overlay: hex_color!(\"{}\"),", app.theme.overlay.to_hex());
+    println!("shadow: hex_color!(\"{}\"),", app.theme.shadow.to_hex());
+    println!(
+        "code_background: hex_color!(\"{}\"),",
+        app.theme.code_background.to_hex()
+    );
+    println!("code: hex_color!(\"{}\"),", app.theme.code.to_hex());
+    println!(
+        "syntax_keyword: hex_color!(\"{}\"),",
+        app.theme.syntax_keyword.to_hex()
+    );
+    println!(
+        "syntax_string: hex_color!(\"{}\"),",
+        app.theme.syntax_string.to_hex()
+    );
+    println!(
+        "syntax_comment: hex_color!(\"{}\"),",
+        app.theme.syntax_comment.to_hex()
+    );
+    println!(
+        "highlight: hex_color!(\"{}\"),",
+        app.theme.highlight.to_hex()
+    );
+    println!("disabled: hex_color!(\"{}\"),", app.theme.disabled.to_hex());
+}
