@@ -13,8 +13,8 @@ pub fn show(app: &mut App, ui: &mut Ui) {
 
     // Apply a scale correction to element for small screen
     let square_size = Constant::scale(ui, Constant::SQUARE_SIZE);
-    let horizontal_space = Constant::scale(ui, Constant::HORIZONTAL_SPACE);
-    let vertical_space = Constant::scale(ui, Constant::VERTICAL_SPACE);
+    let horizontal_space = Constant::scale(ui, Constant::HORIZONTAL_SPACING);
+    let vertical_space = Constant::scale(ui, Constant::VERTICAL_SPACING);
     let scale = Constant::scale(ui, 1.0);
 
     // Ribbons frame
@@ -25,15 +25,19 @@ pub fn show(app: &mut App, ui: &mut Ui) {
         .show(ui, |ui| {
             ui.spacing_mut().item_spacing = (0.0, vertical_space).into();
 
-            // Get the center of the ribbons layout
+            // Get the absolute center of the ribbons layout
             let center = ui.available_rect_before_wrap().left() + ui.available_width() / 2.0;
+            // Compute how many square will be visible
             let mut square_count = ((ui.available_width() + horizontal_space)
                 / (horizontal_space + square_size)) as usize;
 
+            // Ensure the count is odd because there is always a square centered
             if square_count.is_multiple_of(2) {
                 square_count += 1
             }
-            let ribbon_size =
+
+            // Compute the final width of the ribbons
+            let ribbon_width =
                 square_count as f32 * (square_size + horizontal_space) - horizontal_space;
 
             // Scroll area to center and display the ribbon
@@ -44,7 +48,7 @@ pub fn show(app: &mut App, ui: &mut Ui) {
                     3.0 // 3.0 is the margin of the center square
                         + square_size
                         + horizontal_space
-                        + (ribbon_size - ui.available_width()) / 2.0,
+                        + (ribbon_width - ui.available_width()) / 2.0,
                 ) // this offset center the symbol
                 .show(ui, |ui| {
                     let width = ui.available_width();
@@ -63,7 +67,7 @@ pub fn show(app: &mut App, ui: &mut Ui) {
                                 (center + 9.0 * scale, top).into(),
                                 (center, top + 12.0 * scale).into(),
                             ],
-                            app.theme.icon,
+                            app.theme.border,
                             Stroke::NONE,
                         ));
                     }
@@ -74,7 +78,7 @@ pub fn show(app: &mut App, ui: &mut Ui) {
 /// Draw a ribbon with the correct spacing and character
 fn ribbon(app: &mut App, ui: &mut Ui, width: f32, ribbon_id: usize) {
     // Apply a scale correction to element for small screen
-    let horizontal_space = Constant::scale(ui, Constant::HORIZONTAL_SPACE);
+    let horizontal_space = Constant::scale(ui, Constant::HORIZONTAL_SPACING);
     let square_size = Constant::scale(ui, Constant::SQUARE_SIZE);
 
     ui.allocate_ui_with_layout(
@@ -124,7 +128,7 @@ fn ribbon(app: &mut App, ui: &mut Ui, width: f32, ribbon_id: usize) {
     );
 }
 
-// Draw a single square with the character wanted
+/// Draw a single square with a character
 fn square(app: &mut App, ui: &mut Ui, character: char, is_current: bool) {
     // Apply a scale correction to element for small screen
     let square_size = Constant::scale(ui, Constant::SQUARE_SIZE);

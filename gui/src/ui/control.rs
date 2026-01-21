@@ -1,5 +1,6 @@
 use egui::{
-    Align, Align2, Button, Frame, Image, ImageButton, ImageSource, Label, Layout, Response, RichText, Sense, Stroke, TextEdit, Ui, Vec2, include_image, vec2
+    Align, Align2, Button, Frame, Image, ImageButton, ImageSource, Label, Layout, Response,
+    RichText, Sense, Stroke, TextEdit, Ui, Vec2, include_image, vec2,
 };
 use egui_flex::{Flex, FlexAlign, FlexAlignContent, FlexInstance, item};
 
@@ -18,7 +19,6 @@ pub struct Control {
     interval_power: i32,
     last_step_time: f64,
 }
-
 
 impl Control {
     pub fn run(&mut self) {
@@ -58,34 +58,40 @@ impl Control {
     }
 }
 
-pub fn show(app: &mut App, ui: &mut Ui) {
-    Frame::new().show(ui, |ui| {
-        ui.set_height(Constant::scale(ui, 70.0));
-        let grid = Grid::new(ui, 2, 3);
+pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
+    Frame::new()
+        .show(ui, |ui| {
+            ui.set_height(Constant::scale(ui, 70.0));
+            let grid = Grid::new(ui, 2, 3);
 
-        grid.place(ui, 1, 1, |ui| input(app, ui));
+            grid.place(ui, 1, 1, |ui| input(app, ui)).inner?;
 
-        grid.place(ui, 1, 2, |ui| control(app, ui));
-        grid.place(ui, 2, 2, |ui| speed_control(app, ui));
+            grid.place(ui, 1, 2, |ui| control(app, ui));
+            grid.place(ui, 2, 2, |ui| speed_control(app, ui));
 
-        grid.place(ui, 1, 3, |ui| step(app, ui));
-        grid.place(ui, 2, 3, |ui| state(app, ui));
-    });
+            grid.place(ui, 1, 3, |ui| step(app, ui));
+            grid.place(ui, 2, 3, |ui| state(app, ui));
+            Ok::<(), RitmError>(())
+        })
+        .inner
 }
 
 /// Input section of the controls
 ///
 /// User cna enter the input of the turing machine and submit it
-fn input(app: &mut App, ui: &mut Ui) {
+fn input(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
     ui.allocate_ui_with_layout(
         ui.available_size(),
         Layout::right_to_left(Align::Center),
         |ui| {
             if ui
-                .add(Button::new(
-                    RichText::new("Submit")
-                        .font(Font::default(Constant::scale(ui, Font::MEDIUM_SIZE))),
-                ).stroke(Stroke::new(1.0, app.theme.border)))
+                .add(
+                    Button::new(
+                        RichText::new("Submit")
+                            .font(Font::default(Constant::scale(ui, Font::MEDIUM_SIZE))),
+                    )
+                    .stroke(Stroke::new(1.0, app.theme.border)),
+                )
                 .clicked()
             {
                 app.turing.set_word(&app.control.input)?;
@@ -106,7 +112,8 @@ fn input(app: &mut App, ui: &mut Ui) {
                             RichText::new("Input...")
                                 .font(Font::default(Constant::scale(ui, Font::MEDIUM_SIZE)))
                                 .color(app.theme.text_secondary),
-                        ).background_color(app.theme.surface),
+                        )
+                        .background_color(app.theme.surface),
                 )
                 .has_focus()
             {
@@ -114,7 +121,8 @@ fn input(app: &mut App, ui: &mut Ui) {
             }
             Ok::<(), RitmError>(())
         },
-    );
+    )
+    .inner
 }
 
 /// Control the iteration of the application, automatic or manual
@@ -205,7 +213,11 @@ fn speed_control(app: &mut App, ui: &mut Ui) {
                     ImageButton::new(
                         Image::new(include_image!("../../assets/icon/less.svg"))
                             .fit_to_exact_size(Vec2::splat(Constant::scale(flex.ui(), 25.0)))
-                            .tint(if min { app.theme.disabled } else { app.theme.icon }),
+                            .tint(if min {
+                                app.theme.disabled
+                            } else {
+                                app.theme.icon
+                            }),
                     )
                     .frame(false),
                 )
@@ -218,7 +230,7 @@ fn speed_control(app: &mut App, ui: &mut Ui) {
             flex.add(
                 item(),
                 Label::new(
-                    RichText::new(format!("{}X", 1.0/app.control.interval()))
+                    RichText::new(format!("{}X", 1.0 / app.control.interval()))
                         .font(Font::default(Constant::scale(flex.ui(), Font::MEDIUM_SIZE)))
                         .color(app.theme.icon),
                 ),
@@ -230,7 +242,11 @@ fn speed_control(app: &mut App, ui: &mut Ui) {
                     ImageButton::new(
                         Image::new(include_image!("../../assets/icon/add.svg"))
                             .fit_to_exact_size(Vec2::splat(Constant::scale(flex.ui(), 25.0)))
-                            .tint(if max { app.theme.disabled } else { app.theme.icon }),
+                            .tint(if max {
+                                app.theme.disabled
+                            } else {
+                                app.theme.icon
+                            }),
                     )
                     .frame(false),
                 )
@@ -260,7 +276,8 @@ fn step(app: &mut App, ui: &mut Ui) {
                         "Steps : {}",
                         app.turing.current_step.get_nb_iterations()
                     ))
-                    .font(Font::default(Constant::scale(flex.ui(), Font::MEDIUM_SIZE))),
+                    .font(Font::default(Constant::scale(flex.ui(), Font::MEDIUM_SIZE)))
+                    .color(app.theme.text_primary),
                 ),
             );
             flex.grow();

@@ -20,7 +20,7 @@ pub struct Turing {
     pub current_step: TuringExecutionSteps,
     pub accepted: Option<bool>,
     pub transition_edit: Option<((usize, usize), Vec<TransitionEdit>)>,
-    pub state_edit: Option<(usize, StateEdit)>,
+    pub state_edit: Option<StateEdit>,
 }
 
 impl Default for Turing {
@@ -88,19 +88,20 @@ impl Turing {
     }
 
     /// The state is saved with the core assigned id
-    pub fn add_state(&mut self, name: String) {
-        self.tm.graph_mut().add_state(name, TuringStateType::Normal);
+    pub fn add_state(&mut self, name: String) -> usize {
+        self.tm.graph_mut().add_state(name, TuringStateType::Normal)
     }
 
     /// The state is saved with the core assigned id
-    pub fn add_state_with_pos(&mut self, name: String, position: Pos2) {
+    pub fn add_state_with_pos(&mut self, name: String, position: Pos2) -> usize {
         let state_id = self.tm.graph_mut().add_state(name, TuringStateType::Normal);
         self.tm
             .graph_mut()
             .try_get_state_mut(state_id)
             .expect("state has been created")
             .inner_state
-            .position = position
+            .position = position;
+        state_id
     }
 
     pub fn add_transition(&mut self, source_id: usize, target_id: usize) -> Result<(), RitmError> {
@@ -349,7 +350,9 @@ impl Turing {
     pub fn set_word(&mut self, word: &String) -> Result<(), RitmError> {
         self.tm
             .reset_word(word)
-            .map_err(|e| RitmError::CoreError(e.to_string()))
+            .map_err(|e| RitmError::CoreError(e.to_string()))?;
+        self.reset();
+        Ok(())
     }
 
     pub fn cancel_transition_change(&mut self) {
@@ -472,8 +475,8 @@ impl TransitionWrapperCopy {
         Ok(TransitionWrapper {
             // TODO: use new new() method
             info: TuringTransitionInfo::new(chars_read, self.move_read.clone(), chars_write)
-            .map_err(|e| RitmError::CoreError(e.to_string()))?,
-                
+                .map_err(|e| RitmError::CoreError(e.to_string()))?,
+
             inner_transition: self.inner_transition.clone(),
         })
     }
@@ -548,6 +551,19 @@ impl StateEdit {
             name: ttmr.get_name().to_string(),
             state_type: ttmr.get_type(),
             state: ttmr.inner_state.clone(),
+        };
+        Self {
+            base: state_wrapper.clone(),
+            edit: state_wrapper,
+            has_changed: false,
+        }
+    }
+
+    pub fn empty() -> Self {
+        let state_wrapper = StateWrapperCopy {
+            name: "".to_string(),
+            state_type: TuringStateType::Normal,
+            state: State { position: Pos2::ZERO, is_pinned: false, color: Color32::WHITE }
         };
         Self {
             base: state_wrapper.clone(),

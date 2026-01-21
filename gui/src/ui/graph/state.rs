@@ -52,11 +52,12 @@ fn draw_node(app: &mut App, ui: &mut Ui, state_id: usize) -> Result<(), RitmErro
     let response = ui.allocate_rect(rect, Sense::click_and_drag());
 
     if response.clicked() {
-        if app.event.is_adding_transition {
+        if app.edit.is_adding_transition {
             app.turing.add_transition(app.graph.selected_state().expect("state selected"), state_id)?;
+            app.edit.is_adding_transition &= app.settings.toggle_after_action;
         } else {
             app.graph.select_state(state_id);
-            app.event.is_adding_state = false;
+            app.edit.is_adding_state = false;
         }
     }
 

@@ -4,9 +4,7 @@ use egui::{
     include_image, vec2,
 };
 
-use crate::{
-    App, error::RitmError, ui::font::Font
-};
+use crate::{App, error::RitmError, ui::font::Font};
 
 pub fn show(ui: &mut Ui, app: &mut App) -> Result<(), RitmError> {
     ui.set_max_size(ui.ctx().screen_rect().size() * 0.8);
@@ -23,6 +21,7 @@ pub fn show(ui: &mut Ui, app: &mut App) -> Result<(), RitmError> {
                 Frame::new()
                     .inner_margin(0)
                     .outer_margin(0)
+                    .fill(Color32::TRANSPARENT)
                     .stroke(Stroke::new(1.0, app.theme.border))
                     .corner_radius(10)
                     .show(ui, |ui| {
@@ -33,7 +32,7 @@ pub fn show(ui: &mut Ui, app: &mut App) -> Result<(), RitmError> {
                                     Image::new(include_image!("../../../assets/icon/left.svg"))
                                         .fit_to_exact_size(Vec2::splat(ui.available_width())),
                                 )
-                                .tint(app.theme.icon)
+                                .tint(app.theme.overlay)
                                 .frame(false),
                             )
                             .clicked()
@@ -56,6 +55,7 @@ pub fn show(ui: &mut Ui, app: &mut App) -> Result<(), RitmError> {
                 Frame::new()
                     .inner_margin(0)
                     .outer_margin(0)
+                    .fill(Color32::TRANSPARENT)
                     .stroke(Stroke::new(1.0, app.theme.border))
                     .corner_radius(10)
                     .show(ui, |ui| {
@@ -66,7 +66,7 @@ pub fn show(ui: &mut Ui, app: &mut App) -> Result<(), RitmError> {
                                     Image::new(include_image!("../../../assets/icon/right.svg"))
                                         .fit_to_exact_size(Vec2::splat(ui.available_width())),
                                 )
-                                .tint(app.theme.icon)
+                                .tint(app.theme.overlay)
                                 .frame(false),
                             )
                             .clicked()
@@ -81,32 +81,34 @@ pub fn show(ui: &mut Ui, app: &mut App) -> Result<(), RitmError> {
     CentralPanel::default()
         .frame(
             Frame::new()
-                .fill(Color32::WHITE)
+                .fill(app.theme.surface)
                 .inner_margin(Margin::symmetric(15, 5)),
         )
         .show_inside(ui, |ui| {
-            ScrollArea::vertical().show(ui, |ui| {
-                ui.allocate_ui_with_layout(
-                    ui.available_size(),
-                    Layout::top_down(Align::Min).with_cross_justify(true),
-                    |ui| {
-                        ui.spacing_mut().item_spacing = vec2(0.0, 20.0);
+            ScrollArea::vertical()
+                .scroll_bar_visibility(egui::scroll_area::ScrollBarVisibility::AlwaysHidden)
+                .show(ui, |ui| {
+                    ui.allocate_ui_with_layout(
+                        ui.available_size(),
+                        Layout::top_down(Align::Min).with_cross_justify(true),
+                        |ui| {
+                            ui.spacing_mut().item_spacing = vec2(0.0, 20.0);
 
-                        match app.help_slide_index {
-                            0 => welcome(app, ui),
-                            1 => code(app, ui),
-                            2 => settings(app, ui),
-                            3 => tapes(app, ui),
-                            4 => controls(app, ui),
-                            5 => graph(app, ui),
-                            6 => editing(app, ui),
-                            _ => welcome(app, ui),
-                        }
-                    },
-                );
-            });
+                            match app.help_slide_index {
+                                0 => welcome(app, ui),
+                                1 => code(app, ui),
+                                2 => settings(app, ui),
+                                3 => tapes(app, ui),
+                                4 => controls(app, ui),
+                                5 => graph(app, ui),
+                                6 => editing(app, ui),
+                                _ => welcome(app, ui),
+                            }
+                        },
+                    );
+                });
         });
-        Ok(())
+    Ok(())
 }
 
 fn title(text: impl Into<String>) -> Label {

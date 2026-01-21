@@ -3,10 +3,16 @@ use egui::{
     scroll_area::ScrollBarVisibility, text::LayoutJob, vec2,
 };
 
-use crate::{App, ui::font::Font};
+use crate::{App, error::RitmError, ui::font::Font};
+
+#[derive(Default)]
+pub struct Code {
+    pub code: String, // TODO display a message
+    pub code_closed: bool
+}
 
 /// Display the code section of the application
-pub fn show(app: &mut App, ui: &mut Ui) {
+pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
     ScrollArea::vertical()
         .scroll_bar_visibility(ScrollBarVisibility::AlwaysHidden)
         .show(ui, |ui| {
@@ -20,7 +26,7 @@ pub fn show(app: &mut App, ui: &mut Ui) {
                         - 35.0
                         - Font::get_width(ui, &Font::default_medium()) * 3.0;
                     let job = LayoutJob::simple(
-                        app.code.clone(),
+                        app.code.code.to_string(),
                         Font::default_medium(),
                         Color32::PLACEHOLDER,
                         code_width,
@@ -67,7 +73,7 @@ pub fn show(app: &mut App, ui: &mut Ui) {
                         ui.fonts(|f| f.layout_job(layout_job))
                     };
 
-                    let code = TextEdit::multiline(&mut app.code)
+                    let code = TextEdit::multiline(&mut app.code.code)
                         .code_editor()
                         .font(Font::default_medium())
                         .frame(false)
@@ -106,4 +112,5 @@ pub fn show(app: &mut App, ui: &mut Ui) {
                 },
             );
         });
+        Ok(())
 }

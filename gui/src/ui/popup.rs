@@ -1,12 +1,13 @@
 use egui::{
     AtomExt, Button, Context, Frame, Id, Image, Label, LayerId, Margin, Modal, Popup, PopupAnchor,
-    RichText, Separator, Stroke, Ui, Vec2, include_image, style::WidgetVisuals,
+    Pos2, RichText, Separator, Stroke, Ui, Vec2, include_image, style::WidgetVisuals,
 };
 use egui_flex::{Flex, FlexAlignContent, item};
 
 use crate::{
     App,
     error::RitmError,
+    turing::TransitionId,
     ui::{font::Font, theme::Theme},
 };
 
@@ -17,8 +18,8 @@ pub mod transition_edit;
 
 #[derive(PartialEq, Clone, Debug)]
 pub enum RitmPopupEnum {
-    TransitionEdit(String),
-    StateEdit(String),
+    TransitionEdit(TransitionId),
+    StateEdit(Option<usize>, Option<Pos2>),
     Settings,
     Help,
 }
@@ -45,14 +46,35 @@ impl RitmPopup {
 pub fn show(ctx: &Context, app: &mut App) -> Result<(), RitmError> {
     if let Some(popup) = app.popup.current_popup.clone() {
         match popup {
-            RitmPopupEnum::TransitionEdit(title) => {
-                show_in(ctx, app, false, true, &title, transition_edit::show)?
+            RitmPopupEnum::TransitionEdit(transition_id) => {
+                let source = app.turing.get_state(transition_id.source_id)?.get_name();
+                let target = app.turing.get_state(transition_id.target_id)?.get_name();
+                show_in(
+                    ctx,
+                    app,
+                    false,
+                    true,
+                    format!("{} -> {}", source, target),
+                    transition_edit::show,
+                )?
             }
-            RitmPopupEnum::StateEdit(title) => {
-                show_in(ctx, app, false, true, &title, state_edit::show)?
+            RitmPopupEnum::StateEdit(state_id, _) => {
+                let title = if let Some(state_id) = state_id {
+                    app.turing.get_state(state_id)?.get_name().to_string()
+                } else {
+                    "New State".to_string()
+                };
+                show_in(ctx, app, false, true, title, state_edit::show)?
             }
-            RitmPopupEnum::Help => show_in(ctx, app, true, false, "Help", help::show)?,
-            RitmPopupEnum::Settings => show_in(ctx, app, true, false, "Settings", settings::show)?,
+            RitmPopupEnum::Help => show_in(ctx, app, true, false, "Help".to_string(), help::show)?,
+            RitmPopupEnum::Settings => show_in(
+                ctx,
+                app,
+                true,
+                false,
+                "Settings".to_string(),
+                settings::show,
+            )?,
         }
     }
     Ok(())
@@ -63,11 +85,11 @@ fn show_in(
     app: &mut App,
     can_be_closed: bool,
     can_be_moved: bool,
-    title: &str,
+    title: String,
     content: impl FnOnce(&mut Ui, &mut App) -> Result<(), RitmError>,
 ) -> Result<(), RitmError> {
     let frame = Frame {
-        fill: app.theme.background,
+        fill: app.theme.surface,
         stroke: Stroke::new(2.0, app.theme.border),
         inner_margin: Margin::same(10),
         corner_radius: 10.into(),
@@ -82,9 +104,8 @@ fn show_in(
             LayerId::new(egui::Order::Foreground, Id::new("popup/modal-layer")),
         )
         .frame(frame)
-        .show(|ui| {
-            header(ui, app, title, can_be_closed, can_be_moved, content)
-        }) {
+        .show(|ui| header(ui, app, title, can_be_closed, can_be_moved, content))
+        {
             res.inner
         } else {
             Ok(())
@@ -102,7 +123,7 @@ fn show_in(
 fn header(
     ui: &mut Ui,
     app: &mut App,
-    title: &str,
+    title: String,
     can_be_closed: bool,
     _can_be_moved: bool,
     content: impl FnOnce(&mut Ui, &mut App) -> Result<(), RitmError>,
@@ -132,7 +153,7 @@ fn header(
             if can_be_closed {
                 let img = Image::new(include_image!("../../assets/icon/back.svg"))
                     .fit_to_exact_size(Vec2::splat(25.0))
-                    .tint(app.theme.icon)
+                    .tint(app.theme.overlay)
                     .atom_size(Vec2::splat(25.0));
 
                 if flex

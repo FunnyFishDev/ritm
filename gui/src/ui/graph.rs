@@ -20,6 +20,7 @@ pub struct Graph {
     selected_transitions: Option<TransitionId>,
     graph_rect: Rect,
     recenter: bool,
+    is_stable: bool,
 }
 
 impl Default for Graph {
@@ -29,6 +30,7 @@ impl Default for Graph {
             selected_transitions: Default::default(),
             graph_rect: Rect::ZERO,
             recenter: false,
+            is_stable: false,
         }
     }
 }
@@ -72,7 +74,7 @@ impl Graph {
 pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
     // current rect of the element inside the scene
     let mut inner_rect = Rect::ZERO;
-    
+
     let mut scene_rect = app.graph.graph_rect;
 
     // Compute the force applied on every node
@@ -118,25 +120,25 @@ pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
     // TODO: need to rework state adding flow
 
     if scene_response.clicked() {
-        if app.event.is_adding_state {
+        if app.edit.is_adding_state {
             let click_pos = scene_response
                 .interact_pointer_pos()
                 .expect("no click position found");
-            app.turing.add_state_with_pos("temp".to_string(), click_pos);
             app.popup
-                .switch_to(RitmPopupEnum::StateEdit("temp".to_string()));
+                .switch_to(RitmPopupEnum::StateEdit(None, Some(click_pos)));
+            app.turing.state_edit = None
         }
 
         // CLick on the scene reset selection and editing
-        app.event.is_adding_state = !app.settings.toggle_after_action;
-        app.event.is_adding_transition = false;
+        app.edit.is_adding_state &= app.settings.toggle_after_action;
+        app.edit.is_adding_transition &= app.settings.toggle_after_action;
         app.graph.unselect();
     }
 
     edit::show(app, ui)?;
 
     // Repaint the canvas
-    if !app.event.is_stable {
+    if !app.graph.is_stable {
         ui.ctx().request_repaint();
     }
     Ok(())
@@ -212,7 +214,7 @@ fn apply_force(app: &mut App) {
         state_mut.inner_state.position += *forces.get(&i).unwrap();
     }
 
-    app.event.is_stable = max_force_applied < Constant::STABILITY_TRESHOLD;
+    app.graph.is_stable = max_force_applied < Constant::STABILITY_TRESHOLD;
 }
 
 /// Button to convert the current displayed graph into code
@@ -229,7 +231,7 @@ fn to_code_button(ui: &mut Ui, app: &mut App, layer: LayerId) {
                         ImageButton::new(
                             Image::new(include_image!("../../assets/icon/code.svg"))
                                 .fit_to_exact_size(vec2(35.0, 35.0))
-                                .tint(app.theme.icon),
+                                .tint(app.theme.overlay),
                         )
                         .frame(false),
                     )
@@ -261,7 +263,7 @@ fn reset_button(ui: &mut Ui, app: &mut App, layer: LayerId) {
                     ImageButton::new(
                         Image::new(include_image!("../../assets/icon/erase.svg"))
                             .fit_to_exact_size(vec2(35.0, 35.0))
-                            .tint(app.theme.icon),
+                            .tint(app.theme.overlay),
                     )
                     .frame(false),
                 )

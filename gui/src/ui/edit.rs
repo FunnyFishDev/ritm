@@ -1,21 +1,25 @@
 use egui::{
-    Align, Frame, Id, Image, ImageButton, ImageSource, LayerId, Layout, Margin, Pos2,
-    Rect, Response, Sense, Stroke, Ui, UiBuilder, Vec2, include_image, vec2,
+    Align, Frame, Id, Image, ImageButton, ImageSource, LayerId, Layout, Margin, Pos2, Rect,
+    Response, Sense, Stroke, Ui, UiBuilder, Vec2, include_image, vec2,
 };
 
 use crate::{
-    App,
-    error::RitmError,
-    ui::{constant::Constant, popup::RitmPopupEnum},
+    App, error::RitmError, turing::StateEdit, ui::{constant::Constant, popup::RitmPopupEnum}
 };
 
 pub struct Edit {
     icon_size: f32,
+    pub is_adding_state: bool,
+    pub is_adding_transition: bool,
 }
 
 impl Default for Edit {
     fn default() -> Self {
-        Self { icon_size: 25.0 }
+        Self {
+            icon_size: 25.0,
+            is_adding_state: false,
+            is_adding_transition: false,
+        }
     }
 }
 
@@ -38,12 +42,16 @@ pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
             .layer_id(layer),
         |ui| {
             // TODO: replace with flags from bitflags crate
-            let state_selected = app.graph.selected_state().is_some() && app.graph.selected_transitions().is_none();
-            let transition_selected =
+            let state_selected =
+                app.graph.selected_state().is_some() && app.graph.selected_transitions().is_none();
+            let _transition_selected =
                 app.graph.selected_transitions().is_some() && app.graph.selected_state().is_none();
-            let _both_selected = app.graph.selected_state().is_some() && app.graph.selected_transitions().is_some();
-            let either_selected = app.graph.selected_state().is_some() || app.graph.selected_transitions().is_some();
-            let none_selected = app.graph.selected_state().is_none() && app.graph.selected_transitions().is_none();
+            let _both_selected =
+                app.graph.selected_state().is_some() && app.graph.selected_transitions().is_some();
+            let either_selected =
+                app.graph.selected_state().is_some() || app.graph.selected_transitions().is_some();
+            let none_selected =
+                app.graph.selected_state().is_none() && app.graph.selected_transitions().is_none();
 
             // Vertical alignment, bottom to up
             ui.allocate_ui_with_layout(
@@ -60,11 +68,11 @@ pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
                             ui,
                             app,
                             include_image!("../../assets/icon/stateplus.svg"),
-                            app.event.is_adding_state,
+                            app.edit.is_adding_state,
                         )
                         .clicked()
                     {
-                        app.event.is_adding_state ^= true;
+                        app.edit.is_adding_state ^= true;
                     }
 
                     // Transition
@@ -74,11 +82,11 @@ pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
                             ui,
                             app,
                             include_image!("../../assets/icon/transition.svg"),
-                            app.event.is_adding_transition,
+                            app.edit.is_adding_transition,
                         )
                         .clicked()
                     {
-                        app.event.is_adding_transition ^= true;
+                        app.edit.is_adding_transition ^= true;
                     }
 
                     // Delete
@@ -104,27 +112,21 @@ pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
                         }
                     }
 
-                    if transition_selected
+                    // Edit the selected transitions or state
+                    if either_selected
                         && button(ui, app, include_image!("../../assets/icon/edit.svg"), false)
                             .clicked()
                     {
                         if let Some(state_selected) = app.graph.selected_state() {
-                            app.popup.switch_to(RitmPopupEnum::StateEdit(format!(
-                                "State {}",
-                                app.turing.get_state(state_selected)?.get_name()
-                            )));
+                            app.popup
+                                .switch_to(RitmPopupEnum::StateEdit(Some(state_selected), None));
+
+                            app.turing.state_edit = Some(StateEdit::from(app.turing.get_state(state_selected)?));
                         }
 
                         if let Some(transition_selected) = app.graph.selected_transitions() {
-                            app.popup.switch_to(RitmPopupEnum::TransitionEdit(format!(
-                                "Transition {} -> {}",
-                                app.turing
-                                    .get_state(transition_selected.source_id)?
-                                    .get_name(),
-                                app.turing
-                                    .get_state(transition_selected.target_id)?
-                                    .get_name()
-                            )));
+                            app.popup
+                                .switch_to(RitmPopupEnum::TransitionEdit(transition_selected));
 
                             app.turing.prepare_transition_edit(
                                 transition_selected.source_id,
@@ -133,6 +135,7 @@ pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
                         }
                     }
 
+                    // Recenter the graph
                     if button(
                         ui,
                         app,
@@ -144,6 +147,7 @@ pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
                         app.graph.recenter();
                     }
 
+                    // Unpin every state of the graph
                     if button(
                         ui,
                         app,
@@ -167,7 +171,7 @@ fn button(ui: &mut Ui, app: &mut App, icon: ImageSource, selected: bool) -> Resp
     let margin = 5;
     Frame::new()
         .stroke(Stroke::new(1.0, app.theme.border))
-        .corner_radius(app.edit.icon_size/ 2.0)
+        .corner_radius(app.edit.icon_size / 2.0)
         .fill(app.theme.surface)
         .inner_margin(Margin::same(margin))
         .show(ui, |ui| {
@@ -176,9 +180,9 @@ fn button(ui: &mut Ui, app: &mut App, icon: ImageSource, selected: bool) -> Resp
                     Image::new(icon)
                         .fit_to_exact_size(Vec2::splat(app.edit.icon_size))
                         .tint(if selected {
-                            app.theme.selection
+                            app.theme.active
                         } else {
-                            app.theme.icon
+                            app.theme.overlay
                         }),
                 )
                 .frame(false)

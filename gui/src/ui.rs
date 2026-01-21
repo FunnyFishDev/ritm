@@ -9,15 +9,13 @@ pub mod control;
 pub mod edit;
 pub mod font;
 pub mod graph;
+pub mod menu;
 pub mod popup;
 pub mod ribbon;
-pub mod settings;
 pub mod theme;
 pub mod utils;
 
-use crate::{
-    App, error::RitmError, ui::font::Font
-};
+use crate::{App, error::RitmError, ui::font::Font};
 
 pub fn show(app: &mut App, ctx: &egui::Context) -> Result<(), RitmError> {
     // Display the current popup/modal
@@ -34,7 +32,7 @@ pub fn show(app: &mut App, ctx: &egui::Context) -> Result<(), RitmError> {
             ui.spacing_mut().indent = 10.0;
             ui.style_mut().override_font_id = Some(Font::default_medium()); // TODO check if there is not a better way to do that
 
-            if app.event.is_code_closed {
+            if app.code.code_closed {
                 SidePanel::left("settings")
                     .frame(Frame {
                         inner_margin: 5.into(),
@@ -42,9 +40,8 @@ pub fn show(app: &mut App, ctx: &egui::Context) -> Result<(), RitmError> {
                     })
                     .resizable(false)
                     .exact_width(45.0)
-                    .show_inside(ui, |ui| {
-                        settings::show(app, ui);
-                    });
+                    .show_inside(ui, |ui| menu::show(app, ui))
+                    .inner?;
 
                 // Ribbon and execution control
                 TopBottomPanel::top("ribbon")
@@ -65,8 +62,10 @@ pub fn show(app: &mut App, ctx: &egui::Context) -> Result<(), RitmError> {
                     .show_separator_line(false)
                     .show_inside(ui, |ui| {
                         ribbon::show(app, ui);
-                        control::show(app, ui);
-                    });
+                        control::show(app, ui)?;
+                        Ok::<(), RitmError>(())
+                    })
+                    .inner?;
 
                 // Graph visual and edition
                 CentralPanel::default()
@@ -84,6 +83,7 @@ pub fn show(app: &mut App, ctx: &egui::Context) -> Result<(), RitmError> {
                         graph::show(app, ui)?;
                         Ok::<(), RitmError>(())
                     });
+                Ok::<(), RitmError>(())
             } else {
                 // Code and file loading
                 SidePanel::left("code")
@@ -108,9 +108,8 @@ pub fn show(app: &mut App, ctx: &egui::Context) -> Result<(), RitmError> {
                             })
                             .resizable(false)
                             .show_separator_line(false)
-                            .show_inside(ui, |ui| {
-                                settings::show(app, ui);
-                            });
+                            .show_inside(ui, |ui| menu::show(app, ui))
+                            .inner?;
 
                         CentralPanel::default()
                             .frame(Frame {
@@ -123,9 +122,8 @@ pub fn show(app: &mut App, ctx: &egui::Context) -> Result<(), RitmError> {
                                 },
                                 ..Default::default()
                             })
-                            .show_inside(ui, |ui| {
-                                code::show(app, ui);
-                            })
+                            .show_inside(ui, |ui| code::show(app, ui))
+                            .inner
                     });
 
                 // Ribbon and Graph
@@ -159,10 +157,13 @@ pub fn show(app: &mut App, ctx: &egui::Context) -> Result<(), RitmError> {
                                     Layout::top_down(Align::Min),
                                     |ui| {
                                         ribbon::show(app, ui);
-                                        control::show(app, ui);
+                                        control::show(app, ui)?;
+                                        Ok::<(), RitmError>(())
                                     },
-                                );
-                            });
+                                )
+                                .inner
+                            })
+                            .inner?;
 
                         // Graph visual and edition
                         CentralPanel::default()
@@ -180,9 +181,11 @@ pub fn show(app: &mut App, ctx: &egui::Context) -> Result<(), RitmError> {
                                 graph::show(app, ui)?;
                                 Ok::<(), RitmError>(())
                             });
+                        Ok::<(), RitmError>(())
                     });
+                Ok(())
             }
         });
 
-    Ok(())
+    Ok::<(), RitmError>(())
 }

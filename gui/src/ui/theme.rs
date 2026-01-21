@@ -102,14 +102,14 @@ impl Theme {
             text_disabled: hex_color!("#777777ff"),
             icon: hex_color!("#ffffffff"),
             hover: hex_color!("#ff0000ff"),
-            active: hex_color!("#acff00ff"),
-            focus: hex_color!("#ff0000ff"),
+            active: hex_color!("#C73E1Dff"),
+            focus: hex_color!("#ff5080ff"),
             success: hex_color!("#19c832ff"),
             warning: hex_color!("#ffff00ff"),
             error: hex_color!("#ff1932ff"),
             info: hex_color!("#7bbcffff"),
-            selection: hex_color!("#ace8ffff"),
-            overlay: hex_color!("#000000ff"),
+            selection: hex_color!("#68C3D4ff"),
+            overlay: hex_color!("#1E3232ff"),
             shadow: hex_color!("#000000ff"),
             code_background: hex_color!("#313e45ff"),
             code: hex_color!("#fcf3edff"),
@@ -123,7 +123,7 @@ impl Theme {
 
     pub fn default_widget(&self) -> WidgetVisuals {
         WidgetVisuals {
-            bg_fill: self.background,
+            bg_fill: self.surface,
             bg_stroke: Stroke::new(1.0, self.border),
             corner_radius: 2.into(),
             expansion: 0.0,
@@ -148,13 +148,13 @@ impl Theme {
                 stroke: Stroke::new(1.0, theme.border),
                 ..Default::default()
             },
-            window_fill: theme.background,
+            window_fill: theme.surface,
             window_corner_radius: 5.into(),
             window_stroke: Stroke::new(1.0, theme.border),
             window_shadow: Shadow::NONE,
             popup_shadow: default_shadow,
             override_text_color: Some(theme.text_primary),
-            text_edit_bg_color: Some(theme.background),
+            text_edit_bg_color: Some(theme.surface),
             widgets: Widgets {
                 active: WidgetVisuals { ..default_widget },
                 hovered: WidgetVisuals { ..default_widget },

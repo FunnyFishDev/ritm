@@ -146,7 +146,7 @@ pub fn show(ui: &mut Ui, app: &mut App) -> Result<(), RitmError> {
 fn transition(app: &mut App, ui: &mut Ui, transition_index: usize) -> Result<bool, RitmError> {
     let mut marked_to_delete = false;
     Frame::new()
-        .fill(app.theme.background)
+        .fill(app.theme.surface)
         .inner_margin(Margin::symmetric(5, 3))
         .corner_radius(5)
         .show(ui, |ui| {

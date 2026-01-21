@@ -8,16 +8,19 @@ use egui::{
 };
 use egui_extras::install_image_loaders;
 use egui_flex::{Flex, FlexInstance, item};
-use ritm_core::{
-    turing_machine::Mode,
-    turing_parser::{graph_to_string, parse_turing_graph_string},
-};
+use ritm_core::turing_parser::{graph_to_string, parse_turing_graph_string};
 
 use crate::{
     turing::Turing,
     ui::{
-        self, control::Control, edit::Edit, graph::Graph, popup::RitmPopup, theme::Theme,
-        utils::FileDialog,
+        self,
+        code::Code,
+        control::Control,
+        edit::Edit,
+        graph::Graph,
+        menu::Menu,
+        popup::{RitmPopup, settings::Settings},
+        theme::Theme,
     },
 };
 
@@ -32,6 +35,10 @@ pub struct App {
 
     pub control: Control,
 
+    pub settings: Settings,
+
+    pub menu: Menu,
+
     /// Which popup to display
     pub popup: RitmPopup,
 
@@ -39,18 +46,13 @@ pub struct App {
     pub graph_rect: Rect,
 
     /// The code used to create the turing machine
-    pub code: String,
+    pub code: Code,
 
     /// The event/state of the application
     pub event: Event,
 
     /// Current theme
     pub theme: Theme,
-
-    /// File loaded
-    pub file: FileDialog,
-
-    pub settings: Settings,
 
     pub help_slide_index: usize,
 }
@@ -59,23 +61,11 @@ pub struct App {
 ///
 /// Used to check what the user see and/or can do
 pub struct Event {
-    /// Is the user adding a transition ?
-    pub is_adding_transition: bool,
-
-    /// Is the user adding a state ?
-    pub is_adding_state: bool,
-
-    /// Is the graph stable ?
-    pub is_stable: bool,
-
     /// Is the user moving as state around ?
     pub is_dragging: bool,
 
     /// Do we need to display the settings interface ?
     pub are_settings_visible: bool,
-
-    /// Is the code section closed ?
-    pub is_code_closed: bool,
 
     pub is_small_window: bool,
 
@@ -84,30 +74,21 @@ pub struct Event {
     pub take_screenshot: bool,
 }
 
-pub struct Settings {
-    pub turing_machine_mode: Mode,
-
-    pub toggle_after_action: bool,
-}
-
 impl Default for App {
     fn default() -> Self {
         let mut sf = Self {
+            menu: Menu::default(),
             turing: Turing::default(),
             edit: Edit::default(),
             graph: Graph::default(),
             graph_rect: Rect::ZERO,
-            code: "".to_string(), // TODO display a message as comment instead
             event: Event::default(),
-            theme: Theme::default(),
-            file: FileDialog::default(),
+            theme: Theme::retro(),
             popup: RitmPopup::default(),
-            settings: Settings {
-                toggle_after_action: true,
-                turing_machine_mode: Mode::StopAfter(500),
-            },
+            code: Code::default(),
             help_slide_index: 0,
             control: Control::default(),
+            settings: Settings::default(),
         };
 
         sf.turing.layer_graph();
@@ -119,12 +100,8 @@ impl Default for App {
 impl Default for Event {
     fn default() -> Self {
         Self {
-            is_adding_transition: false,
-            is_adding_state: false,
-            is_stable: false,
             is_dragging: false,
             are_settings_visible: false,
-            is_code_closed: false,
             is_small_window: false,
             listen_to_keybind: true,
             take_screenshot: false,
@@ -158,11 +135,11 @@ impl App {
     }
 
     pub fn graph_to_code(&mut self) {
-        self.code = graph_to_string(self.turing.tm.graph_ref());
+        self.code.code = graph_to_string(self.turing.tm.graph_ref());
     }
 
     pub fn code_to_graph(&mut self) {
-        match parse_turing_graph_string(self.code.to_string()) {
+        match parse_turing_graph_string(self.code.code.to_string()) {
             Ok(graph) => {
                 self.turing = Turing::new_graph(graph);
                 self.turing.layer_graph();
@@ -215,12 +192,12 @@ impl eframe::App for App {
             ctx.input(|r| {
                 // Press A to create a state
                 if r.key_pressed(Key::A) {
-                    self.event.is_adding_state ^= true;
+                    self.edit.is_adding_state ^= true;
                 }
 
                 // Press T to create a transition
                 if self.graph.selected_state().is_some() && r.key_pressed(Key::T) {
-                    self.event.is_adding_transition ^= true;
+                    self.edit.is_adding_transition ^= true;
                 }
 
                 // Press U to unpin all state
@@ -230,7 +207,7 @@ impl eframe::App for App {
 
                 // Press C to open and close code section
                 if r.key_pressed(Key::C) {
-                    self.event.is_code_closed ^= true;
+                    self.code.code_closed ^= true;
                 }
 
                 // Press R to recenter
@@ -260,6 +237,7 @@ impl eframe::App for App {
         } else {
             self.event.listen_to_keybind = true;
         }
+        // theme_changer(ctx, self);
     }
 }
 
@@ -316,8 +294,6 @@ fn load_font(cc: &eframe::CreationContext<'_>) {
 //         });
 //     }
 // }
-
-
 
 fn theme_changer(ctx: &Context, app: &mut App) {
     ctx.show_viewport_immediate(

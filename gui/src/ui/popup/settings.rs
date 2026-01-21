@@ -1,12 +1,25 @@
-use egui::{
-    Checkbox, Grid, Label, RichText,
-    Stroke, Ui, style::WidgetVisuals, vec2,
-};
+use egui::{Checkbox, Grid, Label, RichText, Stroke, Ui, style::WidgetVisuals, vec2};
 use ritm_core::turing_machine::Mode;
 
 use crate::{
-    App, error::RitmError, ui::{component::combobox::ComboBox, font::Font, theme::Theme}
+    App,
+    error::RitmError,
+    ui::{component::combobox::ComboBox, font::Font, theme::Theme},
 };
+
+pub struct Settings {
+    pub toggle_after_action: bool,
+    pub turing_machine_mode: Mode,
+}
+
+impl Default for Settings {
+    fn default() -> Self {
+        Self {
+            toggle_after_action: Default::default(),
+            turing_machine_mode: Mode::SaveAll,
+        }
+    }
+}
 
 pub fn show(ui: &mut Ui, app: &mut App) -> Result<(), RitmError> {
     ui.set_max_size(ui.ctx().screen_rect().size() * 0.8);
@@ -22,8 +35,6 @@ pub fn show(ui: &mut Ui, app: &mut App) -> Result<(), RitmError> {
                 ..app.theme.default_widget()
             },
         );
-
-        
 
         Grid::new("settings")
             .spacing(vec2(40.0, 10.0))
