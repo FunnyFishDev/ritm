@@ -1,6 +1,6 @@
 mod app;
+mod error;
 mod turing;
 mod ui;
-mod error;
 
 pub use app::App;

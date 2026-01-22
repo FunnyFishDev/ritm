@@ -99,7 +99,8 @@ fn ribbon(app: &mut App, ui: &mut Ui, width: f32, ribbon_id: usize) {
                     app.turing.current_step.get_reading_tape().get_pointer() as i32,
                 )
             } else {
-                let write_ribbon = &app.turing.current_step.get_writing_tapes()[ribbon_id - 1_usize];
+                let write_ribbon =
+                    &app.turing.current_step.get_writing_tapes()[ribbon_id - 1_usize];
                 (
                     write_ribbon.get_contents(),
                     write_ribbon.get_pointer() as i32,

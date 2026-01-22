@@ -3,7 +3,7 @@ use std::fmt::Display;
 #[derive(Debug)]
 pub enum RitmError {
     GuiError(String),
-    CoreError(String)
+    CoreError(String),
 }
 
 impl Display for RitmError {

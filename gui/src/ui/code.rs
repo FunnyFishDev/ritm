@@ -5,10 +5,29 @@ use egui::{
 
 use crate::{App, error::RitmError, ui::font::Font};
 
-#[derive(Default)]
+// #[derive(Default)]
 pub struct Code {
     pub code: String, // TODO display a message
-    pub code_closed: bool
+    pub code_closed: bool,
+}
+
+impl Default for Code {
+    fn default() -> Self {
+        Self {
+            code: "// Welcome to RITM, the first interactive turing machine tool !\n
+
+// An example of transition : 
+// q_i { ç,ç,ç -> R,ç,R,ç,R } -> q_a
+
+// q_(name) are the states
+// ç,ç,ç is what must be read
+// R,ç,R,ç,R is what happen
+
+// (ç, _ and $ are special character and R = Right, N = Neutral, L = Left)"
+                .to_string(),
+            code_closed: Default::default(),
+        }
+    }
 }
 
 /// Display the code section of the application
@@ -17,7 +36,7 @@ pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
         .scroll_bar_visibility(ScrollBarVisibility::AlwaysHidden)
         .show(ui, |ui| {
             ui.allocate_ui_with_layout(
-                vec2(ui.available_width(), ui.available_height()),
+                ui.available_size(),
                 Layout::left_to_right(egui::Align::Min),
                 |ui| {
                     ui.spacing_mut().item_spacing = vec2(0.0, 0.0);
@@ -25,20 +44,25 @@ pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
                     let code_width = ui.available_width()
                         - 35.0
                         - Font::get_width(ui, &Font::default_medium()) * 3.0;
+
                     let job = LayoutJob::simple(
                         app.code.code.to_string(),
                         Font::default_medium(),
                         Color32::PLACEHOLDER,
                         code_width,
                     );
+
                     let galley = ui.painter().layout_job(job);
 
                     let mut number: String = "".to_string();
 
                     for i in 1..=galley.rows.len() {
                         number.push_str(
-                            &(" ".repeat((1 - (i as f32).log10() as usize).max(0))
-                                + format!("{}\n", i).as_str()),
+                            &(" ".repeat(
+                                ((galley.rows.len() as f32).log10() as usize
+                                    - (i as f32).log10() as usize)
+                                    .max(0),
+                            ) + format!("{}\n", i).as_str()),
                         );
                     }
 
@@ -86,7 +110,7 @@ pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
                             .color(app.theme.text_secondary.gamma_multiply(0.5))
                             .font(Font::default_medium()),
                     )
-                    .halign(egui::Align::Max)
+                    .halign(egui::Align::Min)
                     .selectable(false)
                     .extend();
 
@@ -112,5 +136,5 @@ pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
                 },
             );
         });
-        Ok(())
+    Ok(())
 }
