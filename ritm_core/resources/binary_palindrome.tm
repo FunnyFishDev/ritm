@@ -1,3 +1,5 @@
+accepting = q_a;
+
 // Initialisation
 q_i {ç, ç -> R, ç, R} q_copy;
 

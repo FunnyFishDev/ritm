@@ -1,3 +1,5 @@
+accepting = q_a;
+
 // Only accepts words : x1y with |x| = |y|
 
 q_i { ç, ç -> R, ç, R } q_1;

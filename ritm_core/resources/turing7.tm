@@ -1,5 +1,7 @@
 // accepts word that are like : x#x
 
+accepting = q_a;
+
 q_i { ç, ç -> R, ç, R } q_1;
 
 q_1 { 1,_ -> R, 1, R 

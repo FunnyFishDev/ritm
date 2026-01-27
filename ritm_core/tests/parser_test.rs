@@ -392,7 +392,8 @@ fn test_add_accepting() {
 fn test_parse_machine_k_ribbons() {
     // This test checks that we can parse a graph, turn it into a string, parse it again and end up with the same graph
     let machine = String::from(
-        "qi {  ç, ç, ç -> R, ç, R, ç, R} q1;
+        "accepting = q_a;
+         q_i {ç, ç, ç -> R, ç, R, ç, R} q_1;
          q1 {  0, _, _ -> R, a, R, a, R 
             |  1, _, _ -> R, a, R, a, R} q1;",
     );
@@ -401,5 +402,9 @@ fn test_parse_machine_k_ribbons() {
         parse_turing_graph_string::<EmptyState, EmptyTransition>(machine).expect("no errors");
 
     let str_graph = turing_parser::graph_to_string(&parsed_graph);
-    println!("{str_graph}");
+
+    assert_eq!(
+        parsed_graph,
+        parse_turing_graph_string::<EmptyState, EmptyTransition>(str_graph).expect("no errors")
+    );
 }
