@@ -719,7 +719,7 @@ where
 
         let mut is_end = true;
         for transition in self.transition_hasmap.keys() {
-            if transition.0 == state {
+            if transition.0 == state && transition.1 != state {
                 is_end = false;
             }
         }

@@ -1,4 +1,4 @@
-use std::{collections::BTreeSet, process::exit};
+use std::collections::BTreeSet;
 
 use egui::{Color32, Pos2, vec2};
 use rand::{random, random_range};
@@ -260,12 +260,10 @@ impl Turing {
         let mut state_list: BTreeSet<usize> = BTreeSet::new();
         let mut layer_state: Vec<usize> = vec![];
 
-        for (i, state) in self.tm.graph_ref().get_states().iter().enumerate() {
-            let index = i;
+        for (index, state) in self.tm.graph_ref().get_states().iter().enumerate() {
 
-            //before it was || state.transitions.is_empty() but check for transition empty instead as a fix
             if state.get_type() == TuringStateType::Accepting
-                || self.tm.graph_ref().get_transitions_hashmap().is_empty()
+                || self.tm.graph_ref().is_state_dead_end(index).expect("SHOULD HAVE STATE")
             {
                 layer_state.push(index);
             } else {
@@ -273,6 +271,7 @@ impl Turing {
             }
         }
 
+        println!();
         let mut j = 0.0;
         while !(state_list.is_empty() && layer_state.is_empty()) {
             let layer_count = layer_state.len() as f32 - 1.0;
@@ -306,10 +305,6 @@ impl Turing {
             layer_state = next_layer_state;
 
             j += 1.0;
-
-            if j > 5. {
-                exit(0)
-            }
         }
     }
 
