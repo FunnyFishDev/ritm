@@ -6,7 +6,10 @@ use crate::{
     turing_tape::TuringTapeError,
     turing_transition::{TuringTransition, TuringTransitionInfo, TuringTransitionWrapper},
 };
-use std::fmt::{Debug, Display};
+use std::{
+    collections::VecDeque,
+    fmt::{Debug, Display},
+};
 
 #[derive(Debug, Error)]
 pub enum TuringGraphError {
@@ -179,10 +182,12 @@ where
 {
     /// The hashmap containing all the states present in this graph. `identifier` -> `state`
     state_hashmap: IndexMap<usize, TuringStateWrapper<S>>,
-    /// The hashmap containing all the transitions present in this graph. `(from, to)` -> `transition`
+    /// The hashmap containing all the transitions present in this graph. `(from, to)` -> `transitions`
     transition_hasmap: IndexMap<(usize, usize), Vec<TuringTransitionWrapper<T>>>,
     /// The next id to give to a state.
     next_state_id: usize,
+    /// A list of id's that are available due to a removed state.
+    available_state_id: VecDeque<usize>,
     /// The number of tapes this graph was made for.
     k: usize,
 }
@@ -257,6 +262,7 @@ where
         Ok(Self {
             state_hashmap,
             transition_hasmap: IndexMap::new(),
+            available_state_id: VecDeque::new(),
             next_state_id: next_state_index,
             k,
         })
@@ -354,17 +360,19 @@ where
         match self.get_state_index(&name) {
             Some(index) => index,
             None => {
+                let state_id = match self.available_state_id.pop_front() {
+                    Some(id) => id,
+                    None => {
+                        self.next_state_id += 1;
+                        self.next_state_id - 1
+                    }
+                };
                 self.state_hashmap.insert(
-                    self.next_state_id,
-                    TuringStateWrapper::new_type(
-                        S::default(),
-                        name,
-                        self.next_state_id,
-                        state_type,
-                    ),
+                    state_id,
+                    TuringStateWrapper::new_type(S::default(), name, state_id, state_type),
                 );
-                self.next_state_id += 1;
-                self.next_state_id - 1
+
+                state_id
             }
         }
     }
@@ -614,6 +622,8 @@ where
         for key in keys_to_remove {
             self.transition_hasmap.swap_remove(&key);
         }
+        // This id is now availalbe
+        self.available_state_id.push_back(state_id);
         // Finally remove the state itself
         self.state_hashmap.swap_remove(&state_id);
         Ok(())
