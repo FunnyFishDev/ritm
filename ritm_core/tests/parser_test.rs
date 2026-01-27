@@ -2,7 +2,7 @@ use ritm_core::{
     EmptyState, EmptyTransition, SimpleTuringGraph,
     turing_graph::TuringStateType,
     turing_machine::TuringMachineError,
-    turing_parser::{TuringParserError, parse_transition_string, parse_turing_graph_string},
+    turing_parser::{self, TuringParserError, parse_transition_string, parse_turing_graph_string},
     turing_transition::{TuringDirection, TuringTransitionError, TuringTransitionInfo},
 };
 
@@ -312,7 +312,7 @@ fn test_parse_graph_bad_transition() {
 #[test]
 fn test_rename_init() {
     let machine = String::from(
-        "init = q_init;
+        "initial = q_init;
         q_init {ç, ç -> R, ç, R} q_1;
         q1 {  0, _ -> R, a, R 
            |  1, _ -> R, a, R} q1;",
@@ -328,9 +328,31 @@ fn test_rename_init() {
 }
 
 #[test]
+fn test_graph_to_string() {
+    // This test checks that we can parse a graph, turn it into a string, parse it again and end up with the same graph
+    let machine = String::from(
+        "initial = q_init;
+        accepting = q_a, q_e, q_i;
+        q_init {ç, ç -> R, ç, R} q_1;
+        q1 {  0, _ -> R, a, R 
+           |  1, _ -> R, a, R} q1;",
+    );
+
+    let parsed_graph =
+        parse_turing_graph_string::<EmptyState, EmptyTransition>(machine).expect("no errors");
+
+    let str_graph = turing_parser::graph_to_string(&parsed_graph);
+
+    assert_eq!(
+        parsed_graph,
+        parse_turing_graph_string::<EmptyState, EmptyTransition>(str_graph).expect("no errors")
+    );
+}
+
+#[test]
 fn test_add_accepting() {
     let machine = String::from(
-        "init = qinit;
+        "initial = qinit;
         accepting = q_1, q_2;
         q_init {ç, ç -> R, ç, R} q_1;
         q1 {  0, _ -> R, a, R 
@@ -364,4 +386,25 @@ fn test_add_accepting() {
             .get_type(),
         TuringStateType::Normal,
     )
+}
+
+#[test]
+fn test_parse_machine_k_ribbons() {
+    // This test checks that we can parse a graph, turn it into a string, parse it again and end up with the same graph
+    let machine = String::from(
+        "accepting = q_a;
+         q_i {ç, ç, ç -> R, ç, R, ç, R} q_1;
+         q1 {  0, _, _ -> R, a, R, a, R 
+            |  1, _, _ -> R, a, R, a, R} q1;",
+    );
+
+    let parsed_graph =
+        parse_turing_graph_string::<EmptyState, EmptyTransition>(machine).expect("no errors");
+
+    let str_graph = turing_parser::graph_to_string(&parsed_graph);
+
+    assert_eq!(
+        parsed_graph,
+        parse_turing_graph_string::<EmptyState, EmptyTransition>(str_graph).expect("no errors")
+    );
 }

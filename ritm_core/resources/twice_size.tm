@@ -3,6 +3,8 @@
 // exemple of a valid input : aaaaaabab
 // i = 3 : aaa, |aaabab| = 6
 
+accepting = q_a;
+
 q_i { ç, ç -> R, ç, R } q_1;
 
 

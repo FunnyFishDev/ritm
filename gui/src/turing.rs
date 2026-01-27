@@ -4,7 +4,7 @@ use egui::{Color32, Pos2, vec2};
 use rand::{random, random_range};
 use ritm_core::{
     turing_graph::{TuringGraph, TuringState, TuringStateType, TuringStateWrapper},
-    turing_machine::{Mode, TuringExecutionSteps, TuringMachines},
+    turing_machine::{Mode, TuringExecutionSteps, TuringMachine},
     turing_transition::{
         TuringDirection, TuringTransition, TuringTransitionInfo, TuringTransitionWrapper,
     },
@@ -16,7 +16,7 @@ pub type TransitionWrapper = TuringTransitionWrapper<Transition>;
 pub type StateWrapper = TuringStateWrapper<State>;
 
 pub struct Turing {
-    pub tm: TuringMachines<State, Transition>,
+    pub tm: TuringMachine<State, Transition>,
     pub current_step: TuringExecutionSteps,
     pub accepted: Option<bool>,
     pub transition_edit: Option<((usize, usize), Vec<TransitionEdit>)>,
@@ -29,7 +29,7 @@ impl Default for Turing {
             TuringGraph::new(1, true).expect("Turing graph creation fail");
         let mode = Mode::StopFirstReject;
         let mut tm =
-            TuringMachines::new(graph, "".to_string(), mode).expect("Turing machine creation fail");
+            TuringMachine::new(graph, "".to_string(), mode).expect("Turing machine creation fail");
         let step = tm.into_iter().next().expect("Initial step creation fail");
         Self {
             tm,
@@ -46,7 +46,7 @@ impl Turing {
     pub fn new_graph(graph: TuringGraph<State, Transition>) -> Self {
         let mode = Mode::StopFirstReject;
         let mut tm =
-            TuringMachines::new(graph, "".to_string(), mode).expect("Turing machine creation fail");
+            TuringMachine::new(graph, "".to_string(), mode).expect("Turing machine creation fail");
         let step = tm.into_iter().next().expect("Initial step creation fail");
         Self {
             tm,
@@ -558,7 +558,11 @@ impl StateEdit {
         let state_wrapper = StateWrapperCopy {
             name: "".to_string(),
             state_type: TuringStateType::Normal,
-            state: State { position: Pos2::ZERO, is_pinned: false, color: Color32::WHITE }
+            state: State {
+                position: Pos2::ZERO,
+                is_pinned: false,
+                color: Color32::WHITE,
+            },
         };
         Self {
             base: state_wrapper.clone(),

@@ -8,7 +8,7 @@ use std::{
 use ritm_core::{
     SimpleTuringGraph,
     turing_graph::TuringStateType,
-    turing_machine::TuringMachines,
+    turing_machine::TuringMachine,
     turing_parser::{self, parse_transition_string},
     turing_transition::TuringTransitionInfo,
 };
@@ -130,7 +130,7 @@ impl ModeEvent for ModifyTuringMode {
                     print_error_help(e);
                 } else {
                     let res =
-                        TuringMachines::new(tm.clone(), res.unwrap(), storage.exec_mode.clone());
+                        TuringMachine::new(tm.clone(), res.unwrap(), storage.exec_mode.clone());
                     if let Err(e) = res {
                         print_error_help(RiplError::EncounteredTuringError { error: e });
                     } else {
