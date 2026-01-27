@@ -4,7 +4,9 @@ use std::{fmt::Display, fs, io};
 use thiserror::Error;
 
 use crate::{
-    turing_graph::{TuringGraph, TuringGraphError, TuringState, TuringStateType},
+    turing_graph::{
+        DEFAULT_INIT_STATE, TuringGraph, TuringGraphError, TuringState, TuringStateType,
+    },
     turing_machine::TuringMachineError,
     turing_transition::{TuringDirection, TuringTransition, TuringTransitionInfo},
 };
@@ -125,7 +127,7 @@ where
     }
     let file = file.unwrap().next().unwrap(); // get and unwrap the `file` rule; never fails
 
-    let mut turing_graph = TuringGraph::default();
+    let mut turing_graph = TuringGraph::default(); // FIXME: wrong
 
     for turing_machine_rule in file.into_inner() {
         let rule_cp = turing_machine_rule.clone();
@@ -250,17 +252,10 @@ where
     S: TuringState,
     T: TuringTransition,
 {
-    let mut renamed_a = false;
-
     for rule in init_rule.into_inner() {
         match &rule.as_rule() {
             Rule::state_name => {
-                if renamed_a {
-                    tm.try_add_state(parse_str_token(rule), TuringStateType::Accepting)?;
-                } else {
-                    renamed_a = true;
-                    tm.rename_state(1, parse_str_token(rule))?;
-                }
+                tm.try_add_state(parse_str_token(rule), TuringStateType::Accepting)?;
             }
             _ => unreachable!(),
         };
@@ -395,6 +390,14 @@ fn get_line_col(error: &Error<Rule>) -> Option<(usize, usize)> {
     }
 }
 
+/*
+initial = qinit;
+accepting = q_1, q_2;
+q_init {ç, ç -> R, ç, R} q_1;
+q1 {  0, _ -> R, a, R
+   |  1, _ -> R, a, R} q3;
+*/
+
 /// Turns the given [`TuringGraph`] into its equivalent [String] value.
 /// The returned value can then be parsed by the parser to return the same graph.
 ///
@@ -404,9 +407,31 @@ where
     S: TuringState,
     T: TuringTransition,
 {
-    // TODO: Add accepting and rename init options !!
+    let mut rename_str = String::new();
+    {
+        // Rename initial state if needed
+        let init_state = tm.get_state(0).expect("present");
+        if init_state.get_name() != DEFAULT_INIT_STATE {
+            rename_str.push_str(format!("initial = q_{};\n", init_state.get_name()).as_str());
+        }
+    }
 
-    let mut res_tr = String::new();
+    let mut accepting_states = Vec::new();
+    for state in tm.get_states() {
+        if state.get_type() == TuringStateType::Accepting {
+            accepting_states.push(state.get_name());
+        }
+    }
+    if !accepting_states.is_empty() {
+        rename_str.push_str("accepting = ");
+        for name in accepting_states.iter().take(accepting_states.len() - 1) {
+            rename_str.push_str(format!("q_{}, ", name).as_str());
+        }
+        rename_str
+            .push_str(format!("q_{};\n", accepting_states.last().expect("one present")).as_str());
+    }
+
+    let mut transitions_str = String::new();
     // Print all transitions btw states
     for ((q1, q2), transitions) in tm.get_transitions_hashmap() {
         if transitions.is_empty() {
@@ -414,16 +439,21 @@ where
         }
         let q1 = &tm.get_state_hashmap()[q1];
         let q2 = &tm.get_state_hashmap()[q2];
-        res_tr.push_str(format!("q_{} {} ", q1.get_name(), '{').as_str());
+        transitions_str.push_str(format!("q_{} {} ", q1.get_name(), '{').as_str());
         let spaces = 3 + q1.get_name().len();
         for transition in transitions.iter().take(transitions.len() - 1) {
-            res_tr.push_str(format!("{} \n{}| ", transition.info, " ".repeat(spaces)).as_str());
+            transitions_str
+                .push_str(format!("{} \n{}| ", transition.info, " ".repeat(spaces)).as_str());
         }
         // add last
-        res_tr.push_str(format!("{} ", transitions.last().unwrap().info).as_str());
+        transitions_str.push_str(format!("{} ", transitions.last().unwrap().info).as_str());
 
-        res_tr.push_str(format!("{} q_{};\n\n", "}", q2.get_name()).as_str());
+        transitions_str.push_str(format!("{} q_{};\n\n", "}", q2.get_name()).as_str());
     }
 
-    res_tr
+    if !rename_str.is_empty() {
+        rename_str.push('\n');
+    }
+
+    format!("{rename_str}{transitions_str}")
 }

@@ -8,6 +8,8 @@ use ritm_core::{
 };
 
 const TM_ACCEPT_XX: &str = "// Turing machine that only accepts words of the form : xx
+accepting = q_a;
+
 q_i {ç, ç -> R, ç, R} q_1;
 
 q_1 {0, _ -> R, 0, R

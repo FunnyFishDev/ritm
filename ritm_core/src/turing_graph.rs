@@ -47,6 +47,9 @@ pub enum TuringGraphError {
     IncompatibleTransitionError { expected: usize, received: usize },
 }
 
+pub const DEFAULT_INIT_STATE: &str = "i";
+pub const DEFAULT_ACCEPTING_STATE: &str = "a";
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 /// Represents the different types of states that can be found inside a turing machine graph
 pub enum TuringStateType {
@@ -167,7 +170,7 @@ type TransitionRefs<'a, S, T> = (
     &'a TuringStateWrapper<S>,
 );
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 /// A struct representing a Turing Machine graph with `k` **writting** tapes (`k >= 1`).
 pub struct TuringGraph<S, T>
 where
@@ -186,7 +189,7 @@ where
 
 impl<S: TuringState, T: TuringTransition> Default for TuringGraph<S, T> {
     fn default() -> Self {
-        Self::new(1, true).expect("correct for one work ribbon")
+        Self::new(1, false).expect("correct for one work ribbon")
     }
 }
 
@@ -234,7 +237,7 @@ where
         // Always adds init
         state_hashmap.insert(
             0,
-            TuringStateWrapper::new_normal(TuringState::new_init(), "i", 0),
+            TuringStateWrapper::new_normal(TuringState::new_init(), DEFAULT_INIT_STATE, 0),
         );
 
         let mut next_state_index = 1;
@@ -242,7 +245,11 @@ where
         if default_state {
             state_hashmap.insert(
                 1,
-                TuringStateWrapper::new_accepting(TuringState::new_accepting(), "a", 1),
+                TuringStateWrapper::new_accepting(
+                    TuringState::new_accepting(),
+                    DEFAULT_ACCEPTING_STATE,
+                    1,
+                ),
             );
             next_state_index = 2;
         }
