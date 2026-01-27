@@ -1,7 +1,7 @@
 use ritm_core::{
     EmptyState, EmptyTransition, SimpleTuringGraph, SimpleTuringMachine,
     turing_graph::TuringStateType,
-    turing_machine::{Mode, TuringExecutionSteps, TuringMachines},
+    turing_machine::{Mode, TuringExecutionSteps, TuringMachine},
     turing_parser::parse_turing_graph_string,
     turing_tape::TuringTape,
     turing_transition::{TuringDirection, TuringTransitionInfo},
@@ -36,9 +36,9 @@ fn save_all_accept() {
     // let mut turing_machine = TuringMachine::new(tm_graph, String::from("010"), Mode::SaveAll).unwrap();
 
     let mut turing_machine =
-        TuringMachines::new(tm_graph, String::from("0111110"), Mode::SaveAll).unwrap();
+        TuringMachine::new(tm_graph, String::from("0111110"), Mode::SaveAll).unwrap();
 
-    // let mut turing_machine = TuringMachines::new(get_smaller_non_deter_graph(), String::from("0000000000000001"), Mode::SaveAll).unwrap();
+    // let mut turing_machine = TuringMachine::new(get_smaller_non_deter_graph(), String::from("0000000000000001"), Mode::SaveAll).unwrap();
     let mut saved_state = None;
     let mut counter = 0;
     for steps in &mut turing_machine {
@@ -88,7 +88,7 @@ fn save_all_not_accept() {
     let tm_graph = get_test_non_deter_graph();
 
     let mut turing_machine =
-        TuringMachines::new(tm_graph, String::from("0100"), Mode::SaveAll).unwrap();
+        TuringMachine::new(tm_graph, String::from("0100"), Mode::SaveAll).unwrap();
 
     let mut saved_state = None;
     for steps in &mut turing_machine {
@@ -145,9 +145,9 @@ fn stop_first_reject() {
     let tm_graph = get_test_non_deter_graph();
 
     let mut turing_machine =
-        TuringMachines::new(tm_graph, String::from("010"), Mode::StopFirstReject).unwrap();
+        TuringMachine::new(tm_graph, String::from("010"), Mode::StopFirstReject).unwrap();
 
-    // let mut turing_machine = TuringMachines::new(get_smaller_non_deter_graph(), String::from("0000000000000001"), Mode::SaveAll).unwrap();
+    // let mut turing_machine = TuringMachine::new(get_smaller_non_deter_graph(), String::from("0000000000000001"), Mode::SaveAll).unwrap();
     let mut counter = 0;
     let mut last_step = None;
     for steps in &mut turing_machine {
@@ -321,7 +321,7 @@ fn get_small_inf_machine(mode: Mode) -> SimpleTuringMachine {
     .unwrap();
     graph.append_transition(q1, transition.clone(), q1).unwrap();
 
-    TuringMachines::new(graph, String::from("1"), mode).unwrap()
+    TuringMachine::new(graph, String::from("1"), mode).unwrap()
 }
 
 #[test]
@@ -329,7 +329,7 @@ fn get_path_to_accept_test() {
     let tm =
         parse_turing_graph_string::<EmptyState, EmptyTransition>(TM_ACCEPT_XX.to_string()).unwrap();
 
-    let mut tm = TuringMachines::new(tm, String::from("1010"), Mode::SaveAll).unwrap();
+    let mut tm = TuringMachine::new(tm, String::from("1010"), Mode::SaveAll).unwrap();
 
     let mut count = 0;
     let path = tm
@@ -414,7 +414,7 @@ fn get_path_to_accept_exit_condition_test() {
     let tm = parse_turing_graph_string::<EmptyState, EmptyTransition>(TM_INF.to_string()).unwrap();
 
     // Here the mode will not allow the machine to end, therefore only the exit condition can force the execution to stop
-    let mut tm = TuringMachines::new(tm, String::from("1"), Mode::SaveAll).unwrap();
+    let mut tm = TuringMachine::new(tm, String::from("1"), Mode::SaveAll).unwrap();
     let mut count = 0;
     let path = tm.get_path_to_accept(|| {
         count += 1;
@@ -431,7 +431,7 @@ fn get_path_to_accept_exit_mode_test() {
     // Checks that the exist condition works by using an infinite turing machine
     let tm = parse_turing_graph_string::<EmptyState, EmptyTransition>(TM_INF.to_string()).unwrap();
 
-    let mut tm = TuringMachines::new(tm, String::from("1"), Mode::StopAfter(10)).unwrap();
+    let mut tm = TuringMachine::new(tm, String::from("1"), Mode::StopAfter(10)).unwrap();
     // No exit condition, therefore it could loop forever, if not for the mode
     let path = tm.get_path_to_accept(|| true);
 
@@ -445,7 +445,7 @@ fn get_path_to_accept_rejected_test() {
     let tm =
         parse_turing_graph_string::<EmptyState, EmptyTransition>(TM_ACCEPT_XX.to_string()).unwrap();
 
-    let mut tm = TuringMachines::new(tm, String::from("10101"), Mode::SaveAll).unwrap();
+    let mut tm = TuringMachine::new(tm, String::from("10101"), Mode::SaveAll).unwrap();
 
     // Checks that it returns none when no path exists (no inf loop here)
 
