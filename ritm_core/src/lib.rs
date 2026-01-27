@@ -1,6 +1,6 @@
 use crate::{
     turing_graph::{TuringGraph, TuringState},
-    turing_machine::TuringMachines,
+    turing_machine::TuringMachine,
     turing_transition::TuringTransition,
 };
 
@@ -36,4 +36,4 @@ impl TuringTransition for EmptyTransition {}
 
 pub type SimpleTuringGraph = TuringGraph<EmptyState, EmptyTransition>;
 
-pub type SimpleTuringMachine = TuringMachines<EmptyState, EmptyTransition>;
+pub type SimpleTuringMachine = TuringMachine<EmptyState, EmptyTransition>;

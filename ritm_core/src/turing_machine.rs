@@ -61,22 +61,20 @@ pub struct SavedState {
 }
 
 #[derive(Debug)]
-pub enum TuringMachines<S, T>
+pub struct TuringMachine<S, T>
 where
     S: TuringState,
     T: TuringTransition,
 {
-    TuringMachine {
-        /// The turing machine graph that will execute a word
-        graph: TuringGraph<S, T>,
-        data: IterationData,
-        /// The current number of iterations already done
-        iteration: usize,
-        /// Copy of the iteration step returned (if any).
-        last_iteration: Option<TuringExecutionSteps>,
-        /// Checks wether or not the iteration is over or not
-        is_over: bool,
-    },
+    /// The turing machine graph that will execute a word
+    graph: TuringGraph<S, T>,
+    data: IterationData,
+    /// The current number of iterations already done
+    iteration: usize,
+    /// Copy of the iteration step returned (if any).
+    last_iteration: Option<TuringExecutionSteps>,
+    /// Checks wether or not the iteration is over or not
+    is_over: bool,
 }
 
 #[derive(Debug)]
@@ -100,7 +98,7 @@ pub struct IterationData {
     backtracked_info: Option<(usize, usize)>,
 }
 
-impl<S, T> TuringMachines<S, T>
+impl<S, T> TuringMachine<S, T>
 where
     S: TuringState,
     T: TuringTransition,
@@ -111,7 +109,7 @@ where
         word: String,
         mode: Mode,
     ) -> Result<Self, TuringMachineError> {
-        let mut s = TuringMachines::TuringMachine {
+        let mut s = TuringMachine {
             data: IterationData {
                 state_pointer: 0,
                 reading_tape: TuringReadingTape::new(),
@@ -187,15 +185,7 @@ where
     /// Changes the current execution mode of the turing machine.
     pub fn set_mode(&mut self, mode: &Mode) {
         // Change mode
-        match self {
-            TuringMachines::TuringMachine {
-                graph: _,
-                data,
-                iteration: _,
-                last_iteration: _,
-                is_over: _,
-            } => data.mode = mode.clone(),
-        }
+        self.data.mode = mode.clone();
     }
 
     /// Gets the path to the accepting state if any exists.
@@ -273,343 +263,136 @@ where
     }
 }
 
-impl<S, T> TuringMachines<S, T>
+impl<S, T> TuringMachine<S, T>
 where
     S: TuringState,
     T: TuringTransition,
 {
     /// Gets *reference* of the stored turing machine graph.
     pub fn graph_ref(&self) -> &TuringGraph<S, T> {
-        match self {
-            TuringMachines::TuringMachine {
-                graph,
-                data: _,
-                iteration: _,
-                last_iteration: _,
-                is_over: _,
-            } => graph,
-        }
+        &self.graph
     }
 
     /// Gets *mutable reference* of the stored turing machine graph.
     pub fn graph_mut(&mut self) -> &mut TuringGraph<S, T> {
-        match self {
-            TuringMachines::TuringMachine {
-                graph,
-                data: _,
-                iteration: _,
-                last_iteration: _,
-                is_over: _,
-            } => graph,
-        }
+        &mut self.graph
     }
 
     /// Gets the stored turing machine graph.
     ///
     /// This will free the turing machine since it will drop the ownership
     pub fn graph(self) -> TuringGraph<S, T> {
-        match self {
-            TuringMachines::TuringMachine {
-                graph,
-                data: _,
-                iteration: _,
-                last_iteration: _,
-                is_over: _,
-            } => graph,
-        }
+        self.graph
     }
 
     /// Gets the current state pointer of this struct.
     pub fn get_state_pointer(&self) -> usize {
-        match self {
-            TuringMachines::TuringMachine {
-                graph: _,
-                data,
-                iteration: _,
-                last_iteration: _,
-                is_over: _,
-            } => data.state_pointer,
-        }
+        self.data.state_pointer
     }
 
     /// Sets a new value to the state pointer.
     fn set_state_pointer(&mut self, new_val: usize) {
-        match self {
-            TuringMachines::TuringMachine {
-                graph: _,
-                data,
-                iteration: _,
-                last_iteration: _,
-                is_over: _,
-            } => data.state_pointer = new_val,
-        }
+        self.data.state_pointer = new_val;
     }
 
     /// Gets mutable ref to the reading tape stored inside this struct.
     fn get_reading_tape_mut(&mut self) -> &mut TuringReadingTape {
-        match self {
-            TuringMachines::TuringMachine {
-                graph: _,
-                data,
-                iteration: _,
-                last_iteration: _,
-                is_over: _,
-            } => &mut data.reading_tape,
-        }
+        &mut self.data.reading_tape
     }
 
     /// Gets ref to the reading tape stored inside this struct.
     pub fn get_reading_tape(&self) -> &TuringReadingTape {
-        match self {
-            TuringMachines::TuringMachine {
-                graph: _,
-                data,
-                iteration: _,
-                last_iteration: _,
-                is_over: _,
-            } => &data.reading_tape,
-        }
+        &self.data.reading_tape
     }
 
     /// Sets the reading tapes stored inside this struct.
+    /// Does not do any check to make sure it is compatible.
     fn set_reading_tape(&mut self, tape: TuringReadingTape) {
-        match self {
-            TuringMachines::TuringMachine {
-                graph: _,
-                data,
-                iteration: _,
-                last_iteration: _,
-                is_over: _,
-            } => data.reading_tape = tape,
-        }
+        self.data.reading_tape = tape;
     }
 
     /// Gets the mut ref writtings tapes stored inside this struct.
     fn get_writting_tapes_mut(&mut self) -> &mut Vec<TuringWritingTape> {
-        match self {
-            TuringMachines::TuringMachine {
-                graph: _,
-                data,
-                iteration: _,
-                last_iteration: _,
-                is_over: _,
-            } => &mut data.writing_tapes,
-        }
+        &mut self.data.writing_tapes
     }
 
     /// Gets the reference to the writtings tapes stored inside this struct.
     pub fn get_writting_tapes(&self) -> &Vec<TuringWritingTape> {
-        match self {
-            TuringMachines::TuringMachine {
-                graph: _,
-                data,
-                iteration: _,
-                last_iteration: _,
-                is_over: _,
-            } => &data.writing_tapes,
-        }
+        &self.data.writing_tapes
     }
 
     /// Sets the writting tapes stored inside this struct.
     fn set_writting_tapes(&mut self, tapes: Vec<TuringWritingTape>) {
-        match self {
-            TuringMachines::TuringMachine {
-                graph: _,
-                data,
-                iteration: _,
-                last_iteration: _,
-                is_over: _,
-            } => data.writing_tapes = tapes,
-        }
+        self.data.writing_tapes = tapes;
     }
 
     /// Gets the word that was feed to this machine.
     pub fn get_word(&self) -> &String {
-        match self {
-            TuringMachines::TuringMachine {
-                graph: _,
-                data,
-                iteration: _,
-                last_iteration: _,
-                is_over: _,
-            } => &data.word,
-        }
+        &self.data.word
     }
 
     /// Gets the word that was feed to this machine.
     fn set_word(&mut self, word: &String) {
-        match self {
-            TuringMachines::TuringMachine {
-                graph: _,
-                data,
-                iteration: _,
-                last_iteration: _,
-                is_over: _,
-            } => data.word = word.to_string(),
-        }
+        self.data.word = word.to_string();
     }
 
     /// Checks if the current iteration is the first iteration or not.
     fn is_first_iteration(&mut self) -> bool {
-        match self {
-            TuringMachines::TuringMachine {
-                graph: _,
-                data,
-                iteration: _,
-                last_iteration: _,
-                is_over: _,
-            } => data.is_first_state,
-        }
+        self.data.is_first_state
     }
 
     /// Sets the state of this turing machine to be considered or not its first iteration.
     fn set_first_iteration(&mut self, set: bool) {
-        match self {
-            TuringMachines::TuringMachine {
-                graph: _,
-                data,
-                iteration: _,
-                last_iteration: _,
-                is_over: _,
-            } => data.is_first_state = set,
-        }
+        self.data.is_first_state = set;
     }
 
     /// Fetches the mode of the iterator.
     pub fn get_mode(&self) -> &Mode {
-        match self {
-            TuringMachines::TuringMachine {
-                graph: _,
-                data,
-                iteration: _,
-                last_iteration: _,
-                is_over: _,
-            } => &data.mode,
-        }
+        &self.data.mode
     }
 
     /// Get the **mutable** stack containing all the [SavedState].
     fn get_memory_mut(&mut self) -> &mut VecDeque<SavedState> {
-        match self {
-            TuringMachines::TuringMachine {
-                graph: _,
-                data,
-                iteration: _,
-                last_iteration: _,
-                is_over: _,
-            } => &mut data.memory,
-        }
+        &mut self.data.memory
     }
 
     /// Get the reference to the stack containing all the [SavedState].
     pub fn get_memory(&self) -> &VecDeque<SavedState> {
-        match self {
-            TuringMachines::TuringMachine {
-                graph: _,
-                data,
-                iteration: _,
-                last_iteration: _,
-                is_over: _,
-            } => &data.memory,
-        }
+        &self.data.memory
     }
 
     fn get_backtracking_info(&self) -> Option<(usize, usize)> {
-        match self {
-            TuringMachines::TuringMachine {
-                graph: _,
-                data,
-                iteration: _,
-                last_iteration: _,
-                is_over: _,
-            } => data.backtracked_info,
-        }
+        self.data.backtracked_info
     }
 
     fn set_backtracking_info(&mut self, val: Option<(usize, usize)>) {
-        match self {
-            TuringMachines::TuringMachine {
-                graph: _,
-                data,
-                iteration: _,
-                last_iteration: _,
-                is_over: _,
-            } => data.backtracked_info = val,
-        }
+        self.data.backtracked_info = val;
     }
 
     fn set_iteration(&mut self, val: usize) {
-        match self {
-            TuringMachines::TuringMachine {
-                graph: _,
-                data: _,
-                iteration,
-                last_iteration: _,
-                is_over: _,
-            } => *iteration = val,
-        }
+        self.iteration = val;
     }
 
     pub fn get_iteration(&self) -> usize {
-        match self {
-            TuringMachines::TuringMachine {
-                graph: _,
-                data: _,
-                iteration,
-                last_iteration: _,
-                is_over: _,
-            } => *iteration,
-        }
+        self.iteration
     }
 
     /// Returns the last step that was returned.
     pub fn get_last_step(&self) -> &Option<TuringExecutionSteps> {
-        match self {
-            TuringMachines::TuringMachine {
-                graph: _,
-                data: _,
-                iteration: _,
-                last_iteration,
-                is_over: _,
-            } => last_iteration,
-        }
+        &self.last_iteration
     }
 
     fn set_last_step(&mut self, step: Option<TuringExecutionSteps>) {
-        match self {
-            TuringMachines::TuringMachine {
-                graph: _,
-                data: _,
-                iteration: _,
-                last_iteration,
-                is_over: _,
-            } => *last_iteration = step,
-        }
+        self.last_iteration = step;
     }
 
     /// Checks if the iteration is over or not
     pub fn is_over(&self) -> bool {
-        match self {
-            TuringMachines::TuringMachine {
-                graph: _,
-                data: _,
-                iteration: _,
-                last_iteration: _,
-                is_over,
-            } => *is_over,
-        }
+        self.is_over
     }
 
     fn set_is_over(&mut self, val: bool) {
-        match self {
-            TuringMachines::TuringMachine {
-                graph: _,
-                data: _,
-                iteration: _,
-                last_iteration: _,
-                is_over,
-            } => *is_over = val,
-        }
+        self.is_over = val;
     }
 }
 
@@ -663,7 +446,7 @@ pub enum TuringExecutionSteps {
     },
 }
 
-impl<S, T> Iterator for &mut TuringMachines<S, T>
+impl<S, T> Iterator for &mut TuringMachine<S, T>
 where
     S: TuringState,
     T: TuringTransition,
@@ -685,7 +468,7 @@ where
     }
 }
 
-fn next_iteration<S, T>(tm: &mut TuringMachines<S, T>) -> Option<TuringExecutionSteps>
+fn next_iteration<S, T>(tm: &mut TuringMachine<S, T>) -> Option<TuringExecutionSteps>
 where
     S: TuringState,
     T: TuringTransition,
