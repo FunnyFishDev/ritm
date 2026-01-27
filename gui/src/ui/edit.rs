@@ -4,7 +4,10 @@ use egui::{
 };
 
 use crate::{
-    App, error::RitmError, turing::StateEdit, ui::{constant::Constant, popup::RitmPopupEnum}
+    App,
+    error::RitmError,
+    turing::StateEdit,
+    ui::{constant::Constant, popup::RitmPopupEnum},
 };
 
 pub struct Edit {
@@ -121,7 +124,8 @@ pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
                             app.popup
                                 .switch_to(RitmPopupEnum::StateEdit(Some(state_selected), None));
 
-                            app.turing.state_edit = Some(StateEdit::from(app.turing.get_state(state_selected)?));
+                            app.turing.state_edit =
+                                Some(StateEdit::from(app.turing.get_state(state_selected)?));
                         }
 
                         if let Some(transition_selected) = app.graph.selected_transitions() {

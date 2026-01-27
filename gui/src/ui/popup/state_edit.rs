@@ -70,7 +70,8 @@ pub fn show(ui: &mut Ui, app: &mut App) -> Result<(), RitmError> {
                         })
                         .corner_radius(10.0),
                 )
-                .clicked() && !state_name.is_empty()
+                .clicked()
+                && !state_name.is_empty()
             {
                 let state_id = if let RitmPopupEnum::StateEdit(_, Some(pos)) =
                     app.popup.current().expect("Should been selected")

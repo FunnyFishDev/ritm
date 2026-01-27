@@ -558,7 +558,11 @@ impl StateEdit {
         let state_wrapper = StateWrapperCopy {
             name: "".to_string(),
             state_type: TuringStateType::Normal,
-            state: State { position: Pos2::ZERO, is_pinned: false, color: Color32::WHITE }
+            state: State {
+                position: Pos2::ZERO,
+                is_pinned: false,
+                color: Color32::WHITE,
+            },
         };
         Self {
             base: state_wrapper.clone(),

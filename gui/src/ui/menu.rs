@@ -56,7 +56,8 @@ pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
             panel_close(app, ui);
         }
         Ok(())
-    }).inner
+    })
+    .inner
 }
 
 fn settings(app: &mut App, ui: &mut FlexInstance) {
@@ -94,7 +95,9 @@ fn save(app: &mut App, ui: &mut FlexInstance) {
         .clicked()
         && !app.code.code.is_empty()
     {
-        app.menu.file.save("new.tm", app.code.code.as_bytes().to_vec())
+        app.menu
+            .file
+            .save("new.tm", app.code.code.as_bytes().to_vec())
     };
 }
 

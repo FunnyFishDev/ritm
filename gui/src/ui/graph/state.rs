@@ -1,13 +1,22 @@
 use egui::{Align, Label, Rect, RichText, Sense, Stroke, Ui, vec2};
 
 use crate::{
-    App, error::RitmError, ui::{constant::Constant, font::Font, theme::Theme}
+    App,
+    error::RitmError,
+    ui::{constant::Constant, font::Font, theme::Theme},
 };
 
 /// Display every state of the turing machine
 pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
     // This line copy every keys of the hasmap to avoid borrowing the struct App that we need in each call.
-    let keys: Vec<usize> = app.turing.tm.graph_ref().get_state_hashmap().keys().copied().collect();
+    let keys: Vec<usize> = app
+        .turing
+        .tm
+        .graph_ref()
+        .get_state_hashmap()
+        .keys()
+        .copied()
+        .collect();
     for i in keys {
         draw_node(app, ui, i)?;
     }
@@ -17,7 +26,12 @@ pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
 /// Draw a single state
 fn draw_node(app: &mut App, ui: &mut Ui, state_id: usize) -> Result<(), RitmError> {
     // Get the state information
-    let state = app.turing.tm.graph_mut().get_state(state_id).expect("state exist");
+    let state = app
+        .turing
+        .tm
+        .graph_mut()
+        .get_state(state_id)
+        .expect("state exist");
 
     // Define the boundaries of the node
     let rect = Rect::from_center_size(
@@ -53,7 +67,10 @@ fn draw_node(app: &mut App, ui: &mut Ui, state_id: usize) -> Result<(), RitmErro
 
     if response.clicked() {
         if app.edit.is_adding_transition {
-            app.turing.add_transition(app.graph.selected_state().expect("state selected"), state_id)?;
+            app.turing.add_transition(
+                app.graph.selected_state().expect("state selected"),
+                state_id,
+            )?;
             app.edit.is_adding_transition &= app.settings.toggle_after_action;
         } else {
             app.graph.select_state(state_id);
