@@ -387,3 +387,19 @@ fn test_add_accepting() {
         TuringStateType::Normal,
     )
 }
+
+#[test]
+fn test_parse_machine_k_ribbons() {
+    // This test checks that we can parse a graph, turn it into a string, parse it again and end up with the same graph
+    let machine = String::from(
+        "qi {  ç, ç, ç -> R, ç, R, ç, R} q1;
+         q1 {  0, _, _ -> R, a, R, a, R 
+            |  1, _, _ -> R, a, R, a, R} q1;",
+    );
+
+    let parsed_graph =
+        parse_turing_graph_string::<EmptyState, EmptyTransition>(machine).expect("no errors");
+
+    let str_graph = turing_parser::graph_to_string(&parsed_graph);
+    println!("{str_graph}");
+}

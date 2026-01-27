@@ -127,25 +127,28 @@ where
     }
     let file = file.unwrap().next().unwrap(); // get and unwrap the `file` rule; never fails
 
-    let mut turing_graph = TuringGraph::default(); // FIXME: wrong
+    let mut turing_graph: Option<TuringGraph<S, T>> = None;
+    let mut init_rule: Option<Pair<Rule>> = None;
+    let mut accepting_state_rule: Option<Pair<Rule>> = None;
 
     for turing_machine_rule in file.into_inner() {
         let rule_cp = turing_machine_rule.clone();
         // Inside the 'turing_machine' rule, only two things can be matched : a transition (or multiple in one), and EOI
         let res = match turing_machine_rule.as_rule() {
             Rule::options => {
-                let mut inner_res = Ok(());
                 if let Some(option_rule) = turing_machine_rule.into_inner().next() {
-                    inner_res = match &option_rule.as_rule() {
-                        Rule::rename_initial => parse_rename_init(&mut turing_graph, option_rule),
+                    match &option_rule.as_rule() {
+                        Rule::rename_initial => {
+                            init_rule = Some(option_rule);
+                        }
                         Rule::accepting_states => {
-                            parse_add_accepting_states(&mut turing_graph, option_rule)
+                            accepting_state_rule = Some(option_rule);
                         }
                         _ => unreachable!(),
                     };
                 }
 
-                inner_res
+                Ok(())
             }
             // For every rule matched :
             Rule::transition => {
@@ -153,14 +156,47 @@ where
 
                 /* Add the colected transitions to the MT */
 
+                // This first transitions will determine the number of ribbons of the machine
+                let graph = turing_graph.get_or_insert({
+                    let mut g = TuringGraph::new(
+                        transitions
+                            .first()
+                            .expect("at least one")
+                            .get_number_of_affected_tapes() - 1,
+                        false,
+                    )
+                    .expect("correct machine");
+
+                    if let Some(init_rule) = init_rule.take()
+                        && let Err(e) = parse_rename_init(&mut g, init_rule)
+                    {
+                        return Err(TuringParserError::TuringError {
+                            line_col_pos: Some(rule_cp.line_col()),
+                            turing_error: Box::new(e.into()),
+                            value: rule_cp.as_str().to_string(),
+                        });
+                    }
+                    if let Some(accepting_state_rule) = accepting_state_rule.take()
+                        && let Err(e) = parse_add_accepting_states(&mut g, accepting_state_rule)
+                    {
+                        return Err(TuringParserError::TuringError {
+                            line_col_pos: Some(rule_cp.line_col()),
+                            turing_error: Box::new(e.into()),
+                            value: rule_cp.as_str().to_string(),
+                        });
+                    }
+
+                    g
+                });
+
                 // Add the states to the mt (if they didn't already exists)
                 // and get their index
-                let var1 = turing_graph.add_state(&from_var, TuringStateType::Normal);
-                let var2 = turing_graph.add_state(&to_var, TuringStateType::Normal);
+                let var1 = graph.add_state(&from_var, TuringStateType::Normal);
+                let var2 = graph.add_state(&to_var, TuringStateType::Normal);
                 let mut inner_res = Ok(());
                 // Adds all the collected transitions for these states
                 for transition in transitions {
-                    if let Err(e) = turing_graph.append_transition(var1, transition, var2) {
+                    if let Err(e) = graph.append_transition(var1, transition, var2) {
                         inner_res = Err(e);
                         break;
                     }
@@ -180,7 +216,7 @@ where
             });
         }
     }
-    Ok(turing_graph)
+    Ok(turing_graph.unwrap_or_default())
 }
 
 /// Parses a string containing a transition of the form :
