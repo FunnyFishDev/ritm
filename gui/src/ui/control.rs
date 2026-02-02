@@ -3,6 +3,7 @@ use egui::{
     RichText, Sense, Stroke, TextEdit, Ui, Vec2, include_image, vec2,
 };
 use egui_flex::{Flex, FlexAlign, FlexAlignContent, FlexInstance, item};
+use ritm_core::{turing_graph::TuringStateInfo, turing_machine::TuringExecutionSteps};
 
 use crate::{
     App,
@@ -293,16 +294,51 @@ fn state(app: &mut App, ui: &mut Ui) {
         .h_full()
         .show(ui, |flex| {
             flex.grow();
-            let (text, color) = if let Some(r) = app.turing.accepted {
-                if r {
-                    ("Accepted", app.theme.success)
+            let (text, color) = {
+                if let Some(r) = app.turing.accepted {
+                    if r {
+                        ("Accepted".to_string(), app.theme.success)
+                    } else {
+                        ("Rejected".to_string(), app.theme.error)
+                    }
                 } else {
-                    ("Rejected", app.theme.error)
+                    let is_running = |to: &TuringStateInfo, from: &TuringStateInfo| {
+                        (
+                            format!("Went from \"{}\" to \"{}\"", to.get_name(), from.get_name())
+                                .to_string(),
+                            app.theme.text_primary,
+                        )
+                    };
+                    match &app.turing.current_step {
+                        TuringExecutionSteps::FirstIteration {
+                            init_state: _,
+                            init_reading_tape: _,
+                            init_write_tapes: _,
+                        } => ("Initiation".to_string(), app.theme.text_primary),
+                        TuringExecutionSteps::TransitionTaken {
+                            previous_state,
+                            transition_index: _,
+                            reached_state,
+                            state_pointer: _,
+                            transition_taken: _,
+                            reading_tape: _,
+                            writing_tapes: _,
+                            iteration: _,
+                        } => is_running(previous_state, reached_state),
+                        TuringExecutionSteps::Backtracked {
+                            previous_state: _,
+                            reached_state: _,
+                            state_pointer: _,
+                            reading_tape: _,
+                            writing_tapes: _,
+                            iteration: _,
+                            backtracked_iteration,
+                        } => (
+                            format!("Backtracked to step {backtracked_iteration}"),
+                            app.theme.backtracked,
+                        ),
+                    }
                 }
-            } else if app.control.is_running() {
-                ("Running", app.theme.text_primary)
-            } else {
-                ("Idle", app.theme.text_primary)
             };
 
             flex.add(
