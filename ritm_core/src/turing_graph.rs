@@ -199,11 +199,11 @@ impl<S: TuringState, T: TuringTransition> Default for TuringGraph<S, T> {
 }
 
 impl<S: TuringState> TuringStateWrapper<S> {
-    fn new_normal(inner_state: S, name: impl Into<String>, index: usize) -> Self {
-        Self::new_type(inner_state, name, index, TuringStateType::Normal)
+    fn new_normal(name: impl Into<String>, index: usize) -> Self {
+        Self::new_type(S::default(), name, index, TuringStateType::Normal)
     }
-    fn new_accepting(inner_state: S, name: impl Into<String>, index: usize) -> Self {
-        Self::new_type(inner_state, name, index, TuringStateType::Accepting)
+    fn new_accepting(name: impl Into<String>, index: usize) -> Self {
+        Self::new_type(S::new_accepting(), name, index, TuringStateType::Accepting)
     }
     fn new_type(
         inner_state: S,
@@ -242,7 +242,12 @@ where
         // Always adds init
         state_hashmap.insert(
             0,
-            TuringStateWrapper::new_normal(TuringState::new_init(), DEFAULT_INIT_STATE, 0),
+            TuringStateWrapper::new_type(
+                TuringState::new_init(),
+                DEFAULT_INIT_STATE,
+                0,
+                TuringStateType::Normal,
+            ),
         );
 
         let mut next_state_index = 1;
@@ -250,11 +255,7 @@ where
         if default_state {
             state_hashmap.insert(
                 1,
-                TuringStateWrapper::new_accepting(
-                    TuringState::new_accepting(),
-                    DEFAULT_ACCEPTING_STATE,
-                    1,
-                ),
+                TuringStateWrapper::new_accepting(DEFAULT_ACCEPTING_STATE, 1),
             );
             next_state_index = 2;
         }
@@ -367,10 +368,13 @@ where
                         self.next_state_id - 1
                     }
                 };
-                self.state_hashmap.insert(
-                    state_id,
-                    TuringStateWrapper::new_type(S::default(), name, state_id, state_type),
-                );
+                self.state_hashmap.insert(state_id, {
+                    if state_type == TuringStateType::Accepting {
+                        TuringStateWrapper::new_accepting(name, state_id)
+                    } else {
+                        TuringStateWrapper::new_normal(name, state_id)
+                    }
+                });
 
                 state_id
             }

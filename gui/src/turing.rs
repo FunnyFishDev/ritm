@@ -406,11 +406,17 @@ pub struct State {
 
 impl TuringState for State {
     fn new_init() -> Self {
-        State::default()
+        Self {
+            color: Color32::LIGHT_BLUE,
+            ..Default::default()
+        }
     }
 
     fn new_accepting() -> Self {
-        State::default()
+        Self {
+            color: Color32::LIGHT_GREEN,
+            ..Default::default()
+        }
     }
 }
 
