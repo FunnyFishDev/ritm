@@ -261,9 +261,12 @@ impl Turing {
         let mut layer_state: Vec<usize> = vec![];
 
         for (index, state) in self.tm.graph_ref().get_states().iter().enumerate() {
-
             if state.get_type() == TuringStateType::Accepting
-                || self.tm.graph_ref().is_state_dead_end(index).expect("SHOULD HAVE STATE")
+                || self
+                    .tm
+                    .graph_ref()
+                    .is_state_dead_end(index)
+                    .expect("SHOULD HAVE STATE")
             {
                 layer_state.push(index);
             } else {
@@ -379,11 +382,17 @@ pub struct State {
 
 impl TuringState for State {
     fn new_init() -> Self {
-        State::default()
+        Self {
+            color: Color32::LIGHT_BLUE,
+            ..Default::default()
+        }
     }
 
     fn new_accepting() -> Self {
-        State::default()
+        Self {
+            color: Color32::LIGHT_GREEN,
+            ..Default::default()
+        }
     }
 }
 
