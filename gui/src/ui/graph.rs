@@ -179,14 +179,16 @@ fn apply_force(app: &mut App) {
                 states[i].inner_state.position,
                 states[j].inner_state.position,
             );
+            let size = Constant::L + (100 * (app.turing.tm.graph_ref().get_k() - 1)) as f32;
 
             // different equations are use based on the adjacency of the states
             if are_adjacent {
                 force = utils::attract_force(
                     states[i].inner_state.position,
                     states[j].inner_state.position,
+                    size,
                 );
-            } else if distance < Constant::L {
+            } else if distance < size {
                 force = -utils::rep_force(
                     states[i].inner_state.position,
                     states[j].inner_state.position,

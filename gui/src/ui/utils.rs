@@ -17,8 +17,8 @@ pub fn rep_force(p1: Pos2, p2: Pos2) -> f32 {
 }
 
 /// Compute the attraction force of the node
-pub fn attract_force(p1: Pos2, p2: Pos2) -> f32 {
-    let force = Constant::CSPRING * (distance(p1, p2) / (Constant::L)).log(10.0);
+pub fn attract_force(p1: Pos2, p2: Pos2, size: f32) -> f32 {
+    let force = Constant::CSPRING * (distance(p1, p2) / size).log(10.0);
     if force > Constant::MAX_FORCE {
         Constant::MAX_FORCE * force.signum()
     } else {
