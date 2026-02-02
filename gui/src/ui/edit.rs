@@ -135,7 +135,7 @@ pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
                             app.turing.prepare_transition_edit(
                                 transition_selected.source_id,
                                 transition_selected.target_id,
-                            );
+                            )?;
                         }
                     }
 

@@ -1,8 +1,7 @@
 use std::{collections::BTreeMap, time::Duration};
 
 use egui::{
-    CentralPanel, Color32, Context, FontData, FontDefinitions, FontFamily, Frame, Id, Key, Margin,
-    Rect, ScrollArea, ViewportBuilder, ViewportId,
+    CentralPanel, Color32, Context, FontData, FontDefinitions, FontFamily, Frame, Id, Key, Margin, ScrollArea, ViewportBuilder, ViewportId,
     color_picker::{Alpha, color_picker_color32},
     vec2,
 };
@@ -11,6 +10,7 @@ use egui_flex::{Flex, FlexInstance, item};
 use ritm_core::turing_parser::{graph_to_string, parse_turing_graph_string};
 
 use crate::{
+    error::{self, RitmError},
     turing::Turing,
     ui::{
         self,
@@ -42,11 +42,10 @@ pub struct App {
     /// Which popup to display
     pub popup: RitmPopup,
 
-    /// Used for graph display, zooming and moving
-    pub graph_rect: Rect,
-
     /// The code used to create the turing machine
     pub code: Code,
+
+    pub error: Option<RitmError>,
 
     /// The event/state of the application
     pub event: Event,
@@ -81,7 +80,6 @@ impl Default for App {
             turing: Turing::default(),
             edit: Edit::default(),
             graph: Graph::default(),
-            graph_rect: Rect::ZERO,
             event: Event::default(),
             theme: Theme::retro(),
             popup: RitmPopup::default(),
@@ -89,6 +87,7 @@ impl Default for App {
             help_slide_index: 0,
             control: Control::default(),
             settings: Settings::default(),
+            error: None,
         };
 
         sf.turing.layer_graph();
@@ -157,9 +156,13 @@ impl eframe::App for App {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         install_image_loaders(ctx);
 
-        if let Err(res) = ui::show(self, ctx) {
-            println!("Error ! {}", res)
+        if let Err(error) = ui::show(self, ctx)
+            && self.error.is_none()
+        {
+            self.error = Some(error)
         }
+
+        error::error(ctx.clone(), self);
 
         if self.control.is_running() && self.control.update_time(ctx.input(|r| r.time)) {
             self.turing.next_step();

@@ -7,132 +7,138 @@ use ritm_core::turing_transition::{TuringDirection, TuringTransitionInfo};
 
 use crate::{
     App,
-    error::RitmError,
+    error::{GuiError, RitmError},
     turing::{Transition, TransitionEdit, TransitionWrapper},
     ui::{component::combobox::ComboBox, font::Font, theme::Theme},
 };
 
 pub fn show(ui: &mut Ui, app: &mut App) -> Result<(), RitmError> {
-    let selected_transition = app
-        .graph
-        .selected_transitions()
-        .ok_or(RitmError::GuiError("No transition selected !".to_string()))?;
-    ui.set_max_width(300.0);
-
     // Main layout
     ui.vertical_centered(|ui| {
         ui.style_mut().spacing.item_spacing = vec2(0.0, 10.0);
 
-        // The transition "name" : From state To state
-        ui.label(
-            RichText::new(format!(
-                "{} -> {}",
-                app.turing
-                    .get_state(selected_transition.source_id)?
-                    .get_name(),
-                app.turing
-                    .get_state(selected_transition.target_id)?
-                    .get_name(),
-            ))
-            .font(Font::default_medium()),
-        );
-
         // List of the rule
-        let _width = ui.vertical_centered(|ui| {
-            ui.style_mut().spacing.item_spacing = vec2(0.0, 10.0);
+        let width = ui
+            .vertical_centered(|ui| {
+                ui.style_mut().spacing.item_spacing = vec2(0.0, 10.0);
 
-            Frame::new()
-                .fill(Color32::LIGHT_GRAY)
-                .shadow(Shadow {
-                    blur: 0,
-                    color: app.theme.shadow,
-                    offset: [0, 2],
-                    spread: 0,
-                })
-                .inner_margin(10)
-                .corner_radius(5)
-                .show(ui, |ui| {
-                    ScrollArea::vertical()
-                        .auto_shrink(Vec2b::new(true, false))
-                        .scroll_bar_visibility(ScrollBarVisibility::AlwaysVisible)
-                        .max_height(ui.ctx().input(|i| i.screen_rect()).height() / 3.0)
-                        .show(ui, |ui| {
-                            ui.set_width(ui.available_width());
+                Frame::new()
+                    .fill(Color32::LIGHT_GRAY)
+                    .shadow(Shadow {
+                        blur: 0,
+                        color: app.theme.shadow,
+                        offset: [0, 2],
+                        spread: 0,
+                    })
+                    .inner_margin(10)
+                    .corner_radius(5)
+                    .show(ui, |ui| {
+                        ScrollArea::vertical()
+                            .auto_shrink(Vec2b::new(true, false))
+                            .scroll_bar_visibility(ScrollBarVisibility::AlwaysVisible)
+                            .max_height(ui.ctx().input(|i| i.screen_rect()).height() / 3.0)
+                            .show(ui, |ui| {
+                                ui.set_width(ui.available_width());
 
-                            let selected_transition = &mut app.turing.get_transition_edit_mut()?.1;
+                                let selected_transition =
+                                    &mut app.turing.get_transition_edit_mut()?.1;
 
-                            // Create a row with the rule of each transition
-                            let count = selected_transition.len();
-                            let mut marked_to_delete: Vec<usize> = vec![];
-                            for transition_index in 0..count {
-                                if transition(app, ui, transition_index)? {
-                                    marked_to_delete.push(transition_index);
+                                // Create a row with the rule of each transition
+                                let count = selected_transition.len();
+                                let mut marked_to_delete: Vec<usize> = vec![];
+                                for transition_index in 0..count {
+                                    if transition(app, ui, transition_index)? {
+                                        marked_to_delete.push(transition_index);
+                                    }
                                 }
-                            }
 
-                            let selected_transition = &mut app.turing.get_transition_edit_mut()?.1;
+                                // Reborrow because the transition() above borrow app
+                                let selected_transition =
+                                    &mut app.turing.get_transition_edit_mut()?.1;
 
-                            // Remove transitions
-                            marked_to_delete.sort_by(|a, b| b.cmp(a));
-                            for t in marked_to_delete {
-                                selected_transition.remove(t);
-                            }
-                            Ok::<(), RitmError>(())
-                        });
-                });
+                                // Remove transitions
+                                marked_to_delete.sort_by(|a, b| b.cmp(a));
+                                for t in marked_to_delete {
+                                    selected_transition.remove(t);
+                                }
+                                Ok::<(), RitmError>(())
+                            });
+                    });
 
-            if ui
-                .add(
-                    ImageButton::new(
-                        Image::new(include_image!("../../../assets/icon/plus.svg"))
-                            .fit_to_exact_size(vec2(35.0, 35.0))
-                            .tint(app.theme.icon),
+                if ui
+                    .add(
+                        ImageButton::new(
+                            Image::new(include_image!("../../../assets/icon/plus.svg"))
+                                .fit_to_exact_size(vec2(35.0, 35.0))
+                                .tint(app.theme.overlay),
+                        )
+                        .frame(false),
                     )
-                    .frame(false),
+                    .clicked()
+                {
+                    let k = app.turing.tm.graph_ref().get_k();
+                    let selected_transition = &mut app.turing.get_transition_edit_mut()?.1;
+                    selected_transition.push(TransitionEdit::from(&TransitionWrapper {
+                        info: TuringTransitionInfo::create_default(k),
+                        inner_transition: Transition::new(),
+                    }));
+                }
+                Ok::<(), RitmError>(())
+            })
+            .response
+            .rect
+            .width();
+
+        ui.set_width(width);
+
+        ui.spacing_mut().button_padding = vec2(0.0, 8.0);
+        ui.spacing_mut().item_spacing = vec2(10.0, 0.0);
+        ui.columns(2, |columns| {
+            let text = RichText::new("Save")
+                .color(Theme::constrast_color(app.theme.success))
+                .font(Font::default_medium())
+                .atom_grow(true);
+            if columns[0]
+                .add(
+                    Button::new(text)
+                        .stroke(Stroke::new(2.0, app.theme.border))
+                        .fill(app.theme.success)
+                        .corner_radius(10.0),
                 )
                 .clicked()
             {
-                let selected_transition = if let Some(v) = &mut app.turing.transition_edit {
-                    &mut v.1
+                let x = app.turing.apply_transition_change()?;
+                if x.iter().any(|t| t.is_err()) {
+                    return Err(RitmError::GuiError(GuiError::InvalidTransition {
+                        reason: x.iter().filter_map(|f| match f {
+                            Ok(_) => None,
+                            Err(err) => Some(err.to_string()),
+                        }).collect(),
+                    }));
                 } else {
-                    return Err(RitmError::GuiError("Oups".to_string()));
-                };
+                    app.popup.close();
+                }
+            };
 
-                selected_transition.push(TransitionEdit::from(&TransitionWrapper {
-                    info: TuringTransitionInfo::create_default(app.turing.tm.graph_ref().get_k()),
-                    inner_transition: Transition::new(),
-                }));
-            }
-            Ok(())
-        });
+            let text = RichText::new("Cancel")
+                .color(Theme::constrast_color(app.theme.error))
+                .font(Font::default_medium())
+                .atom_grow(true);
+            if columns[1]
+                .add(
+                    Button::new(text)
+                        .stroke(Stroke::new(2.0, app.theme.border))
+                        .fill(app.theme.error)
+                        .corner_radius(10.0),
+                )
+                .clicked()
+            {
+                app.popup.close();
+                app.turing.cancel_transition_change();
+            };
 
-        if ui
-            .add(ImageButton::new(
-                Image::new(include_image!("../../../assets/icon/plus.svg"))
-                    .fit_to_exact_size(vec2(35.0, 35.0))
-                    .tint(app.theme.icon),
-            ))
-            .clicked()
-        {
-            app.turing.apply_transition_change()?;
-        };
-
-        let text = RichText::new("Cancel")
-            .color(Theme::constrast_color(app.theme.error))
-            .font(Font::default_medium())
-            .atom_grow(true);
-        if ui
-            .add(
-                Button::new(text)
-                    .stroke(Stroke::new(2.0, app.theme.border))
-                    .fill(app.theme.error)
-                    .corner_radius(10.0),
-            )
-            .clicked()
-        {
-            app.popup.close();
-            app.turing.cancel_transition_change();
-        };
+            Ok::<(), RitmError>(())
+        })?;
 
         Ok::<(), RitmError>(())
     })
@@ -169,8 +175,7 @@ fn transition(app: &mut App, ui: &mut Ui, transition_index: usize) -> Result<boo
                         marked_to_delete = true;
                     }
 
-                    let ((source, target), selected_transition) =
-                        app.turing.get_transition_edit()?;
+                    let (_, selected_transition) = app.turing.get_transition_edit_mut()?;
 
                     // Undo change
                     if ui
@@ -189,7 +194,9 @@ fn transition(app: &mut App, ui: &mut Ui, transition_index: usize) -> Result<boo
                         .clicked()
                     {
                         // Undo all changes
-                        app.turing.prepare_transition_edit(*source, *target);
+                        for transition in selected_transition {
+                            transition.undo();
+                        }
                     }
 
                     let (_, selected_transition) = app.turing.get_transition_edit_mut()?;

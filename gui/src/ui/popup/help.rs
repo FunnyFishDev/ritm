@@ -7,9 +7,6 @@ use egui::{
 use crate::{App, error::RitmError, ui::font::Font};
 
 pub fn show(ui: &mut Ui, app: &mut App) -> Result<(), RitmError> {
-    ui.set_max_size(ui.ctx().screen_rect().size() * 0.8);
-    ui.set_min_size(ui.ctx().screen_rect().size() * 0.8);
-
     SidePanel::left("previous")
         .exact_width(50.0)
         .frame(Frame::new().fill(Color32::TRANSPARENT))

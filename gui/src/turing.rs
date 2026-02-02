@@ -10,7 +10,7 @@ use ritm_core::{
     },
 };
 
-use crate::error::RitmError;
+use crate::error::{GuiError, RitmError};
 
 pub type TransitionWrapper = TuringTransitionWrapper<Transition>;
 pub type StateWrapper = TuringStateWrapper<State>;
@@ -228,22 +228,40 @@ impl Turing {
     }
 
     /// Apply transition changes if correct
-    pub fn apply_transition_change(&mut self) -> Result<(), RitmError> {
+    pub fn apply_transition_change(&mut self) -> Result<Vec<Result<(), RitmError>>, RitmError> {
         let Some(((source, target), transitions_edit)) = self.transition_edit.as_ref() else {
-            return Err(RitmError::GuiError(
-                "No transition is being edited".to_string(),
-            ));
+            return Err(RitmError::GuiError(GuiError::InvalidState));
         };
 
-        self.tm
-            .graph_mut()
-            .remove_transitions(source, target)
-            .map_err(|e| RitmError::CoreError(e.to_string()))?;
+        let mut new_transitions: Vec<Result<TuringTransitionWrapper<Transition>, RitmError>> =
+            Vec::new();
+
+        for transition_edit in transitions_edit {
+            new_transitions.push(match transition_edit.to() {
+                Ok(transition) => Ok(transition),
+                Err(err) => Err(err),
+            })
+        }
+
+        if new_transitions.iter().any(|f| f.is_err()) {
+            return Ok(new_transitions
+                .into_iter()
+                .map(|e| match e {
+                    Ok(_) => Ok(()),
+                    Err(err) => Err(err),
+                })
+                .collect());
+        }
 
         let transitions_edit = transitions_edit
             .iter()
             .map(|f| f.to())
             .collect::<Vec<Result<TransitionWrapper, RitmError>>>();
+
+        self.tm
+            .graph_mut()
+            .remove_transitions(source, target)
+            .map_err(|e| RitmError::CoreError(e.to_string()))?;
 
         for transition in transitions_edit {
             self.tm
@@ -251,7 +269,7 @@ impl Turing {
                 .append_transition(source, transition?.clone(), target)
                 .map_err(|e| RitmError::CoreError(e.to_string()))?;
         }
-        Ok(())
+        Ok(vec![])
     }
 
     /// Update the position of each state so the graph
@@ -261,9 +279,12 @@ impl Turing {
         let mut layer_state: Vec<usize> = vec![];
 
         for (index, state) in self.tm.graph_ref().get_states().iter().enumerate() {
-
             if state.get_type() == TuringStateType::Accepting
-                || self.tm.graph_ref().is_state_dead_end(index).expect("SHOULD HAVE STATE")
+                || self
+                    .tm
+                    .graph_ref()
+                    .is_state_dead_end(index)
+                    .expect("SHOULD HAVE STATE")
             {
                 layer_state.push(index);
             } else {
@@ -327,18 +348,23 @@ impl Turing {
     }
 
     /// Setup transition edit
-    pub fn prepare_transition_edit(&mut self, source: usize, target: usize) {
+    pub fn prepare_transition_edit(
+        &mut self,
+        source: usize,
+        target: usize,
+    ) -> Result<(), RitmError> {
         let transitions_edit: Vec<TransitionEdit> = self
             .tm
             .graph_mut()
             .get_transitions(source, target)
-            .expect("Should have transitions")
-            .expect("Should REALLY have transitions")
+            .map_err(|e| RitmError::CoreError(e.to_string()))?
+            .ok_or(RitmError::CoreError("No transitions found".to_string()))?
             .iter()
             .map(TransitionEdit::from)
             .collect();
 
-        self.transition_edit = Some(((source, target), transitions_edit))
+        self.transition_edit = Some(((source, target), transitions_edit));
+        Ok(())
     }
 
     /// TODO: add error management
@@ -357,15 +383,16 @@ impl Turing {
     pub fn get_transition_edit(&self) -> Result<&((usize, usize), Vec<TransitionEdit>), RitmError> {
         self.transition_edit
             .as_ref()
-            .ok_or(RitmError::GuiError("No transition found".to_string()))
+            .ok_or(RitmError::GuiError(GuiError::NoTransitionEditing))
     }
 
+    /// Return an error if the transition edit has not been set
     pub fn get_transition_edit_mut(
         &mut self,
     ) -> Result<&mut ((usize, usize), Vec<TransitionEdit>), RitmError> {
         self.transition_edit
             .as_mut()
-            .ok_or(RitmError::GuiError("No transition found".to_string()))
+            .ok_or(RitmError::GuiError(GuiError::NoTransitionEditing))
     }
 }
 
@@ -448,9 +475,9 @@ impl TransitionWrapperCopy {
         if self.chars_read.iter().any(|string| string.is_empty())
             || self.chars_write.iter().any(|(string, _)| string.is_empty())
         {
-            return Err(RitmError::GuiError(
-                "Empty char present in the transition".to_string(),
-            ));
+            return Err(RitmError::GuiError(GuiError::InvalidTransition {
+                reason: "Empty char present in the transition".to_string(),
+            }));
         }
         let chars_read = self
             .chars_read
@@ -501,9 +528,9 @@ impl TransitionEdit {
                 .iter()
                 .any(|(string, _)| string.is_empty())
         {
-            return Err(RitmError::GuiError(
-                "Empty char present in the transition".to_string(),
-            ));
+            return Err(RitmError::GuiError(GuiError::InvalidTransition {
+                reason: "Empty char present in the transition".to_string(),
+            }));
         }
 
         self.edit.try_to()

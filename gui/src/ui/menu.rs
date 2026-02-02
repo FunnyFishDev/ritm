@@ -7,7 +7,7 @@ use include_directory::{Dir, include_directory};
 
 use crate::{
     App,
-    error::RitmError,
+    error::{GuiError, RitmError},
     ui::{constant::Constant, font::Font, popup::RitmPopupEnum, utils::FileDialog},
 };
 
@@ -40,7 +40,7 @@ pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
             app.code.code_closed = true;
         }
 
-        panel_close(app, ui);
+        panel_open(app, ui);
 
         settings(app, ui);
 
@@ -52,6 +52,8 @@ pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
 
         if !app.code.code_closed {
             to_graph(app, ui);
+
+            ui.grow();
 
             panel_close(app, ui);
         }
@@ -161,7 +163,9 @@ fn machine_folder(app: &mut App, ui: &mut FlexInstance) -> Result<(), RitmError>
 
     if let Some(file) = app.menu.file.get() {
         app.code.code = std::str::from_utf8(&file)
-            .map_err(|e| RitmError::GuiError(e.to_string()))?
+            .map_err(|e| {
+                RitmError::GuiError(GuiError::FileError(format!("Could not load file {e}",)))
+            })?
             .to_string()
     }
     Ok(())
@@ -202,6 +206,23 @@ fn to_graph(app: &mut App, ui: &mut FlexInstance) {
 }
 
 fn panel_close(app: &mut App, ui: &mut FlexInstance) {
+    if ui
+        .add(
+            item(),
+            ImageButton::new(
+                Image::new(include_image!("../../assets/icon/panel_close.svg"))
+                    .fit_to_exact_size(Vec2::splat(Constant::ICON_SIZE))
+                    .tint(app.theme.icon),
+            )
+            .frame(false),
+        )
+        .clicked()
+    {
+        app.code.code_closed = true;
+    }
+}
+
+fn panel_open(app: &mut App, ui: &mut FlexInstance) {
     if app.code.code_closed
         && !app.event.is_small_window
         && ui

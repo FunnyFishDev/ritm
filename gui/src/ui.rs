@@ -18,9 +18,6 @@ pub mod utils;
 use crate::{App, error::RitmError, ui::font::Font};
 
 pub fn show(app: &mut App, ctx: &egui::Context) -> Result<(), RitmError> {
-    // Display the current popup/modal
-    popup::show(ctx, app)?;
-
     CentralPanel::default()
         .frame(Frame {
             outer_margin: Margin::same(0),
@@ -186,6 +183,9 @@ pub fn show(app: &mut App, ctx: &egui::Context) -> Result<(), RitmError> {
                 Ok(())
             }
         });
+
+    // Display the current popup/modal
+    popup::show(ctx, app)?;
 
     Ok::<(), RitmError>(())
 }

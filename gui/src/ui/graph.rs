@@ -209,9 +209,9 @@ fn apply_force(app: &mut App) {
     let mut states_mut: Vec<&mut TuringStateWrapper<State>> =
         app.turing.tm.graph_mut().get_states_mut();
 
-    for (i, state_mut) in states_mut.iter_mut().enumerate() {
+    for state_mut in states_mut.iter_mut().filter(|s| !s.inner_state.is_pinned) {
         // translate the state by the amount of force
-        state_mut.inner_state.position += *forces.get(&i).unwrap();
+        state_mut.inner_state.position += *forces.get(&state_mut.get_id()).unwrap();
     }
 
     app.graph.is_stable = max_force_applied < Constant::STABILITY_TRESHOLD;
