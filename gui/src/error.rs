@@ -24,6 +24,7 @@ pub enum GuiError {
     NoTransitionEditing,
     NoStateEditing,
     FileError(String),
+    InvalidInput(String),
 }
 
 impl Display for RitmError {
@@ -50,7 +51,8 @@ impl Display for GuiError {
             Self::SyntaxError(err) => format!("Syntax error : {}", err),
             Self::NoTransitionEditing => "No transition are being edited".to_string(),
             Self::NoStateEditing => "No state are being edited".to_string(),
-            Self::FileError(err) => format!("File error : {}", err)
+            Self::FileError(err) => format!("File error : {}", err),
+            Self::InvalidInput(reason) => format!("Invalid input detected : {}", reason),
         };
         writeln!(f, "{}", error)
     }

@@ -1,38 +1,280 @@
 use egui::{
-    Color32, Label, Layout, Margin, RichText, ScrollArea, TextEdit, TextFormat, Ui,
-    scroll_area::ScrollBarVisibility, text::LayoutJob, vec2,
+    Align, Atom, Button, Color32, Frame, Id, Image, ImageButton, Label, Layout, Margin, RichText,
+    ScrollArea, TextEdit, TextFormat, Ui, Vec2, include_image, scroll_area::ScrollBarVisibility,
+    text::LayoutJob, vec2,
 };
 
-use crate::{App, error::RitmError, ui::font::Font};
+use crate::{
+    App,
+    error::{GuiError, RitmError},
+    ui::font::Font,
+};
 
 // #[derive(Default)]
 pub struct Code {
-    pub code: String, // TODO display a message
-    pub code_closed: bool,
+    tabs: Vec<Tab>,
+    code_closed: bool,
+    current_tab: usize,
+    editing_name: bool,
+    auto_scroll: bool,
+}
+
+struct Tab {
+    name: String,
+    code: String,
 }
 
 impl Default for Code {
     fn default() -> Self {
         Self {
-            code: "// Welcome to RITM, the first interactive turing machine tool !\n
-
-// An example of transition : 
-// q_i { ç,ç,ç -> R,ç,R,ç,R } -> q_a
-
-// q_(name) are the states
-// ç,ç,ç is what must be read
-// R,ç,R,ç,R is what happen
-
-// (ç, _ and $ are special character and R = Right, N = Neutral, L = Left)"
-                .to_string(),
+            tabs: vec![
+                Tab {
+                    code: "Hello".to_string(),
+                    name: "tab1".to_string(),
+                },
+                Tab {
+                    code: "My".to_string(),
+                    name: "tab2".to_string(),
+                },
+                Tab {
+                    code: "Friend !".to_string(),
+                    name: "tab3".to_string(),
+                },
+            ],
             code_closed: Default::default(),
+            current_tab: 0,
+            editing_name: false,
+            auto_scroll: false,
         }
     }
 }
 
-/// Display the code section of the application
+impl Code {
+    pub fn current_code(&self) -> Result<String, RitmError> {
+        Ok(self
+            .tabs
+            .get(self.current_tab)
+            .ok_or(RitmError::GuiError(GuiError::InvalidState))?
+            .code
+            .clone())
+    }
+
+    pub fn current_code_mut(&mut self) -> Result<&mut String, RitmError> {
+        Ok(&mut self
+            .tabs
+            .get_mut(self.current_tab)
+            .ok_or(RitmError::GuiError(GuiError::InvalidState))?
+            .code)
+    }
+
+    pub fn new_tab(&mut self, mut tab_name: String, code: String) -> Result<(), RitmError> {
+        if self.tabs.iter().any(|t| t.name == tab_name) {
+            tab_name.push('2');
+        }
+
+        self.tabs.push(Tab {
+            code,
+            name: tab_name,
+        });
+
+        self.auto_scroll = true;
+        self.switch_to(self.tabs.len() - 1)
+    }
+
+    pub fn is_closed(&self) -> bool {
+        self.code_closed
+    }
+
+    pub fn close(&mut self) {
+        self.code_closed = true;
+    }
+
+    pub fn open(&mut self) {
+        self.code_closed = false;
+    }
+
+    pub(crate) fn tab_name(&self) -> String {
+        format!("tab{}", self.tabs.len() + 1)
+    }
+
+    pub(crate) fn toggle(&mut self) {
+        self.code_closed ^= true;
+    }
+
+    pub(crate) fn switch_to(&mut self, id: usize) -> Result<(), RitmError> {
+        if self.tabs.len() <= id {
+            return Err(RitmError::GuiError(GuiError::InvalidInput(format!(
+                "tab id {} exceed the number of tab : {}",
+                id,
+                self.tabs.len()
+            ))));
+        }
+
+        self.editing_name = false;
+        self.current_tab = id;
+
+        Ok(())
+    }
+}
+
 pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
+    Frame::new()
+        .fill(
+            app.theme
+                .code_background
+                .blend(Color32::from_white_alpha(10)),
+        )
+        .show(ui, |ui| {
+            ScrollArea::horizontal()
+                .id_salt("tabs")
+                .max_height(30.0)
+                .scroll_bar_visibility(ScrollBarVisibility::AlwaysHidden)
+                .show(ui, |ui| {
+                    ui.set_max_width(f32::INFINITY);
+                    let rect = ui.available_rect_before_wrap();
+                    ui.set_min_width(ui.available_width());
+                    let res = ui.horizontal(|ui| {
+                        ui.spacing_mut().item_spacing = vec2(3.0, 0.0);
+                        let mut marked_to_delete: Vec<usize> = vec![];
+                        for i in 0..app.code.tabs.len() {
+                            let is_current_tab = app.code.current_tab == i;
+                            Frame::new()
+                                .fill(if !is_current_tab {
+                                    app.theme
+                                        .code_background
+                                        .blend(Color32::from_white_alpha(20))
+                                } else {
+                                    app.theme.code_background
+                                })
+                                .inner_margin(vec2(8.0, 0.0))
+                                .show(ui, |ui| {
+                                    let text_edit_id = Id::new("text_edit");
+                                    let delete_button_id = Id::new("delete_button");
+                                    let tab = &mut app.code.tabs[i];
+                                    ui.spacing_mut().icon_spacing = 4.0;
+                                    let button = Button::new((
+                                        if is_current_tab && app.code.editing_name {
+                                            Atom::custom(text_edit_id, vec2(50.0, Font::BIG_SIZE))
+                                        } else {
+                                            RichText::new(tab.name.clone())
+                                                .color(app.theme.code)
+                                                .font(Font::default_big())
+                                                .into()
+                                        },
+                                        Atom::custom(delete_button_id, Vec2::splat(Font::BIG_SIZE)),
+                                    ))
+                                    .frame(false)
+                                    .fill(app.theme.code_background)
+                                    .atom_ui(ui);
+
+                                    // TODO: change text_edit color
+                                    if let Some(rect) = button.rect(text_edit_id) {
+                                        let text_edit = TextEdit::singleline(
+                                            &mut app.code.tabs[app.code.current_tab].name,
+                                        )
+                                        .margin(Margin::symmetric(2, 0))
+                                        .font(Font::default_big())
+                                        .background_color(app.theme.code_background)
+                                        .frame(false)
+                                        .text_color(app.theme.code);
+                                        let response = ui.put(rect, text_edit);
+                                        if response.lost_focus() {
+                                            app.code.editing_name = false;
+                                        }
+                                        response.request_focus();
+                                    }
+
+                                    if !is_current_tab && button.response.clicked() {
+                                        app.code.switch_to(i)?;
+                                    }
+
+                                    if app.code.tabs.len() > 1
+                                        && ui.rect_contains_pointer(button.response.rect)
+                                        && let Some(rect) = button.rect(delete_button_id)
+                                        && ui
+                                            .put(
+                                                rect,
+                                                ImageButton::new(
+                                                    Image::new(include_image!(
+                                                        "../../assets/icon/close.svg"
+                                                    ))
+                                                    .shrink_to_fit()
+                                                    .tint(app.theme.code),
+                                                )
+                                                .frame(false),
+                                            )
+                                            .clicked()
+                                    {
+                                        marked_to_delete.push(i);
+                                    }
+
+                                    if button.response.double_clicked() {
+                                        app.code.editing_name = true;
+                                    }
+
+                                    Ok::<(), RitmError>(())
+                                });
+                        }
+
+                        let plus = Frame::new()
+                            .fill(
+                                app.theme
+                                    .code_background
+                                    .blend(Color32::from_white_alpha(20)),
+                            )
+                            .inner_margin(vec2(8.0, 0.0))
+                            .show(ui, |ui| {
+                                ui.add(
+                                    ImageButton::new(
+                                        Image::new(include_image!("../../assets/icon/plus.svg"))
+                                            .tint(app.theme.code),
+                                    )
+                                    .frame(false),
+                                )
+                            });
+
+                        // move the scrollbar to the last element
+                        if app.code.auto_scroll {
+                            plus.response.scroll_to_me(Some(Align::Max));
+                            // ui.scroll_to_cursor(Some(Align::Max));
+                            app.code.auto_scroll = false
+                        }
+
+                        // Add a state
+                        if plus.inner.clicked() {
+                            app.code.new_tab(app.code.tab_name(), "".to_string())?;
+                        }
+
+                        // Remove the tabs closed
+                        for i in marked_to_delete.iter().rev() {
+                            app.code.tabs.remove(*i);
+                        }
+
+                        if app.code.current_tab > app.code.tabs.len() - 1 {
+                            app.code.switch_to(app.code.tabs.len() - 1)?;
+                        }
+
+                        Ok::<(), RitmError>(())
+                    });
+
+                    // println!("{}", res.response.rect.width(), re)
+
+                    if res.response.rect.width() > rect.width()
+                        && res.response.rect.right() < rect.right()
+                    {
+                        ui.scroll_to_cursor(None);
+                    }
+                });
+        });
+
+    code(app, ui, &mut app.code.current_code()?)?;
+    Ok(())
+}
+
+/// Display the code section of the application
+pub fn code(app: &mut App, ui: &mut Ui, code: &mut String) -> Result<(), RitmError> {
     ScrollArea::vertical()
+        .id_salt("code")
         .scroll_bar_visibility(ScrollBarVisibility::AlwaysHidden)
         .show(ui, |ui| {
             ui.allocate_ui_with_layout(
@@ -46,7 +288,7 @@ pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
                         - Font::get_width(ui, &Font::default_medium()) * 3.0;
 
                     let job = LayoutJob::simple(
-                        app.code.code.to_string(),
+                        code.to_string(),
                         Font::default_medium(),
                         Color32::PLACEHOLDER,
                         code_width,
@@ -97,7 +339,7 @@ pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
                         ui.fonts(|f| f.layout_job(layout_job))
                     };
 
-                    let code = TextEdit::multiline(&mut app.code.code)
+                    let code = TextEdit::multiline(code)
                         .code_editor()
                         .font(Font::default_medium())
                         .frame(false)

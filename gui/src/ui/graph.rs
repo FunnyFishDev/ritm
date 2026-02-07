@@ -215,6 +215,9 @@ fn apply_force(app: &mut App) {
     }
 
     app.graph.is_stable = max_force_applied < Constant::STABILITY_TRESHOLD;
+
+    // println!("{:?}", forces);
+    // sleep(Duration::from_millis(250));
 }
 
 /// Button to convert the current displayed graph into code

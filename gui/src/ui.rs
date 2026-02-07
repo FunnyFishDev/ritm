@@ -29,7 +29,7 @@ pub fn show(app: &mut App, ctx: &egui::Context) -> Result<(), RitmError> {
             ui.spacing_mut().indent = 10.0;
             ui.style_mut().override_font_id = Some(Font::default_medium()); // TODO check if there is not a better way to do that
 
-            if app.code.code_closed {
+            if app.code.is_closed() {
                 SidePanel::left("settings")
                     .frame(Frame {
                         inner_margin: 5.into(),

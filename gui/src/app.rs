@@ -134,11 +134,12 @@ impl App {
     }
 
     pub fn graph_to_code(&mut self) {
-        self.code.code = graph_to_string(self.turing.tm.graph_ref());
+        let code = graph_to_string(self.turing.tm.graph_ref());
+        self.code.new_tab(self.code.tab_name(), code);
     }
 
-    pub fn code_to_graph(&mut self) {
-        match parse_turing_graph_string(self.code.code.to_string()) {
+    pub fn code_to_graph(&mut self) -> Result<(), RitmError> {
+        match parse_turing_graph_string(self.code.current_code()?) {
             Ok(graph) => {
                 self.turing = Turing::new_graph(graph);
                 self.turing.layer_graph();
@@ -148,6 +149,7 @@ impl App {
             }
         }
         self.graph.recenter();
+        Ok(())
     }
 }
 
@@ -210,7 +212,7 @@ impl eframe::App for App {
 
                 // Press C to open and close code section
                 if r.key_pressed(Key::C) {
-                    self.code.code_closed ^= true;
+                    self.code.toggle();
                 }
 
                 // Press R to recenter

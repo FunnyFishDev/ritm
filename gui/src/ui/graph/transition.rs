@@ -116,10 +116,14 @@ pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
 
             draw_self_transition(app, ui, *from, transition_vector, transitions)?;
         } else {
-            let reverse = app
-                .turing
-                .get_transitions(*from, *to)
-                .is_ok_and(|x| !x.is_empty() && from > to);
+            let transitions_keys = app.turing.tm.graph_ref().get_transitions_hashmap();
+            let reverse = if transitions_keys.contains_key(&(*from, *to))
+                && transitions_keys.contains_key(&(*to, *from))
+            {
+                from > to
+            } else {
+                false
+            };
 
             draw_transition(app, ui, *from, *to, graph_center, reverse, transitions)?;
         }

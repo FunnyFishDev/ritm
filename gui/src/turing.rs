@@ -213,8 +213,8 @@ impl Turing {
                 } else {
                     Err(RitmError::CoreError("no".to_string()))
                 }
-            }) // TODO: replace the expect with a new RitmError
-            .expect("no")
+            })
+            .map_err(|e| RitmError::CoreError(e.to_string()))?
     }
 
     /// The mode currently used
@@ -501,7 +501,6 @@ impl TransitionWrapperCopy {
             })
             .collect();
         Ok(TransitionWrapper {
-            // TODO: use new new() method
             info: TuringTransitionInfo::new(chars_read, self.move_read.clone(), chars_write)
                 .map_err(|e| RitmError::CoreError(e.to_string()))?,
 

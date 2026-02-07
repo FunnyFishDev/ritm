@@ -61,7 +61,7 @@ impl Default for Theme {
             info: hex_color!("#ff0000ff"),
             selection: hex_color!("#5adbffff"),
             overlay: hex_color!("#000000ff"),
-            shadow: hex_color!("#000000ff"),
+            shadow: hex_color!("#00000030"),
             code_background: hex_color!("#313e45ff"),
             code: hex_color!("#fcf3edff"),
             syntax_keyword: hex_color!("#000000ff"),

@@ -26,7 +26,7 @@ pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
         .align_content(FlexAlignContent::Start)
         .gap(vec2(10.0, 10.0));
 
-    flex = if app.code.code_closed {
+    flex = if app.code.is_closed() {
         flex.direction(FlexDirection::Vertical).h_full()
     } else {
         flex.direction(FlexDirection::Horizontal).w_full()
@@ -37,21 +37,21 @@ pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
             ui.ui().ctx().screen_rect().width() < ((Constant::ICON_SIZE + 10.0) * 6.0) * 3.0;
 
         if app.event.is_small_window {
-            app.code.code_closed = true;
+            app.code.close();
         }
 
         panel_open(app, ui);
 
         settings(app, ui);
 
-        save(app, ui);
+        save(app, ui)?;
 
         machine_folder(app, ui)?;
 
         help(app, ui);
 
-        if !app.code.code_closed {
-            to_graph(app, ui);
+        if !app.code.is_closed() {
+            to_graph(app, ui)?;
 
             ui.grow();
 
@@ -79,14 +79,14 @@ fn settings(app: &mut App, ui: &mut FlexInstance) {
     }
 }
 
-fn save(app: &mut App, ui: &mut FlexInstance) {
+fn save(app: &mut App, ui: &mut FlexInstance) -> Result<(), RitmError> {
     if ui
         .add(
             item(),
             ImageButton::new(
                 Image::new(include_image!("../../assets/icon/save.svg"))
                     .fit_to_exact_size(Vec2::splat(Constant::ICON_SIZE))
-                    .tint(if app.code.code.is_empty() {
+                    .tint(if app.code.current_code()?.is_empty() {
                         app.theme.disabled
                     } else {
                         app.theme.icon
@@ -95,12 +95,13 @@ fn save(app: &mut App, ui: &mut FlexInstance) {
             .frame(false),
         )
         .clicked()
-        && !app.code.code.is_empty()
+        && !app.code.current_code()?.is_empty()
     {
         app.menu
             .file
-            .save("new.tm", app.code.code.as_bytes().to_vec())
+            .save("new.tm", app.code.current_code()?.as_bytes().to_vec())
     };
+    Ok(())
 }
 
 fn machine_folder(app: &mut App, ui: &mut FlexInstance) -> Result<(), RitmError> {
@@ -115,8 +116,8 @@ fn machine_folder(app: &mut App, ui: &mut FlexInstance) -> Result<(), RitmError>
     );
 
     Popup::menu(&res)
-        .gap(if app.code.code_closed { 10.0 } else { 5.0 })
-        .align(if app.code.code_closed {
+        .gap(if app.code.is_closed() { 10.0 } else { 5.0 })
+        .align(if app.code.is_closed() {
             RectAlign::RIGHT_START
         } else {
             RectAlign::BOTTOM_START
@@ -124,16 +125,18 @@ fn machine_folder(app: &mut App, ui: &mut FlexInstance) -> Result<(), RitmError>
         .close_behavior(PopupCloseBehavior::CloseOnClick)
         .show(|ui| {
             for example in EXAMPLES.files() {
+                let filename = example.path().file_stem().unwrap().to_str().unwrap();
+                let code = example.contents_utf8().unwrap().to_string();
                 let button = Button::new(
-                    RichText::new(example.path().file_stem().unwrap().to_str().unwrap())
+                    RichText::new(filename)
                         .font(Font::default_small())
                         .color(app.theme.text_primary),
                 )
                 .frame(false)
                 .min_size(vec2(0.0, 25.0));
                 if ui.add(button).clicked() {
-                    app.code.code = example.contents_utf8().unwrap().to_string();
-                    app.code_to_graph();
+                    app.code.new_tab(filename.to_string(), code)?;
+                    app.code_to_graph()?; // TODO: add a setting to toggle this
                 }
             }
 
@@ -159,14 +162,17 @@ fn machine_folder(app: &mut App, ui: &mut FlexInstance) -> Result<(), RitmError>
             {
                 app.menu.file.open();
             }
+
+            Ok::<(), RitmError>(())
         });
 
     if let Some(file) = app.menu.file.get() {
-        app.code.code = std::str::from_utf8(&file)
+        let code = std::str::from_utf8(&file)
             .map_err(|e| {
                 RitmError::GuiError(GuiError::FileError(format!("Could not load file {e}",)))
             })?
-            .to_string()
+            .to_string();
+        app.code.new_tab(app.code.tab_name(), code)?;
     }
     Ok(())
 }
@@ -188,7 +194,7 @@ fn help(app: &mut App, ui: &mut FlexInstance) {
     }
 }
 
-fn to_graph(app: &mut App, ui: &mut FlexInstance) {
+fn to_graph(app: &mut App, ui: &mut FlexInstance) -> Result<(), RitmError> {
     if ui
         .add(
             item(),
@@ -201,8 +207,10 @@ fn to_graph(app: &mut App, ui: &mut FlexInstance) {
         )
         .clicked()
     {
-        app.code_to_graph();
+        app.code_to_graph()?;
     }
+
+    Ok(())
 }
 
 fn panel_close(app: &mut App, ui: &mut FlexInstance) {
@@ -218,12 +226,12 @@ fn panel_close(app: &mut App, ui: &mut FlexInstance) {
         )
         .clicked()
     {
-        app.code.code_closed = true;
+        app.code.close();
     }
 }
 
 fn panel_open(app: &mut App, ui: &mut FlexInstance) {
-    if app.code.code_closed
+    if app.code.is_closed()
         && !app.event.is_small_window
         && ui
             .add(
@@ -237,6 +245,6 @@ fn panel_open(app: &mut App, ui: &mut FlexInstance) {
             )
             .clicked()
     {
-        app.code.code_closed = false;
+        app.code.open();
     }
 }
