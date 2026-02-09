@@ -11,8 +11,6 @@ use crate::{
 };
 
 pub fn show(ui: &mut Ui, app: &mut App) -> Result<(), RitmError> {
-    ui.set_max_width(300.0);
-
     ui.with_layout(Layout::top_down(Align::Min), |ui| {
         ui.style_mut().spacing.item_spacing = vec2(10.0, 10.0);
 
@@ -26,10 +24,15 @@ pub fn show(ui: &mut Ui, app: &mut App) -> Result<(), RitmError> {
             );
 
             if app.turing.state_edit.is_none()
-                && let Some(RitmPopupEnum::StateEdit(_, _)) = app.popup.current()
+                && let Some(RitmPopupEnum::StateEdit(selected, _)) = app.popup.current()
             {
-                let state = StateEdit::empty();
-                app.turing.state_edit = Some(state);
+                app.turing.state_edit = if let Some(state) = *selected
+                    && let Some(state) = app.turing.get_state(state).ok()
+                {
+                    Some(StateEdit::from(state))
+                } else {
+                    Some(StateEdit::empty())
+                }
             }
 
             let Some(state) = &mut app.turing.state_edit else {
@@ -57,7 +60,7 @@ pub fn show(ui: &mut Ui, app: &mut App) -> Result<(), RitmError> {
 
         let state_name = state.to().name.clone();
 
-        ui.horizontal_centered(|ui| {
+        ui.horizontal(|ui| {
             if ui
                 .add_sized(
                     vec2(ui.available_width(), 30.0),
@@ -73,10 +76,21 @@ pub fn show(ui: &mut Ui, app: &mut App) -> Result<(), RitmError> {
                 .clicked()
                 && !state_name.is_empty()
             {
-                let state_id = if let RitmPopupEnum::StateEdit(_, Some(pos)) =
-                    app.popup.current().expect("Should been selected")
+                let state_id = if let Some(RitmPopupEnum::StateEdit(selected, Some(pos))) =
+                    app.popup.current()
                 {
-                    app.turing.add_state_with_pos(state_name, *pos)
+                    // if there is a selected state then we modify it
+                    if let Some(selected) = selected {
+                        // TODO: add a popup to warn that the name already exist
+                        let res = app.turing.tm.graph_mut().rename_state(selected, state_name);
+                        if res.is_err() {
+                            println!("name already exist")
+                        }
+                        *selected
+                    } else {
+                        app.turing.add_state_with_pos(state_name, *pos)
+                    }
+                // if there is no position passed or state selected
                 } else {
                     app.turing.add_state(state_name)
                 };

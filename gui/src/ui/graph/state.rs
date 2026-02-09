@@ -71,7 +71,7 @@ fn draw_node(app: &mut App, ui: &mut Ui, state_id: usize) -> Result<(), RitmErro
                 app.graph.selected_state().expect("state selected"),
                 state_id,
             )?;
-            app.edit.is_adding_transition &= app.settings.toggle_after_action;
+            app.edit.is_adding_transition &= app.settings.reset_after_action;
         } else {
             app.graph.select_state(state_id);
             app.edit.is_adding_state = false;
@@ -93,10 +93,10 @@ fn draw_node(app: &mut App, ui: &mut Ui, state_id: usize) -> Result<(), RitmErro
     }
 
     if response.drag_started() {
-        app.event.is_dragging = true
+        app.graph.is_dragging = true
     }
     if response.drag_stopped() {
-        app.event.is_dragging = false
+        app.graph.is_dragging = false
     }
     Ok(())
 }

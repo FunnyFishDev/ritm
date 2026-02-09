@@ -1,0 +1,48 @@
+name: deploy-action
+
+on: 
+  workflow_dispatch:
+  push:
+    branches:
+      - gui_rework
+      - dev
+  pull_request:
+    branches:
+      - gui_rework
+      - dev
+jobs:
+  deploy:
+    runs-on: self-hosted
+    environment: 'deploy-home' 
+    defaults:
+      run:
+        working-directory: ./gui
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: actions-use/setup-rust@stable
+        with:
+          toolchain: stable
+          components: rustfmt, clippy
+
+      - run: rustup --version
+      - run: cargo --version
+
+      - name: install architecture wasm32
+        run: rustup target add wasm32-unknown-unknown
+
+      - name: Install TRUNK
+        uses: jetli/trunk-action@v0.5.1
+        with:
+          # Optional version of trunk to install(eg. 'v0.21.14', 'latest')
+          version: 'latest'
+      
+      - name: Build the webapp
+        run: RUSTFLAGS='--cfg getrandom_backend="wasm_js"' trunk build --release
+
+      - name: move the file
+        run: mv docs/* ${{ vars.DEV_ROOT }}/
+
+

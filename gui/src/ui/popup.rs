@@ -1,6 +1,6 @@
 use egui::{
-    AtomExt, Button, Context, Frame, Id, Image, Label, LayerId, Margin, Modal, Popup, PopupAnchor,
-    Pos2, RichText, Separator, Stroke, Ui, Vec2, include_image, style::WidgetVisuals, vec2,
+    AtomExt, Button, Context, Frame, Id, Image, Label, Margin, Modal, Pos2,
+    RichText, Separator, Stroke, Ui, Vec2, include_image, style::WidgetVisuals, vec2,
 };
 use egui_flex::{Flex, FlexAlignContent, item};
 
@@ -49,14 +49,15 @@ pub fn show(ctx: &Context, app: &mut App) -> Result<(), RitmError> {
             RitmPopupEnum::TransitionEdit(transition_id) => {
                 let source = app.turing.get_state(transition_id.source_id)?.get_name();
                 let target = app.turing.get_state(transition_id.target_id)?.get_name();
-                popup(
+                let max_size = vec2(300.0, ctx.available_rect().height());
+                modal(
                     ctx,
                     app,
                     format!("{} -> {}", source, target),
                     false,
                     |ui, app| {
-                        ui.set_max_size(vec2(300.0, ui.ctx().available_rect().height()));
-                        ui.set_min_size(vec2(300.0, 0.0));
+                        ui.set_max_size(max_size);
+                        ui.set_min_size(vec2(max_size.x, 0.0));
                         transition_edit::show(ui, app)
                     },
                 )?
@@ -67,9 +68,10 @@ pub fn show(ctx: &Context, app: &mut App) -> Result<(), RitmError> {
                 } else {
                     "New State".to_string()
                 };
-                popup(ctx, app, title, false, |ui, app| {
-                    ui.set_max_size(vec2(300.0, ui.ctx().available_rect().height()));
-                    ui.set_min_size(vec2(300.0, 0.0));
+                let max_size = vec2(300.0, ctx.available_rect().height());
+                modal(ctx, app, title, false, |ui, app| {
+                    ui.set_max_size(max_size);
+                    ui.set_min_size(vec2(max_size.x, 0.0));
                     state_edit::show(ui, app)
                 })?
             }
@@ -88,43 +90,46 @@ pub fn show(ctx: &Context, app: &mut App) -> Result<(), RitmError> {
     Ok(())
 }
 
-fn popup(
+// fn popup(
+//     ctx: &Context,
+//     app: &mut App,
+//     title: String,
+//     can_be_closed: bool,
+//     size: Vec2,
+//     content: impl FnOnce(&mut Ui, &mut App) -> Result<(), RitmError>,
+// ) -> Result<(), RitmError> {
+//     let frame = Frame {
+//         fill: app.theme.surface,
+//         stroke: Stroke::new(2.0, app.theme.border),
+//         inner_margin: Margin::same(10),
+//         corner_radius: 10.into(),
+//         ..Default::default()
+//     };
+
+//     if let Some(res) = Popup::new(
+//         Id::new("popup"),
+//         ctx.clone(),
+//         PopupAnchor::ParentRect(ctx.available_rect()),
+//         // PopupAnchor::Position(ctx.screen_rect().center() - vec2(size.x/2.0, 0.0)),
+//         LayerId::new(egui::Order::Foreground, Id::new("popup/modal-layer")),
+//     )
+//     .align(RectAlign::TOP)
+//     .frame(frame)
+//     .show(|ui| header(ui, app, title, can_be_closed, content))
+//     {
+//         res.inner
+//     } else {
+//         Ok(())
+//     }
+// }
+
+fn modal<R>(
     ctx: &Context,
     app: &mut App,
     title: String,
     can_be_closed: bool,
-    content: impl FnOnce(&mut Ui, &mut App) -> Result<(), RitmError>,
-) -> Result<(), RitmError> {
-    let frame = Frame {
-        fill: app.theme.surface,
-        stroke: Stroke::new(2.0, app.theme.border),
-        inner_margin: Margin::same(10),
-        corner_radius: 10.into(),
-        ..Default::default()
-    };
-
-    if let Some(res) = Popup::new(
-        Id::new("popup"),
-        ctx.clone(),
-        PopupAnchor::Position(ctx.screen_rect().center()),
-        LayerId::new(egui::Order::Foreground, Id::new("popup/modal-layer")),
-    )
-    .frame(frame)
-    .show(|ui| header(ui, app, title, can_be_closed, content))
-    {
-        res.inner
-    } else {
-        Ok(())
-    }
-}
-
-fn modal(
-    ctx: &Context,
-    app: &mut App,
-    title: String,
-    can_be_closed: bool,
-    content: impl FnOnce(&mut Ui, &mut App) -> Result<(), RitmError>,
-) -> Result<(), RitmError> {
+    content: impl FnOnce(&mut Ui, &mut App) -> Result<R, RitmError>,
+) -> Result<R, RitmError> {
     let frame = Frame {
         fill: app.theme.surface,
         stroke: Stroke::new(2.0, app.theme.border),
@@ -139,55 +144,99 @@ fn modal(
         .inner
 }
 
+fn header<R>(
+    ui: &mut Ui,
+    app: &mut App,
+    title: String,
+    can_be_closed: bool,
+    content: impl FnOnce(&mut Ui, &mut App) -> Result<R, RitmError>,
+) -> Result<R, RitmError> {
+    Theme::set_widget(
+        ui,
+        WidgetVisuals {
+            bg_stroke: Stroke::new(1.0, app.theme.border),
+            corner_radius: 5.into(),
+            expansion: 3.0,
+            ..app.theme.default_widget()
+        },
+    );
 
-    fn header(
-        ui: &mut Ui,
-        app: &mut App,
-        title: String,
-        can_be_closed: bool,
-        content: impl FnOnce(&mut Ui, &mut App) -> Result<(), RitmError>,
-    ) -> Result<(), RitmError> {
-        Theme::set_widget(
-            ui,
-            WidgetVisuals {
-                bg_stroke: Stroke::new(1.0, app.theme.border),
-                corner_radius: 5.into(),
-                expansion: 3.0,
-                ..app.theme.default_widget()
-            },
-        );
+    Flex::horizontal()
+        .w_full()
+        .align_content(FlexAlignContent::SpaceBetween)
+        .show(ui, |flex| {
+            flex.add(
+                item(),
+                Label::new(RichText::new(title).font(Font::default_big())),
+            );
 
-        Flex::horizontal()
-            .w_full()
-            .align_content(FlexAlignContent::SpaceBetween)
-            .show(ui, |flex| {
-                flex.add(
-                    item(),
-                    Label::new(RichText::new(title).font(Font::default_big())),
-                );
+            flex.grow();
 
-                flex.grow();
+            if can_be_closed {
+                let img = Image::new(include_image!("../../assets/icon/back.svg"))
+                    .fit_to_exact_size(Vec2::splat(25.0))
+                    .tint(app.theme.overlay)
+                    .atom_size(Vec2::splat(25.0));
 
-                if can_be_closed {
-                    let img = Image::new(include_image!("../../assets/icon/back.svg"))
-                        .fit_to_exact_size(Vec2::splat(25.0))
-                        .tint(app.theme.overlay)
-                        .atom_size(Vec2::splat(25.0));
-
-                    if flex
-                        .add(
-                            item(),
-                            Button::new((img, RichText::new("Back").font(Font::default_big())))
-                                .frame(false),
-                        )
-                        .clicked()
-                    {
-                        app.popup.close();
-                    }
+                if flex
+                    .add(
+                        item(),
+                        Button::new((img, RichText::new("Back").font(Font::default_big())))
+                            .frame(false),
+                    )
+                    .clicked()
+                {
+                    app.popup.close();
                 }
-            });
+            }
+        });
 
-        ui.add(Separator::default().spacing(15.0).horizontal().grow(10.0));
+    ui.add(Separator::default().spacing(15.0).horizontal().grow(10.0));
 
-        ui.vertical(|ui| content(ui, app)).inner
-    }
+    ui.vertical(|ui| content(ui, app)).inner
+}
+
+pub fn boolean_popup(
+    ui: &mut Ui,
+    app: &mut App,
+    question: &str,
+) -> Result<Option<bool>, RitmError> {
+    modal(ui.ctx(), app, "Warning".to_string(), false, |ui, app| {
+        ui.label(RichText::new(question).font(Font::default_medium()));
+        ui.add_space(10.0);
+        ui.spacing_mut().button_padding = vec2(0.0, 8.0);
+        ui.spacing_mut().item_spacing = vec2(4.0, 0.0);
+        ui.columns(2, |ui| {
+            if ui[0]
+                .add(Button::new(
+                    RichText::new("yes")
+                        .font(Font::default_medium())
+                        .atom_grow(true),
+                ))
+                .clicked()
+            {
+                app.popup.close();
+                return Ok(Some(true));
+            }
+            if ui[1]
+                .add(Button::new(
+                    RichText::new("no")
+                        .font(Font::default_medium())
+                        .atom_grow(true),
+                ))
+                .clicked()
+            {
+                app.popup.close();
+                return Ok(Some(false));
+            }
+            Ok(None)
+        })
+    })
+}
+
+pub fn warning(ui: &mut Ui, app: &mut App, question: &str) -> Result<(), RitmError> {
+    modal(ui.ctx(), app, "Warning".to_string(), true, |ui, _app| {
+        ui.label(RichText::new(question).font(Font::default_medium()));
+        Ok(())
+    })
+}

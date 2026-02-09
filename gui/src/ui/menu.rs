@@ -8,7 +8,12 @@ use include_directory::{Dir, include_directory};
 use crate::{
     App,
     error::{GuiError, RitmError},
-    ui::{constant::Constant, font::Font, popup::RitmPopupEnum, utils::FileDialog},
+    ui::{
+        constant::Constant,
+        font::Font,
+        popup::{RitmPopupEnum, boolean_popup},
+        utils::FileDialog,
+    },
 };
 
 static EXAMPLES: Dir = include_directory!("ritm_core/resources");
@@ -33,10 +38,10 @@ pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
     };
 
     flex.show(ui, |ui| {
-        app.event.is_small_window =
+        app.transient.is_small_window =
             ui.ui().ctx().screen_rect().width() < ((Constant::ICON_SIZE + 10.0) * 6.0) * 3.0;
 
-        if app.event.is_small_window {
+        if app.transient.is_small_window {
             app.code.close();
         }
 
@@ -167,12 +172,26 @@ fn machine_folder(app: &mut App, ui: &mut FlexInstance) -> Result<(), RitmError>
         });
 
     if let Some(file) = app.menu.file.get() {
-        let code = std::str::from_utf8(&file)
+        app.transient.code = Some(std::str::from_utf8(&file)
             .map_err(|e| {
                 RitmError::GuiError(GuiError::FileError(format!("Could not load file {e}",)))
             })?
-            .to_string();
-        app.code.new_tab(app.code.tab_name(), code)?;
+            .to_string());
+    }
+
+    if let Some(code) = &app.transient.code {
+        let code = code.clone();
+        ui.add_ui(item(), |ui| {
+            if let Some(answer) = boolean_popup(ui, app, "Do you want to create a new tab ?")? {
+                if answer {
+                    app.code.new_tab(app.code.tab_name(), code)?;
+                } else {
+                    *app.code.current_code_mut()? = code;
+                }
+                app.transient.code = None;
+            }
+            Ok::<(), RitmError>(())
+        });
     }
     Ok(())
 }
@@ -232,7 +251,7 @@ fn panel_close(app: &mut App, ui: &mut FlexInstance) {
 
 fn panel_open(app: &mut App, ui: &mut FlexInstance) {
     if app.code.is_closed()
-        && !app.event.is_small_window
+        && !app.transient.is_small_window
         && ui
             .add(
                 item(),

@@ -117,7 +117,7 @@ fn input(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
                 )
                 .has_focus()
             {
-                app.event.listen_to_keybind = false;
+                app.transient.listen_to_keybind = false;
             }
             Ok::<(), RitmError>(())
         },

@@ -72,4 +72,12 @@ impl Font {
     pub fn get_width(ui: &Ui, fond_id: &FontId) -> f32 {
         ui.fonts(|f| f.glyph_width(fond_id, 'M'))
     }
+
+    pub fn get_width_word(ui: &Ui, fond_id: &FontId, word: &String) -> f32 {
+        ui.fonts(|f| {
+            f.layout_no_wrap(word.to_string(), fond_id.clone(), Color32::PLACEHOLDER)
+                .size()
+                .x
+        })
+    }
 }

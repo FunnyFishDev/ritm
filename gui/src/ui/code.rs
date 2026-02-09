@@ -67,17 +67,22 @@ impl Code {
             .code)
     }
 
-    pub fn new_tab(&mut self, mut tab_name: String, code: String) -> Result<(), RitmError> {
+    pub fn tab_name_check(&self, mut tab_name: String) -> String {
         if self.tabs.iter().any(|t| t.name == tab_name) {
             tab_name.push('2');
         }
+        tab_name
+    }
 
+    pub fn new_tab(&mut self, mut tab_name: String, code: String) -> Result<(), RitmError> {
+        tab_name = self.tab_name_check(tab_name);
         self.tabs.push(Tab {
             code,
             name: tab_name,
         });
 
         self.auto_scroll = true;
+        self.editing_name = true;
         self.switch_to(self.tabs.len() - 1)
     }
 
@@ -154,7 +159,19 @@ pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
                                     ui.spacing_mut().icon_spacing = 4.0;
                                     let button = Button::new((
                                         if is_current_tab && app.code.editing_name {
-                                            Atom::custom(text_edit_id, vec2(50.0, Font::BIG_SIZE))
+                                            Atom::custom(
+                                                text_edit_id,
+                                                vec2(
+                                                    Font::get_width_word(
+                                                        ui,
+                                                        &Font::default_big(),
+                                                        &app.code.tabs[app.code.current_tab].name,
+                                                    )
+                                                    .max(30.0)
+                                                        + 5.0,
+                                                    Font::BIG_SIZE,
+                                                ),
+                                            )
                                         } else {
                                             RichText::new(tab.name.clone())
                                                 .color(app.theme.code)
@@ -169,16 +186,29 @@ pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
 
                                     // TODO: change text_edit color
                                     if let Some(rect) = button.rect(text_edit_id) {
+                                        // println!("{}", Font::get_heigth(ui, &Font::default_big()));
                                         let text_edit = TextEdit::singleline(
                                             &mut app.code.tabs[app.code.current_tab].name,
                                         )
-                                        .margin(Margin::symmetric(2, 0))
-                                        .font(Font::default_big())
+                                        .margin(Margin::symmetric(
+                                            2,
+                                            -((Font::get_heigth(ui, &Font::default_big())
+                                                - Font::BIG_SIZE)
+                                                / 2.0)
+                                                as i8,
+                                        ))
+                                        .font(Font::default(Font::BIG_SIZE))
                                         .background_color(app.theme.code_background)
                                         .frame(false)
                                         .text_color(app.theme.code);
                                         let response = ui.put(rect, text_edit);
                                         if response.lost_focus() {
+                                            app.code.tabs[app.code.current_tab].name =
+                                                app.code.tab_name_check(
+                                                    app.code.tabs[app.code.current_tab]
+                                                        .name
+                                                        .clone(),
+                                                );
                                             app.code.editing_name = false;
                                         }
                                         response.request_focus();
@@ -188,7 +218,8 @@ pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
                                         app.code.switch_to(i)?;
                                     }
 
-                                    if app.code.tabs.len() > 1
+                                    if !(app.code.editing_name && is_current_tab)
+                                        && app.code.tabs.len() > 1
                                         && ui.rect_contains_pointer(button.response.rect)
                                         && let Some(rect) = button.rect(delete_button_id)
                                         && ui
@@ -371,7 +402,7 @@ pub fn code(app: &mut App, ui: &mut Ui, code: &mut String) -> Result<(), RitmErr
                         .add_sized(ui.available_size() - vec2(5.0, 0.0), code)
                         .has_focus()
                     {
-                        app.event.listen_to_keybind = false;
+                        app.transient.listen_to_keybind = false;
                     }
 
                     ui.add_space(5.0);

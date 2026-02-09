@@ -48,7 +48,7 @@ pub struct App {
     pub error: Option<RitmError>,
 
     /// The event/state of the application
-    pub event: Event,
+    pub transient: Transient,
 
     /// Current theme
     pub theme: Theme,
@@ -59,9 +59,8 @@ pub struct App {
 /// Keep the state of the application
 ///
 /// Used to check what the user see and/or can do
-pub struct Event {
+pub struct Transient {
     /// Is the user moving as state around ?
-    pub is_dragging: bool,
 
     /// Do we need to display the settings interface ?
     pub are_settings_visible: bool,
@@ -71,6 +70,8 @@ pub struct Event {
     pub listen_to_keybind: bool,
 
     pub take_screenshot: bool,
+
+    pub code: Option<String>,
 }
 
 impl Default for App {
@@ -80,7 +81,7 @@ impl Default for App {
             turing: Turing::default(),
             edit: Edit::default(),
             graph: Graph::default(),
-            event: Event::default(),
+            transient: Transient::default(),
             theme: Theme::retro(),
             popup: RitmPopup::default(),
             code: Code::default(),
@@ -96,14 +97,14 @@ impl Default for App {
     }
 }
 
-impl Default for Event {
+impl Default for Transient {
     fn default() -> Self {
         Self {
-            is_dragging: false,
             are_settings_visible: false,
             is_small_window: false,
             listen_to_keybind: true,
             take_screenshot: false,
+            code: None,
         }
     }
 }
@@ -193,7 +194,7 @@ impl eframe::App for App {
             }
         });
 
-        if self.event.listen_to_keybind && self.popup.current().is_none() {
+        if self.transient.listen_to_keybind && self.popup.current().is_none() {
             ctx.input(|r| {
                 // Press A to create a state
                 if r.key_pressed(Key::A) {
@@ -236,11 +237,11 @@ impl eframe::App for App {
                 }
 
                 if r.key_pressed(Key::S) {
-                    self.event.take_screenshot = true;
+                    self.transient.take_screenshot = true;
                 }
             });
         } else {
-            self.event.listen_to_keybind = true;
+            self.transient.listen_to_keybind = true;
         }
         // theme_changer(ctx, self);
     }

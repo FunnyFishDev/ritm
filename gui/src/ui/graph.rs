@@ -21,6 +21,7 @@ pub struct Graph {
     graph_rect: Rect,
     recenter: bool,
     is_stable: bool,
+    is_dragging: bool,
 }
 
 impl Default for Graph {
@@ -31,6 +32,7 @@ impl Default for Graph {
             graph_rect: Rect::ZERO,
             recenter: false,
             is_stable: false,
+            is_dragging: false,
         }
     }
 }
@@ -66,6 +68,10 @@ impl Graph {
     pub fn recenter(&mut self) {
         self.recenter = true;
     }
+
+    pub fn is_dragging(&self) -> bool {
+        self.is_dragging
+    }
 }
 
 /// Show the graph display of the turing machine
@@ -78,7 +84,7 @@ pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
     let mut scene_rect = app.graph.graph_rect;
 
     // Compute the force applied on every node
-    if !app.event.is_dragging {
+    if !app.graph.is_dragging {
         apply_force(app);
     }
 
@@ -130,8 +136,8 @@ pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
         }
 
         // CLick on the scene reset selection and editing
-        app.edit.is_adding_state &= app.settings.toggle_after_action;
-        app.edit.is_adding_transition &= app.settings.toggle_after_action;
+        app.edit.is_adding_state &= !app.settings.reset_after_action;
+        app.edit.is_adding_transition &= !app.settings.reset_after_action;
         app.graph.unselect();
     }
 
@@ -222,7 +228,7 @@ fn apply_force(app: &mut App) {
 
 /// Button to convert the current displayed graph into code
 fn to_code_button(ui: &mut Ui, app: &mut App, layer: LayerId) {
-    if !app.event.is_small_window {
+    if !app.transient.is_small_window {
         ui.scope_builder(
             UiBuilder::new()
                 .layer_id(layer)
