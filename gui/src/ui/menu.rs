@@ -140,7 +140,7 @@ fn machine_folder(app: &mut App, ui: &mut FlexInstance) -> Result<(), RitmError>
                 .frame(false)
                 .min_size(vec2(0.0, 25.0));
                 if ui.add(button).clicked() {
-                    app.code.new_tab(filename.to_string(), code)?;
+                    app.code.new_tab(filename.to_string(), code);
                     app.code_to_graph()?; // TODO: add a setting to toggle this
                 }
             }
@@ -172,11 +172,13 @@ fn machine_folder(app: &mut App, ui: &mut FlexInstance) -> Result<(), RitmError>
         });
 
     if let Some(file) = app.menu.file.get() {
-        app.transient.code = Some(std::str::from_utf8(&file)
-            .map_err(|e| {
-                RitmError::GuiError(GuiError::FileError(format!("Could not load file {e}",)))
-            })?
-            .to_string());
+        app.transient.code = Some(
+            std::str::from_utf8(&file)
+                .map_err(|e| {
+                    RitmError::GuiError(GuiError::FileError(format!("Could not load file {e}",)))
+                })?
+                .to_string(),
+        );
     }
 
     if let Some(code) = &app.transient.code {
@@ -184,7 +186,7 @@ fn machine_folder(app: &mut App, ui: &mut FlexInstance) -> Result<(), RitmError>
         ui.add_ui(item(), |ui| {
             if let Some(answer) = boolean_popup(ui, app, "Do you want to create a new tab ?")? {
                 if answer {
-                    app.code.new_tab(app.code.tab_name(), code)?;
+                    app.code.new_tab(app.code.tab_name(), code);
                 } else {
                     *app.code.current_code_mut()? = code;
                 }

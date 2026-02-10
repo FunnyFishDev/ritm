@@ -1,6 +1,6 @@
 use std::collections::BTreeSet;
 
-use egui::{Color32, Pos2, vec2};
+use egui::{Color32, Pos2, Vec2, vec2};
 use rand::{random, random_range};
 use ritm_core::{
     turing_graph::{TuringGraph, TuringState, TuringStateType, TuringStateWrapper},
@@ -292,7 +292,6 @@ impl Turing {
             }
         }
 
-        println!();
         let mut j = 0.0;
         while !(state_list.is_empty() && layer_state.is_empty()) {
             let layer_count = layer_state.len() as f32 - 1.0;
@@ -393,6 +392,49 @@ impl Turing {
         self.transition_edit
             .as_mut()
             .ok_or(RitmError::GuiError(GuiError::NoTransitionEditing))
+    }
+
+    pub fn graph_center(&self) -> Pos2 {
+        self.tm
+            .graph_ref()
+            .get_states()
+            .iter()
+            .fold(Pos2::ZERO, |acc, e| acc + e.inner_state.position.to_vec2())
+            / self.tm.graph_ref().get_state_hashmap().len() as f32
+    }
+
+    pub fn neighbors(&self, state_id: usize) -> Vec<usize> {
+        self.tm
+            .graph_ref()
+            .get_transitions_hashmap()
+            .iter()
+            .filter_map(|(k, v)| {
+                if k.0 == state_id {
+                    Some(k.1)
+                } else if k.1 == state_id {
+                    Some(k.0)
+                } else {
+                    None
+                }
+            })
+            .collect()
+    }
+
+    pub fn best_vector(&self, state_id: usize) -> Result<Vec2, RitmError> {
+        let mut transition_vector =
+            self.neighbors(state_id)
+                .iter()
+                .try_fold(Vec2::ZERO, |acc, e| {
+                    let target_position = self.get_state(*e)?.inner_state.position;
+                    let source_position = self.get_state(state_id)?.inner_state.position;
+                    Ok(acc + (target_position - source_position).normalized())
+                })?;
+
+        if transition_vector == Vec2::ZERO {
+            transition_vector =
+                self.get_state(state_id)?.inner_state.position - self.graph_center();
+        }
+        Ok(transition_vector)
     }
 }
 

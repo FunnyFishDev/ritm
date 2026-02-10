@@ -82,7 +82,10 @@ pub fn error(ctx: Context, app: &mut App) {
                     .halign(egui::Align::Center)
                     .selectable(true),
             );
-            if ui.button(RichText::new("close").font(Font::default_medium())).clicked() {
+            if ui
+                .button(RichText::new("close").font(Font::default_medium()))
+                .clicked()
+            {
                 app.error = None;
             }
         });

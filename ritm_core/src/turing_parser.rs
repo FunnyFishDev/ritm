@@ -162,7 +162,8 @@ where
                         transitions
                             .first()
                             .expect("at least one")
-                            .get_number_of_affected_tapes() - 1,
+                            .get_number_of_affected_tapes()
+                            - 1,
                         false,
                     )
                     .expect("correct machine");

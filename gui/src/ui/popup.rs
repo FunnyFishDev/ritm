@@ -1,6 +1,6 @@
 use egui::{
-    AtomExt, Button, Context, Frame, Id, Image, Label, Margin, Modal, Pos2,
-    RichText, Separator, Stroke, Ui, Vec2, include_image, style::WidgetVisuals, vec2,
+    Align2, AtomExt, Button, Context, Frame, Id, Image, Label, Margin, Modal, Pos2, RichText,
+    Separator, Stroke, Ui, Vec2, include_image, style::WidgetVisuals, vec2,
 };
 use egui_flex::{Flex, FlexAlignContent, item};
 
@@ -90,39 +90,6 @@ pub fn show(ctx: &Context, app: &mut App) -> Result<(), RitmError> {
     Ok(())
 }
 
-// fn popup(
-//     ctx: &Context,
-//     app: &mut App,
-//     title: String,
-//     can_be_closed: bool,
-//     size: Vec2,
-//     content: impl FnOnce(&mut Ui, &mut App) -> Result<(), RitmError>,
-// ) -> Result<(), RitmError> {
-//     let frame = Frame {
-//         fill: app.theme.surface,
-//         stroke: Stroke::new(2.0, app.theme.border),
-//         inner_margin: Margin::same(10),
-//         corner_radius: 10.into(),
-//         ..Default::default()
-//     };
-
-//     if let Some(res) = Popup::new(
-//         Id::new("popup"),
-//         ctx.clone(),
-//         PopupAnchor::ParentRect(ctx.available_rect()),
-//         // PopupAnchor::Position(ctx.screen_rect().center() - vec2(size.x/2.0, 0.0)),
-//         LayerId::new(egui::Order::Foreground, Id::new("popup/modal-layer")),
-//     )
-//     .align(RectAlign::TOP)
-//     .frame(frame)
-//     .show(|ui| header(ui, app, title, can_be_closed, content))
-//     {
-//         res.inner
-//     } else {
-//         Ok(())
-//     }
-// }
-
 fn modal<R>(
     ctx: &Context,
     app: &mut App,
@@ -170,25 +137,27 @@ fn header<R>(
                 Label::new(RichText::new(title).font(Font::default_big())),
             );
 
-            flex.grow();
+            flex.add_ui(
+                item().align_self_content(Align2::RIGHT_CENTER).grow(1.0),
+                |ui| {
+                    if can_be_closed {
+                        let img = Image::new(include_image!("../../assets/icon/back.svg"))
+                            .fit_to_exact_size(Vec2::splat(25.0))
+                            .tint(app.theme.overlay)
+                            .atom_size(Vec2::splat(25.0));
 
-            if can_be_closed {
-                let img = Image::new(include_image!("../../assets/icon/back.svg"))
-                    .fit_to_exact_size(Vec2::splat(25.0))
-                    .tint(app.theme.overlay)
-                    .atom_size(Vec2::splat(25.0));
-
-                if flex
-                    .add(
-                        item(),
-                        Button::new((img, RichText::new("Back").font(Font::default_big())))
-                            .frame(false),
-                    )
-                    .clicked()
-                {
-                    app.popup.close();
-                }
-            }
+                        if ui
+                            .add(
+                                Button::new((img, RichText::new("Back").font(Font::default_big())))
+                                    .frame(false),
+                            )
+                            .clicked()
+                        {
+                            app.popup.close();
+                        }
+                    };
+                },
+            );
         });
 
     ui.add(Separator::default().spacing(15.0).horizontal().grow(10.0));
@@ -201,7 +170,7 @@ pub fn boolean_popup(
     app: &mut App,
     question: &str,
 ) -> Result<Option<bool>, RitmError> {
-    modal(ui.ctx(), app, "Warning".to_string(), false, |ui, app| {
+    modal(ui.ctx(), app, "Info".to_string(), false, |ui, app| {
         ui.label(RichText::new(question).font(Font::default_medium()));
         ui.add_space(10.0);
         ui.spacing_mut().button_padding = vec2(0.0, 8.0);
@@ -234,9 +203,9 @@ pub fn boolean_popup(
     })
 }
 
-pub fn warning(ui: &mut Ui, app: &mut App, question: &str) -> Result<(), RitmError> {
-    modal(ui.ctx(), app, "Warning".to_string(), true, |ui, _app| {
-        ui.label(RichText::new(question).font(Font::default_medium()));
-        Ok(())
-    })
-}
+// pub fn warning(ui: &mut Ui, app: &mut App, question: &str) -> Result<(), RitmError> {
+//     modal(ui.ctx(), app, "Warning".to_string(), true, |ui, _app| {
+//         ui.label(RichText::new(question).font(Font::default_medium()));
+//         Ok(())
+//     })
+// }

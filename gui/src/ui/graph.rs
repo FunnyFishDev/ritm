@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use egui::{
-    Id, Image, ImageButton, LayerId, Rect, Scene, Ui, UiBuilder, Vec2, include_image, vec2,
+    Id, Image, ImageButton, LayerId, Pos2, Rect, Scene, Ui, UiBuilder, Vec2, include_image, vec2,
 };
 use ritm_core::turing_graph::TuringStateWrapper;
 
@@ -9,7 +9,13 @@ use crate::{
     App,
     error::RitmError,
     turing::{State, TransitionId},
-    ui::{constant::Constant, edit, popup::RitmPopupEnum, utils},
+    ui::{
+        constant::Constant,
+        edit,
+        graph::transition::{draw_arrow, draw_self_arrow},
+        popup::RitmPopupEnum,
+        utils,
+    },
 };
 
 pub mod state;
@@ -22,6 +28,7 @@ pub struct Graph {
     recenter: bool,
     is_stable: bool,
     is_dragging: bool,
+    drag_transition: Option<usize>,
 }
 
 impl Default for Graph {
@@ -33,6 +40,7 @@ impl Default for Graph {
             recenter: false,
             is_stable: false,
             is_dragging: false,
+            drag_transition: None,
         }
     }
 }
@@ -88,11 +96,15 @@ pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
         apply_force(app);
     }
 
+    let graph_rect = ui.available_rect_before_wrap();
+
     let scene_response = Scene::new()
         .zoom_range(0.0..=1.5)
         .show(ui, &mut scene_rect, |ui| {
             // Draw the transitions of the turing machine
             transition::show(app, ui)?;
+
+            transition_dragging(ui, app, graph_rect)?;
 
             // Draw the states of the turing machine
             state::show(app, ui)?;
@@ -221,9 +233,6 @@ fn apply_force(app: &mut App) {
     }
 
     app.graph.is_stable = max_force_applied < Constant::STABILITY_TRESHOLD;
-
-    // println!("{:?}", forces);
-    // sleep(Duration::from_millis(250));
 }
 
 /// Button to convert the current displayed graph into code
@@ -282,4 +291,42 @@ fn reset_button(ui: &mut Ui, app: &mut App, layer: LayerId) {
             }
         },
     );
+}
+
+fn transition_dragging(ui: &mut Ui, app: &mut App, graph_rect: Rect) -> Result<(), RitmError> {
+    if let Some(source_id) = app.graph.drag_transition
+        && let Ok(source) = app.turing.get_state(source_id)
+    {
+        if !ui.input(|r| r.pointer.any_down()) {
+            app.graph.drag_transition = None;
+        }
+
+        if let Some(absolute_position) = ui.input(|r| r.pointer.latest_pos()) {
+            let target = if graph_rect.contains(absolute_position) {
+                Pos2::new(
+                    ui.clip_rect().left()
+                        + (ui.clip_rect().width() * (absolute_position.x - graph_rect.left())
+                            / graph_rect.width()),
+                    ui.clip_rect().top()
+                        + (ui.clip_rect().height() * (absolute_position.y - graph_rect.top())
+                            / graph_rect.height()),
+                )
+            } else {
+                absolute_position
+            };
+
+            if Rect::from_center_size(
+                source.get_inner().position,
+                Vec2::splat(Constant::STATE_RADIUS * 2.0),
+            )
+            .contains(target)
+            {
+                let transition_vec = app.turing.best_vector(source_id)?;
+                let _ = draw_self_arrow(app, ui, source.get_inner().position, transition_vec);
+            } else {
+                let _ = draw_arrow(app, ui, source.get_inner().position, target, None);
+            }
+        }
+    }
+    Ok(())
 }

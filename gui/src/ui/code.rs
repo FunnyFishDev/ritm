@@ -67,23 +67,33 @@ impl Code {
             .code)
     }
 
-    pub fn tab_name_check(&self, mut tab_name: String) -> String {
-        if self.tabs.iter().any(|t| t.name == tab_name) {
-            tab_name.push('2');
+    pub fn tab_name_check(&mut self) {
+        let mut flag = 1;
+        while flag > 0 && self.tabs.len() > 1 {
+            flag -= 1;
+            if self
+                .tabs
+                .iter()
+                .enumerate()
+                .filter(|(i, _)| *i != self.current_tab)
+                .any(|(_, t)| t.name == self.tabs[self.current_tab].name)
+            {
+                self.tabs[self.current_tab].name.push('2');
+                flag += 1;
+            };
         }
-        tab_name
     }
 
-    pub fn new_tab(&mut self, mut tab_name: String, code: String) -> Result<(), RitmError> {
-        tab_name = self.tab_name_check(tab_name);
+    pub fn new_tab(&mut self, tab_name: String, code: String) {
         self.tabs.push(Tab {
             code,
             name: tab_name,
         });
 
         self.auto_scroll = true;
+        self.switch_to(self.tabs.len() - 1);
         self.editing_name = true;
-        self.switch_to(self.tabs.len() - 1)
+        self.tab_name_check();
     }
 
     pub fn is_closed(&self) -> bool {
@@ -106,19 +116,13 @@ impl Code {
         self.code_closed ^= true;
     }
 
-    pub(crate) fn switch_to(&mut self, id: usize) -> Result<(), RitmError> {
+    pub(crate) fn switch_to(&mut self, id: usize) {
         if self.tabs.len() <= id {
-            return Err(RitmError::GuiError(GuiError::InvalidInput(format!(
-                "tab id {} exceed the number of tab : {}",
-                id,
-                self.tabs.len()
-            ))));
+            return;
         }
 
         self.editing_name = false;
         self.current_tab = id;
-
-        Ok(())
     }
 }
 
@@ -186,7 +190,6 @@ pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
 
                                     // TODO: change text_edit color
                                     if let Some(rect) = button.rect(text_edit_id) {
-                                        // println!("{}", Font::get_heigth(ui, &Font::default_big()));
                                         let text_edit = TextEdit::singleline(
                                             &mut app.code.tabs[app.code.current_tab].name,
                                         )
@@ -203,19 +206,14 @@ pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
                                         .text_color(app.theme.code);
                                         let response = ui.put(rect, text_edit);
                                         if response.lost_focus() {
-                                            app.code.tabs[app.code.current_tab].name =
-                                                app.code.tab_name_check(
-                                                    app.code.tabs[app.code.current_tab]
-                                                        .name
-                                                        .clone(),
-                                                );
+                                            app.code.tab_name_check();
                                             app.code.editing_name = false;
                                         }
                                         response.request_focus();
                                     }
 
                                     if !is_current_tab && button.response.clicked() {
-                                        app.code.switch_to(i)?;
+                                        app.code.switch_to(i);
                                     }
 
                                     if !(app.code.editing_name && is_current_tab)
@@ -273,7 +271,7 @@ pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
 
                         // Add a state
                         if plus.inner.clicked() {
-                            app.code.new_tab(app.code.tab_name(), "".to_string())?;
+                            app.code.new_tab(app.code.tab_name(), "".to_string());
                         }
 
                         // Remove the tabs closed
@@ -282,13 +280,11 @@ pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
                         }
 
                         if app.code.current_tab > app.code.tabs.len() - 1 {
-                            app.code.switch_to(app.code.tabs.len() - 1)?;
+                            app.code.switch_to(app.code.tabs.len() - 1);
                         }
 
                         Ok::<(), RitmError>(())
                     });
-
-                    // println!("{}", res.response.rect.width(), re)
 
                     if res.response.rect.width() > rect.width()
                         && res.response.rect.right() < rect.right()

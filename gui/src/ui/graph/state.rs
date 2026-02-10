@@ -63,7 +63,14 @@ fn draw_node(app: &mut App, ui: &mut Ui, state_id: usize) -> Result<(), RitmErro
     ui.put(rect, label);
 
     // Listen for click and drag event on the node
-    let response = ui.allocate_rect(rect, Sense::click_and_drag());
+    let response = ui.allocate_rect(
+        rect,
+        if app.graph.drag_transition.is_some_and(|f| f == state_id) {
+            Sense::CLICK
+        } else {
+            Sense::click_and_drag()
+        },
+    );
 
     if response.clicked() {
         if app.edit.is_adding_transition {
@@ -86,6 +93,23 @@ fn draw_node(app: &mut App, ui: &mut Ui, state_id: usize) -> Result<(), RitmErro
         .try_get_state_mut(state_id)
         .expect("state exist");
 
+    if response.is_pointer_button_down_on() && !response.dragged() {
+        let time = ui.input(|r| r.time);
+        let time_down = time - ui.input(|r| r.pointer.press_start_time()).unwrap_or(time);
+        if time_down
+            > ui.ctx()
+                .options(|r| r.input_options.max_click_duration - 0.1)
+        {
+            app.graph.drag_transition = Some(state_id);
+        }
+        ui.ctx().request_repaint();
+    }
+
+    // let time_down = time - ui.input(|r| r.pointer.press_start_time()).unwrap_or(time);
+    // if response.long_touched() || (response.contains_pointer() && time_down > ui.ctx().options(|r| r.input_options.max_click_duration - 0.1)) {
+    //     app.graph.drag_transition = Some(state_id)
+    // }
+
     // If dragged, make the node follow the pointer
     if response.dragged() {
         state.inner_state.position = response.interact_pointer_pos().unwrap();
@@ -93,6 +117,7 @@ fn draw_node(app: &mut App, ui: &mut Ui, state_id: usize) -> Result<(), RitmErro
     }
 
     if response.drag_started() {
+        app.graph.drag_transition = None;
         app.graph.is_dragging = true
     }
     if response.drag_stopped() {

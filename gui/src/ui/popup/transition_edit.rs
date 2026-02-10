@@ -110,10 +110,13 @@ pub fn show(ui: &mut Ui, app: &mut App) -> Result<(), RitmError> {
                 let x = app.turing.apply_transition_change()?;
                 if x.iter().any(|t| t.is_err()) {
                     return Err(RitmError::GuiError(GuiError::InvalidTransition {
-                        reason: x.iter().filter_map(|f| match f {
-                            Ok(_) => None,
-                            Err(err) => Some(err.to_string()),
-                        }).collect(),
+                        reason: x
+                            .iter()
+                            .filter_map(|f| match f {
+                                Ok(_) => None,
+                                Err(err) => Some(err.to_string()),
+                            })
+                            .collect(),
                     }));
                 } else {
                     app.popup.close();

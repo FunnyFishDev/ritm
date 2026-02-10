@@ -30,26 +30,7 @@ pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
         BTreeMap::new();
 
     // Used to compute the center of every state position
-    let graph_center = app
-        .turing
-        .tm
-        .graph_ref()
-        .get_states()
-        .iter()
-        .fold(Vec2::ZERO, |acc, e| acc + e.inner_state.position.to_vec2())
-        / app.turing.tm.graph_ref().get_state_hashmap().len() as f32;
-
     let mut neighbors: HashMap<usize, HashSet<usize>> = HashMap::new();
-
-    // Extract each keys to avoid borrowing the whole App struct when iterating every state
-    let keys: Vec<usize> = app
-        .turing
-        .tm
-        .graph_ref()
-        .get_state_hashmap()
-        .keys()
-        .copied()
-        .collect::<Vec<usize>>();
 
     let transition_data: Vec<(usize, usize, usize)> = app
         .turing
@@ -102,59 +83,54 @@ pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
         }
     }
 
-    for ((from, to), transitions) in transitions_hashmap.iter() {
-        if from == to {
-            let transition_vector = neighbors
-                .entry(*from)
-                .or_insert(HashSet::from_iter(keys.iter().cloned()))
-                .iter()
-                .try_fold(Vec2::ZERO, |acc, e| {
-                    let target_position = app.turing.get_state(*e)?.inner_state.position;
-                    let source_position = app.turing.get_state(*from)?.inner_state.position;
-                    Ok(acc + (target_position - source_position).normalized())
-                })?;
+    for ((source, target), transitions) in transitions_hashmap.iter() {
+        if source == target {
+            let transition_vec = app.turing.best_vector(*source)?;
+            let source_position = app.turing.get_state(*source)?.inner_state.position;
 
-            draw_self_transition(app, ui, *from, transition_vector, transitions)?;
+            let placement = draw_self_arrow(app, ui, source_position, transition_vec)?;
+            draw_labels(app, ui, transitions, placement)?;
         } else {
             let transitions_keys = app.turing.tm.graph_ref().get_transitions_hashmap();
-            let reverse = if transitions_keys.contains_key(&(*from, *to))
-                && transitions_keys.contains_key(&(*to, *from))
+            let reverse = if transitions_keys.contains_key(&(*source, *target))
+                && transitions_keys.contains_key(&(*target, *source))
             {
-                from > to
+                source > target
             } else {
                 false
             };
-
-            draw_transition(app, ui, *from, *to, graph_center, reverse, transitions)?;
+            let target_position = app.turing.get_state(*target)?.inner_state.position;
+            let source_position = app.turing.get_state(*source)?.inner_state.position;
+            let placement = draw_arrow(app, ui, source_position, target_position, Some(reverse))?;
+            draw_labels(app, ui, transitions, placement)?;
         }
     }
     Ok(())
 }
 
 /// Draw transition between 2 different state
-fn draw_transition(
+pub fn draw_arrow(
     app: &mut App,
     ui: &mut Ui,
-    source: usize,
-    target: usize,
-    graph_center: Vec2,
-    reverse: bool,
-    transitions: &[(TransitionId, bool)],
-) -> Result<(), RitmError> {
-    let source_position = app.turing.get_state(source)?.inner_state.position;
-    let target_position = app.turing.get_state(target)?.inner_state.position;
+    source: Pos2,
+    target: Pos2,
+    reverse: Option<bool>,
+) -> Result<(Pos2, Vec2), RitmError> {
     // compute the center between the 2 states
-    let center = Pos2::new(
-        (source_position.x + target_position.x) / 2.0,
-        (source_position.y + target_position.y) / 2.0,
-    );
+    let center = Pos2::new((source.x + target.x) / 2.0, (source.y + target.y) / 2.0);
+
+    let graph_center = app.turing.graph_center();
 
     // compute the direction of the curve
-    let mut delta = (source_position - target_position).rot90().normalized();
-    let need_to_flip = utils::distance(center + delta, graph_center.to_pos2())
-        < utils::distance(center - delta, graph_center.to_pos2());
+    let mut delta = (source - target).rot90().normalized();
+    let need_to_flip = utils::distance(center + delta, graph_center)
+        < utils::distance(center - delta, graph_center);
+
+    // If there is 2-way transitions, then we arbitrary choose one to be inversed
+    let reversed = reverse.unwrap_or(false);
+
     // trust me bro, it's a xor operation
-    delta = if reverse != need_to_flip {
+    delta = if reversed != need_to_flip {
         -delta
     } else {
         delta
@@ -162,9 +138,9 @@ fn draw_transition(
 
     // points of the curve
     let points = [
-        source_position,
+        source,
         (center + delta * Constant::TRANSITION_CURVATURE * 2.0),
-        target_position,
+        target,
     ];
 
     // draw the bezier
@@ -177,15 +153,24 @@ fn draw_transition(
 
     // compute the curve lenght to find where to draw the triangle
     let curve_lenght = get_quadratic_len(points, 100);
-    let arrow_position = quadraticbeziercurve(
+    let offset_pos = quadraticbeziercurve(
         points,
         map(
             &curve_lenght,
             100,
-            1.0 - Constant::STATE_RADIUS / curve_lenght.last().unwrap(),
+            1.0 - Constant::STATE_RADIUS / curve_lenght.last().expect("list shouldn't be empty"),
         ),
     );
-    let arrow_direction = (arrow_position - target_position.to_vec2()).normalized();
+    let (arrow_position, arrow_direction) = if reverse.is_some() {
+        (offset_pos, (offset_pos - target.to_vec2()).normalized())
+    } else {
+        let previous_point = quadraticbeziercurve(points, map(&curve_lenght, 100, 0.99));
+        (
+            target.to_vec2(),
+            (previous_point - target.to_vec2()).normalized(),
+        )
+    };
+    // let arrow_direction = (arrow_position - target.to_vec2()).normalized();
 
     // compute vertices of triangle
     let triangles = vec![
@@ -206,24 +191,16 @@ fn draw_transition(
         Stroke::NONE,
     ));
 
-    draw_labels(
-        app,
-        ui,
-        transitions,
-        (center, delta * Constant::TRANSITION_CURVATURE),
-    )?;
-    Ok(())
+    Ok((center, delta * Constant::TRANSITION_CURVATURE))
 }
 
 /// Draw self-transition, aka with the target being the source
-fn draw_self_transition(
-    app: &mut App,
+pub fn draw_self_arrow(
+    _app: &mut App,
     ui: &mut Ui,
-    state_id: usize,
+    state_position: Pos2,
     transition_vec: Vec2,
-    transitions: &[(TransitionId, bool)],
-) -> Result<(), RitmError> {
-    let state_position = app.turing.get_state(state_id)?.inner_state.position;
+) -> Result<(Pos2, Vec2), RitmError> {
     // normalize the delta
     let delta = -transition_vec.normalized();
 
@@ -285,14 +262,7 @@ fn draw_self_transition(
         Stroke::NONE,
     ));
 
-    // draw the label
-    draw_labels(
-        app,
-        ui,
-        transitions,
-        (state_position, delta * Constant::SELF_TRANSITION_SIZE),
-    )?;
-    Ok(())
+    Ok((state_position, delta * Constant::SELF_TRANSITION_SIZE))
 }
 
 /// draw the transitions rules as superposed label
