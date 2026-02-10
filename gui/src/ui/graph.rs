@@ -104,12 +104,12 @@ pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
             // Draw the transitions of the turing machine
             transition::show(app, ui)?;
 
+            // Draw the states of the turing machine
+            state::show(app, ui)?;
+
             if let Err(x) = transition_dragging(ui, app, graph_rect) {
                 println!("{x}");
             }
-
-            // Draw the states of the turing machine
-            state::show(app, ui)?;
 
             // This Rect can be used to "Reset" the view of the graph
             inner_rect = ui.min_rect();
@@ -140,7 +140,9 @@ pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
     // TODO: need to rework state adding flow
 
     if scene_response.clicked() {
-        if app.edit.is_adding_state {
+        if app.graph.selected_state.is_some() {
+            app.graph.unselect();
+        } else if app.edit.is_adding_state {
             let click_pos = scene_response
                 .interact_pointer_pos()
                 .expect("no click position found");
@@ -151,8 +153,7 @@ pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
 
         // CLick on the scene reset selection and editing
         app.edit.is_adding_state &= !app.settings.reset_after_action;
-        app.edit.is_adding_transition &= !app.settings.reset_after_action;
-        app.graph.unselect();
+        app.edit.is_adding_transition = false;
     }
 
     edit::show(app, ui)?;
@@ -302,6 +303,7 @@ fn transition_dragging(ui: &mut Ui, app: &mut App, graph_rect: Rect) -> Result<(
             if let Some(target_id) = target_id {
                 app.turing.add_transition(source_id, target_id);
             }
+
             app.graph.drag_transition = None;
         }
         // We draw the arrow if still down
@@ -311,7 +313,11 @@ fn transition_dragging(ui: &mut Ui, app: &mut App, graph_rect: Rect) -> Result<(
             let target = if graph_rect.contains(absolute_position) {
                 absolute_to_relative(ui.clip_rect(), graph_rect, absolute_position)
             } else {
-                absolute_position
+                absolute_to_relative(
+                    ui.clip_rect(),
+                    graph_rect,
+                    absolute_position.clamp(graph_rect.min, graph_rect.max),
+                )
             };
 
             if Rect::from_center_size(
@@ -326,6 +332,7 @@ fn transition_dragging(ui: &mut Ui, app: &mut App, graph_rect: Rect) -> Result<(
                 let _ = draw_arrow(app, ui, source.get_inner().position, target, None);
             }
         }
+        state::draw_node(app, ui, source_id)?;
     }
 
     if let Some((s, _)) = app.graph.drag_transition {

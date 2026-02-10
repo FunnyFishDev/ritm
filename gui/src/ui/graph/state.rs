@@ -15,6 +15,7 @@ pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
         .graph_ref()
         .get_state_hashmap()
         .keys()
+        // .filter(|f| app.graph.drag_transition.is_none_or(|(s, _)| s != **f))
         .copied()
         .collect();
     for i in keys {
@@ -24,7 +25,7 @@ pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
 }
 
 /// Draw a single state
-fn draw_node(app: &mut App, ui: &mut Ui, state_id: usize) -> Result<(), RitmError> {
+pub fn draw_node(app: &mut App, ui: &mut Ui, state_id: usize) -> Result<(), RitmError> {
     // Get the state information
     let state = app
         .turing
@@ -82,7 +83,8 @@ fn draw_node(app: &mut App, ui: &mut Ui, state_id: usize) -> Result<(), RitmErro
                 app.graph.selected_state().expect("state selected"),
                 state_id,
             );
-            app.edit.is_adding_transition &= app.settings.reset_after_action;
+            app.edit.is_adding_transition &= !app.settings.reset_after_action;
+            app.edit.is_adding_state = false;
         } else {
             app.graph.select_state(state_id);
             app.edit.is_adding_state = false;
@@ -103,7 +105,10 @@ fn draw_node(app: &mut App, ui: &mut Ui, state_id: usize) -> Result<(), RitmErro
         app.graph.drag_transition = Some((s, Some(state_id)));
     }
 
-    if app.graph.drag_transition.is_none() && response.is_pointer_button_down_on() && !response.dragged() {
+    if app.graph.drag_transition.is_none()
+        && response.is_pointer_button_down_on()
+        && !response.dragged()
+    {
         let time = ui.input(|r| r.time);
         let time_down = time - ui.input(|r| r.pointer.press_start_time()).unwrap_or(time);
         if time_down

@@ -105,7 +105,7 @@ fn modal<R>(
         ..Default::default()
     };
 
-    Modal::new(Id::new("modal"))
+    Modal::new(Id::new(&title))
         .frame(frame)
         .show(ctx, |ui| header(ui, app, title, can_be_closed, content))
         .inner

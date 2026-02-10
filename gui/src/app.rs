@@ -1,13 +1,9 @@
 use std::{collections::BTreeMap, time::Duration};
 
 use egui::{
-    CentralPanel, Color32, Context, FontData, FontDefinitions, FontFamily, Frame, Id, Key, Margin,
-    ScrollArea, ViewportBuilder, ViewportId,
-    color_picker::{Alpha, color_picker_color32},
-    vec2,
+    FontData, FontDefinitions, FontFamily, Key,
 };
 use egui_extras::install_image_loaders;
-use egui_flex::{Flex, FlexInstance, item};
 use ritm_core::turing_parser::{graph_to_string, parse_turing_graph_string};
 
 use crate::{
@@ -77,7 +73,7 @@ pub struct Transient {
 
 impl Default for App {
     fn default() -> Self {
-        let mut sf = Self {
+        Self {
             menu: Menu::default(),
             turing: Turing::default(),
             edit: Edit::default(),
@@ -90,9 +86,7 @@ impl Default for App {
             control: Control::default(),
             settings: Settings::default(),
             error: None,
-        };
-        
-        sf
+        }
     }
 }
 

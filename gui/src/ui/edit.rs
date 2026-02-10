@@ -90,6 +90,7 @@ pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
                         .clicked()
                     {
                         app.edit.is_adding_transition ^= true;
+                        app.edit.is_adding_transition ^= app.settings.reset_after_action || !app.edit.is_adding_transition;
                     }
 
                     // Delete

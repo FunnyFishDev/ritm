@@ -245,6 +245,7 @@ fn transition(app: &mut App, ui: &mut Ui, transition_index: usize) -> Result<boo
                                     .add(
                                         TextEdit::singleline(&mut transition.chars_read[i])
                                             .background_color(Color32::LIGHT_GRAY)
+                                            .lock_focus(false)
                                             .frame(true)
                                             .font(Font::default_medium())
                                             .margin(margin)
@@ -256,12 +257,14 @@ fn transition(app: &mut App, ui: &mut Ui, transition_index: usize) -> Result<boo
                                     )
                                     .changed()
                                 {
-                                    if transition.chars_read[i].len() > 1 {
+                                    if transition.chars_read[i].char_indices().count() >= 2 {
                                         transition.chars_read[i] = transition.chars_read[i]
                                             .chars()
-                                            .next()
+                                            .nth(1)
                                             .unwrap()
                                             .to_string();
+                                    } else if transition.chars_read[i].is_empty() {
+                                        transition.chars_read[i] = "ç".to_string();
                                     }
 
                                     match transition.chars_read[i].as_str() {
@@ -342,6 +345,7 @@ fn transition(app: &mut App, ui: &mut Ui, transition_index: usize) -> Result<boo
                                     .add(
                                         TextEdit::singleline(&mut transition.chars_write[i].0)
                                             .background_color(Color32::LIGHT_GRAY)
+                                            .lock_focus(false)
                                             .frame(true)
                                             .font(Font::default_medium())
                                             .margin(margin)
