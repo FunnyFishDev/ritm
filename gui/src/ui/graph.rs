@@ -8,7 +8,7 @@ use ritm_core::turing_graph::TuringStateWrapper;
 use crate::{
     App,
     error::RitmError,
-    turing::{State, TransitionId},
+    turing::{State, TransitionId, Turing},
     ui::{
         constant::Constant,
         edit,
@@ -28,7 +28,7 @@ pub struct Graph {
     recenter: bool,
     is_stable: bool,
     is_dragging: bool,
-    drag_transition: Option<usize>,
+    drag_transition: Option<(usize, Option<usize>)>,
 }
 
 impl Default for Graph {
@@ -104,7 +104,9 @@ pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
             // Draw the transitions of the turing machine
             transition::show(app, ui)?;
 
-            transition_dragging(ui, app, graph_rect)?;
+            if let Err(x) = transition_dragging(ui, app, graph_rect) {
+                println!("{x}");
+            }
 
             // Draw the states of the turing machine
             state::show(app, ui)?;
@@ -287,30 +289,27 @@ fn reset_button(ui: &mut Ui, app: &mut App, layer: LayerId) {
                 )
                 .clicked()
             {
-                app.turing.reset();
+                app.turing = Turing::default()
             }
         },
     );
 }
 
 fn transition_dragging(ui: &mut Ui, app: &mut App, graph_rect: Rect) -> Result<(), RitmError> {
-    if let Some(source_id) = app.graph.drag_transition
-        && let Ok(source) = app.turing.get_state(source_id)
-    {
+    if let Some((source_id, target_id)) = app.graph.drag_transition {
+        // If the mouse/pen is released then we check if a transition can be added
         if !ui.input(|r| r.pointer.any_down()) {
+            if let Some(target_id) = target_id {
+                app.turing.add_transition(source_id, target_id);
+            }
             app.graph.drag_transition = None;
         }
-
-        if let Some(absolute_position) = ui.input(|r| r.pointer.latest_pos()) {
+        // We draw the arrow if still down
+        else if let Ok(source) = app.turing.get_state(source_id)
+            && let Some(absolute_position) = ui.input(|r| r.pointer.latest_pos())
+        {
             let target = if graph_rect.contains(absolute_position) {
-                Pos2::new(
-                    ui.clip_rect().left()
-                        + (ui.clip_rect().width() * (absolute_position.x - graph_rect.left())
-                            / graph_rect.width()),
-                    ui.clip_rect().top()
-                        + (ui.clip_rect().height() * (absolute_position.y - graph_rect.top())
-                            / graph_rect.height()),
-                )
+                absolute_to_relative(ui.clip_rect(), graph_rect, absolute_position)
             } else {
                 absolute_position
             };
@@ -328,5 +327,20 @@ fn transition_dragging(ui: &mut Ui, app: &mut App, graph_rect: Rect) -> Result<(
             }
         }
     }
+
+    if let Some((s, _)) = app.graph.drag_transition {
+        app.graph.drag_transition = Some((s, None));
+    }
     Ok(())
+}
+
+fn absolute_to_relative(absolute_rect: Rect, relative_rect: Rect, absolute_position: Pos2) -> Pos2 {
+    Pos2::new(
+        absolute_rect.left()
+            + (absolute_rect.width() * (absolute_position.x - relative_rect.left())
+                / relative_rect.width()),
+        absolute_rect.top()
+            + (absolute_rect.height() * (absolute_position.y - relative_rect.top())
+                / relative_rect.height()),
+    )
 }

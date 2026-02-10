@@ -65,7 +65,11 @@ fn draw_node(app: &mut App, ui: &mut Ui, state_id: usize) -> Result<(), RitmErro
     // Listen for click and drag event on the node
     let response = ui.allocate_rect(
         rect,
-        if app.graph.drag_transition.is_some_and(|f| f == state_id) {
+        if app
+            .graph
+            .drag_transition
+            .is_some_and(|(f, _)| f == state_id)
+        {
             Sense::CLICK
         } else {
             Sense::click_and_drag()
@@ -77,7 +81,7 @@ fn draw_node(app: &mut App, ui: &mut Ui, state_id: usize) -> Result<(), RitmErro
             app.turing.add_transition(
                 app.graph.selected_state().expect("state selected"),
                 state_id,
-            )?;
+            );
             app.edit.is_adding_transition &= app.settings.reset_after_action;
         } else {
             app.graph.select_state(state_id);
@@ -93,22 +97,23 @@ fn draw_node(app: &mut App, ui: &mut Ui, state_id: usize) -> Result<(), RitmErro
         .try_get_state_mut(state_id)
         .expect("state exist");
 
-    if response.is_pointer_button_down_on() && !response.dragged() {
+    if let Some((s, _)) = app.graph.drag_transition
+        && response.contains_pointer()
+    {
+        app.graph.drag_transition = Some((s, Some(state_id)));
+    }
+
+    if app.graph.drag_transition.is_none() && response.is_pointer_button_down_on() && !response.dragged() {
         let time = ui.input(|r| r.time);
         let time_down = time - ui.input(|r| r.pointer.press_start_time()).unwrap_or(time);
         if time_down
             > ui.ctx()
-                .options(|r| r.input_options.max_click_duration - 0.1)
+                .options(|r| r.input_options.max_click_duration - 0.3)
         {
-            app.graph.drag_transition = Some(state_id);
+            app.graph.drag_transition = Some((state_id, Some(state_id)));
         }
         ui.ctx().request_repaint();
     }
-
-    // let time_down = time - ui.input(|r| r.pointer.press_start_time()).unwrap_or(time);
-    // if response.long_touched() || (response.contains_pointer() && time_down > ui.ctx().options(|r| r.input_options.max_click_duration - 0.1)) {
-    //     app.graph.drag_transition = Some(state_id)
-    // }
 
     // If dragged, make the node follow the pointer
     if response.dragged() {

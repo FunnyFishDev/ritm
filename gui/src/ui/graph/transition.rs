@@ -92,13 +92,8 @@ pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
             draw_labels(app, ui, transitions, placement)?;
         } else {
             let transitions_keys = app.turing.tm.graph_ref().get_transitions_hashmap();
-            let reverse = if transitions_keys.contains_key(&(*source, *target))
-                && transitions_keys.contains_key(&(*target, *source))
-            {
-                source > target
-            } else {
-                false
-            };
+            let reverse = transitions_keys.contains_key(&(*source, *target)) && transitions_keys.contains_key(&(*target, *source));
+
             let target_position = app.turing.get_state(*target)?.inner_state.position;
             let source_position = app.turing.get_state(*source)?.inner_state.position;
             let placement = draw_arrow(app, ui, source_position, target_position, Some(reverse))?;
@@ -127,10 +122,10 @@ pub fn draw_arrow(
         < utils::distance(center - delta, graph_center);
 
     // If there is 2-way transitions, then we arbitrary choose one to be inversed
-    let reversed = reverse.unwrap_or(false);
+    // let reversed = reverse.unwrap_or(false);
 
     // trust me bro, it's a xor operation
-    delta = if reversed != need_to_flip {
+    delta = if reverse.is_some_and(|f| !f) && need_to_flip {
         -delta
     } else {
         delta

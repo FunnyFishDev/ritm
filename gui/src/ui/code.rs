@@ -294,12 +294,12 @@ pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
                 });
         });
 
-    code(app, ui, &mut app.code.current_code()?)?;
+    code(app, ui)?;
     Ok(())
 }
 
 /// Display the code section of the application
-pub fn code(app: &mut App, ui: &mut Ui, code: &mut String) -> Result<(), RitmError> {
+pub fn code(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
     ScrollArea::vertical()
         .id_salt("code")
         .scroll_bar_visibility(ScrollBarVisibility::AlwaysHidden)
@@ -315,7 +315,7 @@ pub fn code(app: &mut App, ui: &mut Ui, code: &mut String) -> Result<(), RitmErr
                         - Font::get_width(ui, &Font::default_medium()) * 3.0;
 
                     let job = LayoutJob::simple(
-                        code.to_string(),
+                        app.code.tabs[app.code.current_tab].code.clone(),
                         Font::default_medium(),
                         Color32::PLACEHOLDER,
                         code_width,
@@ -366,7 +366,7 @@ pub fn code(app: &mut App, ui: &mut Ui, code: &mut String) -> Result<(), RitmErr
                         ui.fonts(|f| f.layout_job(layout_job))
                     };
 
-                    let code = TextEdit::multiline(code)
+                    let code = TextEdit::multiline(&mut app.code.tabs[app.code.current_tab].code)
                         .code_editor()
                         .font(Font::default_medium())
                         .frame(false)

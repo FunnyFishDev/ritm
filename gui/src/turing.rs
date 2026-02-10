@@ -31,13 +31,15 @@ impl Default for Turing {
         let mut tm =
             TuringMachine::new(graph, "".to_string(), mode).expect("Turing machine creation fail");
         let step = tm.into_iter().next().expect("Initial step creation fail");
-        Self {
+        let mut turing = Self {
             tm,
             accepted: None,
             current_step: step,
             state_edit: None,
             transition_edit: None,
-        }
+        };
+        turing.layer_graph();
+        turing
     }
 }
 
@@ -104,11 +106,10 @@ impl Turing {
         state_id
     }
 
-    pub fn add_transition(&mut self, source_id: usize, target_id: usize) -> Result<(), RitmError> {
+    pub fn add_transition(&mut self, source_id: usize, target_id: usize) {
         self.tm
             .graph_mut()
-            .append_default_transition(source_id, None, target_id)
-            .map_err(|e| RitmError::CoreError(e.to_string()))
+            .append_default_transition(source_id, None, target_id);
     }
 
     pub fn get_state(&self, id: usize) -> Result<&StateWrapper, RitmError> {
@@ -408,7 +409,7 @@ impl Turing {
             .graph_ref()
             .get_transitions_hashmap()
             .iter()
-            .filter_map(|(k, v)| {
+            .filter_map(|(k, _v)| {
                 if k.0 == state_id {
                     Some(k.1)
                 } else if k.1 == state_id {

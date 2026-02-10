@@ -91,9 +91,7 @@ impl Default for App {
             settings: Settings::default(),
             error: None,
         };
-
-        sf.turing.layer_graph();
-
+        
         sf
     }
 }
