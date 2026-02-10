@@ -261,7 +261,7 @@ fn transition(app: &mut App, ui: &mut Ui, transition_index: usize) -> Result<boo
                                         transition.chars_read[i] = transition.chars_read[i]
                                             .chars()
                                             .nth(1)
-                                            .unwrap()
+                                            .expect("Char should exist")
                                             .to_string();
                                     } else if transition.chars_read[i].is_empty() {
                                         transition.chars_read[i] = "ç".to_string();
@@ -362,7 +362,7 @@ fn transition(app: &mut App, ui: &mut Ui, transition_index: usize) -> Result<boo
                                             .0
                                             .chars()
                                             .nth(1)
-                                            .unwrap()
+                                            .expect("Should at least have one element")
                                             .to_string();
                                     }
 

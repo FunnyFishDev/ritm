@@ -130,8 +130,13 @@ fn machine_folder(app: &mut App, ui: &mut FlexInstance) -> Result<(), RitmError>
         .close_behavior(PopupCloseBehavior::CloseOnClick)
         .show(|ui| {
             for example in EXAMPLES.files() {
-                let filename = example.path().file_stem().unwrap().to_str().unwrap();
-                let code = example.contents_utf8().unwrap().to_string();
+                let filename = example
+                    .path()
+                    .file_stem()
+                    .expect("should exist")
+                    .to_str()
+                    .expect("should translate");
+                let code = example.contents_utf8().expect("should exist").to_string();
                 let button = Button::new(
                     RichText::new(filename)
                         .font(Font::default_small())

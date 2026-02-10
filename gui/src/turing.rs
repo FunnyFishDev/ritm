@@ -107,7 +107,8 @@ impl Turing {
     }
 
     pub fn add_transition(&mut self, source_id: usize, target_id: usize) {
-        let _ = self.tm
+        let _ = self
+            .tm
             .graph_mut()
             .append_default_transition(source_id, None, target_id);
     }

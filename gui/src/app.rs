@@ -1,8 +1,6 @@
 use std::{collections::BTreeMap, time::Duration};
 
-use egui::{
-    FontData, FontDefinitions, FontFamily, Key,
-};
+use egui::{FontData, FontDefinitions, FontFamily, Key};
 use egui_extras::install_image_loaders;
 use ritm_core::turing_parser::{graph_to_string, parse_turing_graph_string};
 

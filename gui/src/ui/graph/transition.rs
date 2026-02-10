@@ -92,7 +92,8 @@ pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
             draw_labels(app, ui, transitions, placement)?;
         } else {
             let transitions_keys = app.turing.tm.graph_ref().get_transitions_hashmap();
-            let reverse = transitions_keys.contains_key(&(*source, *target)) && transitions_keys.contains_key(&(*target, *source));
+            let reverse = transitions_keys.contains_key(&(*source, *target))
+                && transitions_keys.contains_key(&(*target, *source));
 
             let target_position = app.turing.get_state(*target)?.inner_state.position;
             let source_position = app.turing.get_state(*source)?.inner_state.position;
@@ -121,10 +122,6 @@ pub fn draw_arrow(
     let need_to_flip = utils::distance(center + delta, graph_center)
         < utils::distance(center - delta, graph_center);
 
-    // If there is 2-way transitions, then we arbitrary choose one to be inversed
-    // let reversed = reverse.unwrap_or(false);
-
-    // trust me bro, it's a xor operation
     delta = if reverse.is_some_and(|f| !f) && need_to_flip {
         -delta
     } else {
@@ -223,7 +220,10 @@ pub fn draw_self_arrow(
             map(
                 &curve_lenght,
                 n,
-                1.0 - (Constant::STATE_RADIUS - 5.0) / curve_lenght.last().unwrap(),
+                1.0 - (Constant::STATE_RADIUS - 5.0)
+                    / curve_lenght
+                        .last()
+                        .expect("Should have at least one element"),
             ),
         ),
         cubicbeziercurve(
@@ -232,7 +232,9 @@ pub fn draw_self_arrow(
                 &curve_lenght,
                 n,
                 1.0 - (Constant::STATE_RADIUS + Constant::ARROW_SIZE / 2.0 - 5.0)
-                    / curve_lenght.last().unwrap(),
+                    / curve_lenght
+                        .last()
+                        .expect("Should have at least one element"),
             ),
         ),
     );

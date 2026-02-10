@@ -138,11 +138,9 @@ pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
                 .id_salt("tabs")
                 .max_height(30.0)
                 .scroll_bar_visibility(ScrollBarVisibility::AlwaysHidden)
+                .auto_shrink(false)
                 .show(ui, |ui| {
-                    ui.set_max_width(f32::INFINITY);
-                    let rect = ui.available_rect_before_wrap();
-                    ui.set_min_width(ui.available_width());
-                    let res = ui.horizontal(|ui| {
+                    ui.horizontal(|ui| {
                         ui.spacing_mut().item_spacing = vec2(3.0, 0.0);
                         let mut marked_to_delete: Vec<usize> = vec![];
                         for i in 0..app.code.tabs.len() {
@@ -245,6 +243,7 @@ pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
                                 });
                         }
 
+                        // ui.set_max_width(ui.available_width() + 50.0);
                         let plus = Frame::new()
                             .fill(
                                 app.theme
@@ -256,7 +255,8 @@ pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
                                 ui.add(
                                     ImageButton::new(
                                         Image::new(include_image!("../../assets/icon/plus.svg"))
-                                            .tint(app.theme.code),
+                                            .tint(app.theme.code)
+                                            .fit_to_exact_size(Vec2::splat(ui.available_height())),
                                     )
                                     .frame(false),
                                 )
@@ -285,12 +285,6 @@ pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
 
                         Ok::<(), RitmError>(())
                     });
-
-                    if res.response.rect.width() > rect.width()
-                        && res.response.rect.right() < rect.right()
-                    {
-                        ui.scroll_to_cursor(None);
-                    }
                 });
         });
 

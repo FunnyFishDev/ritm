@@ -122,7 +122,9 @@ pub fn draw_node(app: &mut App, ui: &mut Ui, state_id: usize) -> Result<(), Ritm
 
     // If dragged, make the node follow the pointer
     if response.dragged() {
-        state.inner_state.position = response.interact_pointer_pos().unwrap();
+        state.inner_state.position = response
+            .interact_pointer_pos()
+            .expect("Pointer should exist");
         state.inner_state.is_pinned = true;
     }
 
