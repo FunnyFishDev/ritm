@@ -94,7 +94,6 @@ fn turing_mode(ui: &mut Ui, app: &mut App) {
         });
     if *app.turing.get_mode() != app.settings.turing_machine_mode {
         app.turing.set_mode(&app.settings.turing_machine_mode);
-        println!("{}", app.turing.get_mode());
     }
     ui.end_row();
 }
