@@ -129,9 +129,7 @@ impl Code {
 pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
     Frame::new()
         .fill(
-            app.theme
-                .code_background
-                .blend(Color32::from_white_alpha(10)),
+            Color32::from_gray(128).blend(app.theme.code_background.gamma_multiply_u8(240))
         )
         .show(ui, |ui| {
             ScrollArea::horizontal()
@@ -139,14 +137,15 @@ pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
                 .max_height(30.0)
                 .scroll_bar_visibility(ScrollBarVisibility::AlwaysHidden)
                 .show(ui, |ui| {
+                    ui.set_min_width(ui.available_width());
                     ui.horizontal(|ui| {
-                        ui.spacing_mut().item_spacing = vec2(3.0, 0.0);
+                        ui.spacing_mut().item_spacing = vec2(4.0, 0.0);
                         let mut marked_to_delete: Vec<usize> = vec![];
                         for i in 0..app.code.tabs.len() {
                             let is_current_tab = app.code.current_tab == i;
                             Frame::new()
                                 .fill(if !is_current_tab {
-                                    Color32::from_gray(128).blend(app.theme.code_background)
+                                    Color32::from_gray(128).blend(app.theme.code_background.gamma_multiply_u8(210))
                                 } else {
                                     app.theme.code_background
                                 })
@@ -243,9 +242,7 @@ pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
                         // ui.set_max_width(ui.available_width() + 50.0);
                         let plus = Frame::new()
                             .fill(
-                                app.theme
-                                    .code_background
-                                    .blend(Color32::from_white_alpha(20)),
+                                Color32::from_gray(128).blend(app.theme.code_background.gamma_multiply_u8(210))
                             )
                             .inner_margin(vec2(8.0, 0.0))
                             .show(ui, |ui| {
