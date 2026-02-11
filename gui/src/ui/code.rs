@@ -29,16 +29,26 @@ impl Default for Code {
         Self {
             tabs: vec![
                 Tab {
-                    code: "Hello".to_string(),
-                    name: "tab1".to_string(),
-                },
-                Tab {
-                    code: "My".to_string(),
-                    name: "tab2".to_string(),
-                },
-                Tab {
-                    code: "Friend !".to_string(),
-                    name: "tab3".to_string(),
+                    code: "accepting = q_a;
+
+// Initialisation
+q_i {ç, ç -> R, ç, R} q_copy;
+
+// Copy to write ribbon
+q_copy {0, _ -> R, 0, R} q_copy;
+q_copy {1, _ -> R, 1, R} q_copy;
+q_copy {$, _ -> L, _, N} q_return;
+
+// Reset reading ribbon position
+q_return {0, _ -> L, _, N} q_return;
+q_return {1, _ -> L, _, N} q_return;
+q_return {ç, _ -> R, _, L} q_check;
+
+// Compare each side until end
+q_check {0, 0 -> R, 0, L} q_check;
+q_check {1, 1 -> R, 1, L} q_check;
+q_check {$, ç -> N, ç, N} q_a;".to_string(),
+                    name: "binary_palindrome".to_string(),
                 },
             ],
             code_closed: Default::default(),
@@ -203,7 +213,8 @@ pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
                                             app.code.tab_name_check();
                                             app.code.editing_name = false;
                                         }
-                                        response.request_focus();
+                                        // TODO: maybe reenable this ?
+                                        // response.request_focus();
                                     }
 
                                     if !is_current_tab && button.response.clicked() {

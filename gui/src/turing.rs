@@ -14,12 +14,13 @@ use crate::error::{GuiError, RitmError};
 
 pub type TransitionWrapper = TuringTransitionWrapper<Transition>;
 pub type StateWrapper = TuringStateWrapper<State>;
+pub type TransitionsEdit = ((usize, usize), Vec<(TransitionEdit, Option<String>)>);
 
 pub struct Turing {
     pub tm: TuringMachine<State, Transition>,
     pub current_step: TuringExecutionSteps,
     pub accepted: Option<bool>,
-    pub transition_edit: Option<((usize, usize), Vec<TransitionEdit>)>,
+    pub transition_edit: Option<TransitionsEdit>,
     pub state_edit: Option<StateEdit>,
 }
 
@@ -243,7 +244,7 @@ impl Turing {
         let mut new_transitions: Vec<Result<TuringTransitionWrapper<Transition>, RitmError>> =
             Vec::new();
 
-        for transition_edit in transitions_edit {
+        for (transition_edit,_) in transitions_edit {
             new_transitions.push(match transition_edit.to() {
                 Ok(transition) => Ok(transition),
                 Err(err) => Err(err),
@@ -262,7 +263,7 @@ impl Turing {
 
         let transitions_edit = transitions_edit
             .iter()
-            .map(|f| f.to())
+            .map(|(f,_)| f.to())
             .collect::<Vec<Result<TransitionWrapper, RitmError>>>();
 
         self.tm
@@ -359,14 +360,14 @@ impl Turing {
         source: usize,
         target: usize,
     ) -> Result<(), RitmError> {
-        let transitions_edit: Vec<TransitionEdit> = self
+        let transitions_edit: Vec<(TransitionEdit, Option<String>)> = self
             .tm
             .graph_mut()
             .get_transitions(source, target)
             .map_err(|e| RitmError::CoreError(e.to_string()))?
             .ok_or(RitmError::CoreError("No transitions found".to_string()))?
             .iter()
-            .map(TransitionEdit::from)
+            .map(|e| (TransitionEdit::from(e), None))
             .collect();
 
         self.transition_edit = Some(((source, target), transitions_edit));
@@ -386,7 +387,7 @@ impl Turing {
         self.transition_edit = None;
     }
 
-    pub fn get_transition_edit(&self) -> Result<&((usize, usize), Vec<TransitionEdit>), RitmError> {
+    pub fn get_transition_edit(&self) -> Result<&TransitionsEdit, RitmError> {
         self.transition_edit
             .as_ref()
             .ok_or(RitmError::GuiError(GuiError::NoTransitionEditing))
@@ -395,7 +396,7 @@ impl Turing {
     /// Return an error if the transition edit has not been set
     pub fn get_transition_edit_mut(
         &mut self,
-    ) -> Result<&mut ((usize, usize), Vec<TransitionEdit>), RitmError> {
+    ) -> Result<&mut TransitionsEdit, RitmError> {
         self.transition_edit
             .as_mut()
             .ok_or(RitmError::GuiError(GuiError::NoTransitionEditing))

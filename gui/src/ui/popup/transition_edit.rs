@@ -78,10 +78,10 @@ pub fn show(ui: &mut Ui, app: &mut App) -> Result<(), RitmError> {
                 {
                     let k = app.turing.tm.graph_ref().get_k();
                     let selected_transition = &mut app.turing.get_transition_edit_mut()?.1;
-                    selected_transition.push(TransitionEdit::from(&TransitionWrapper {
+                    selected_transition.push((TransitionEdit::from(&TransitionWrapper {
                         info: TuringTransitionInfo::create_default(k),
                         inner_transition: Transition::new(),
-                    }));
+                    }), None));
                 }
                 Ok::<(), RitmError>(())
             })
@@ -186,7 +186,7 @@ fn transition(app: &mut App, ui: &mut Ui, transition_index: usize) -> Result<boo
                             ImageButton::new(
                                 Image::new(include_image!("../../../assets/icon/undo.svg"))
                                     .fit_to_exact_size(vec2(35.0, 35.0))
-                                    .tint(if selected_transition[transition_index].has_changed() {
+                                    .tint(if selected_transition[transition_index].0.has_changed() {
                                         app.theme.icon
                                     } else {
                                         app.theme.disabled
@@ -198,7 +198,7 @@ fn transition(app: &mut App, ui: &mut Ui, transition_index: usize) -> Result<boo
                     {
                         // Undo all changes
                         for transition in selected_transition {
-                            transition.undo();
+                            transition.0.undo();
                         }
                     }
 
@@ -218,7 +218,7 @@ fn transition(app: &mut App, ui: &mut Ui, transition_index: usize) -> Result<boo
                         ui.visuals_mut().widgets.inactive.weak_bg_fill;
 
                     // Make access easier
-                    let transition = selected_transition[transition_index].get_edit();
+                    let transition = selected_transition[transition_index].0.get_edit();
 
                     // Layout single character TextEdit
                     ui.with_layout(Layout::left_to_right(Align::Center), |ui| {
