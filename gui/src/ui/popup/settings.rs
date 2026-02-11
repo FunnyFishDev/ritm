@@ -19,7 +19,7 @@ impl Default for Settings {
     fn default() -> Self {
         Self {
             reset_after_action: true,
-            turing_machine_mode: Mode::SaveAll,
+            turing_machine_mode: Mode::StopFirstReject,
             convert_to_graph_on_load: false,
             enable_debug: false,
             theme_changer: false,
@@ -55,11 +55,11 @@ pub fn show(ui: &mut Ui, app: &mut App) -> Result<(), RitmError> {
 
 fn turing_mode(ui: &mut Ui, app: &mut App) {
     ui.label(RichText::new("Turing machine mode").font(Font::default_medium()));
-    if ComboBox::from_id_salt("setting_turing_mode")
+    ComboBox::from_id_salt("setting_turing_mode")
         .selected_text(
-            RichText::new(match app.settings.turing_machine_mode {
+            RichText::new(match app.turing.get_mode() {
                 Mode::SaveAll => "Nondeterministic",
-                Mode::StopAfter(_) => "Limited Nondeterministic",
+                Mode::StopAfter(_) => "Maximum 1000 steps",
                 Mode::StopFirstReject => "Deterministic",
             })
             .font(Font::default_medium()),
@@ -79,8 +79,8 @@ fn turing_mode(ui: &mut Ui, app: &mut App) {
             } else {
                 ui.selectable_value(
                     &mut app.settings.turing_machine_mode,
-                    Mode::StopAfter(500),
-                    "Limited Nondeterministic",
+                    Mode::StopAfter(1000),
+                    "Maximum 1000 steps",
                 );
             };
 
@@ -91,11 +91,10 @@ fn turing_mode(ui: &mut Ui, app: &mut App) {
                     "Deterministic",
                 );
             }
-        })
-        .response
-        .changed()
-    {
+        });
+    if *app.turing.get_mode() != app.settings.turing_machine_mode {
         app.turing.set_mode(&app.settings.turing_machine_mode);
+        println!("{}", app.turing.get_mode());
     }
     ui.end_row();
 }

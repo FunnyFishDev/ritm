@@ -233,6 +233,7 @@ impl Turing {
     /// TODO: changing the mode should reset the machine ?
     pub fn set_mode(&mut self, mode: &Mode) {
         self.tm.set_mode(mode);
+        self.reset();
     }
 
     /// Apply transition changes if correct
