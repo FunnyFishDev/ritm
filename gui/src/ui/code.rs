@@ -138,7 +138,6 @@ pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
                 .id_salt("tabs")
                 .max_height(30.0)
                 .scroll_bar_visibility(ScrollBarVisibility::AlwaysHidden)
-                .auto_shrink(false)
                 .show(ui, |ui| {
                     ui.horizontal(|ui| {
                         ui.spacing_mut().item_spacing = vec2(3.0, 0.0);
@@ -147,9 +146,7 @@ pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
                             let is_current_tab = app.code.current_tab == i;
                             Frame::new()
                                 .fill(if !is_current_tab {
-                                    app.theme
-                                        .code_background
-                                        .blend(Color32::from_white_alpha(20))
+                                    Color32::from_gray(128).blend(app.theme.code_background)
                                 } else {
                                     app.theme.code_background
                                 })

@@ -1,4 +1,4 @@
-use egui::{Checkbox, ComboBox, Grid, RichText, Stroke, Ui, style::WidgetVisuals, vec2};
+use egui::{Button, Checkbox, ComboBox, Grid, RichText, Stroke, Ui, style::WidgetVisuals, vec2};
 use ritm_core::turing_machine::Mode;
 
 use crate::{
@@ -11,6 +11,8 @@ pub struct Settings {
     pub reset_after_action: bool,
     pub convert_to_graph_on_load: bool,
     pub turing_machine_mode: Mode,
+    pub enable_debug: bool,
+    pub theme_changer: bool,
 }
 
 impl Default for Settings {
@@ -19,6 +21,8 @@ impl Default for Settings {
             reset_after_action: true,
             turing_machine_mode: Mode::SaveAll,
             convert_to_graph_on_load: false,
+            enable_debug: false,
+            theme_changer: false,
         }
     }
 }
@@ -41,6 +45,9 @@ pub fn show(ui: &mut Ui, app: &mut App) -> Result<(), RitmError> {
                 turing_mode(ui, app);
                 edit_mode(ui, app);
                 load_setting(ui, app);
+                theme_choose(ui, app);
+                debug(ui, app);
+                theme_changer(ui, app);
             });
     });
     Ok(())
@@ -104,5 +111,77 @@ fn load_setting(ui: &mut Ui, app: &mut App) {
     ui.add(Checkbox::without_text(
         &mut app.settings.convert_to_graph_on_load,
     ));
+    ui.end_row();
+}
+
+fn debug(ui: &mut Ui, app: &mut App) {
+    ui.label(
+        RichText::new("Debug")
+            .font(Font::default_medium())
+            .color(app.theme.surface),
+    );
+    if ui
+        .add(
+            Button::new("")
+                .min_size(vec2(25.0, 15.0))
+                .fill(app.theme.surface)
+                .frame(false),
+        )
+        .clicked()
+    {
+        app.settings.enable_debug ^= true;
+    }
+    ui.end_row();
+}
+
+fn theme_changer(ui: &mut Ui, app: &mut App) {
+    ui.label(
+        RichText::new("Theme changer")
+            .font(Font::default_medium())
+            .color(app.theme.surface),
+    );
+    if ui
+        .add(
+            Button::new("")
+                .min_size(vec2(25.0, 15.0))
+                .fill(app.theme.surface)
+                .frame(false),
+        )
+        .clicked()
+    {
+        app.settings.theme_changer ^= true;
+    }
+    ui.end_row();
+}
+
+fn theme_choose(ui: &mut Ui, app: &mut App) {
+    ui.label(RichText::new("Theme").font(Font::default_medium()));
+    ComboBox::from_id_salt("Themes")
+        .selected_text(
+            RichText::new(if app.theme == Theme::default() {
+                "Default"
+            } else if app.theme == Theme::retro() {
+                "Retro"
+            } else if app.theme == Theme::monochrome() {
+                "Monochrome"
+            } else {
+                "ERROR"
+            })
+            .font(Font::default_medium()),
+        )
+        .width(20.0) // TODO change and think about this value, I hardcoded it
+        .show_ui(ui, |ui| {
+            if app.theme != Theme::default() {
+                ui.selectable_value(&mut app.theme, Theme::default(), "Default");
+            }
+
+            if app.theme != Theme::retro() {
+                ui.selectable_value(&mut app.theme, Theme::retro(), "Retro");
+            };
+
+            if app.theme != Theme::monochrome() {
+                ui.selectable_value(&mut app.theme, Theme::monochrome(), "Monochrome");
+            }
+        });
     ui.end_row();
 }

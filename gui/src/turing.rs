@@ -95,15 +95,20 @@ impl Turing {
     }
 
     /// The state is saved with the core assigned id
-    pub fn add_state_with_pos(&mut self, name: String, position: Pos2) -> usize {
-        let state_id = self.tm.graph_mut().add_state(name, TuringStateType::Normal);
+    pub fn add_state_with_pos(&mut self, name: String, position: Pos2) -> Result<usize, RitmError> {
+        let state_id = self
+            .tm
+            .graph_mut()
+            .try_add_state(name, TuringStateType::Normal)
+            .map_err(|e| RitmError::CoreError(e.to_string()))?;
+
         self.tm
             .graph_mut()
             .try_get_state_mut(state_id)
             .expect("state has been created")
             .inner_state
             .position = position;
-        state_id
+        Ok(state_id)
     }
 
     pub fn add_transition(&mut self, source_id: usize, target_id: usize) {
@@ -437,6 +442,17 @@ impl Turing {
                 self.get_state(state_id)?.inner_state.position - self.graph_center();
         }
         Ok(transition_vector)
+    }
+
+    pub fn rename_state(
+        &mut self,
+        selected: usize,
+        state_name: String,
+    ) -> Result<(), RitmError> {
+        self.tm
+            .graph_mut()
+            .rename_state(selected, state_name)
+            .map_err(|e| RitmError::CoreError(e.to_string()))
     }
 }
 

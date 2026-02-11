@@ -694,7 +694,7 @@ where
         self.state_hashmap.values_mut().collect()
     }
 
-    /// Chnages the name of an already present state in the graph.
+    /// Changes the name of an already present state in the graph.
     /// # Errors
     /// * [`TuringGraphError::AlreadyPresentNameError`] if the new name is already present in the graph.
     /// * [`TuringGraphError::UnknownStateIndex`] if the given index is not present in the graph.

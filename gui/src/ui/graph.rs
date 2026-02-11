@@ -118,6 +118,20 @@ pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
         })
         .response;
 
+    if scene_response.is_pointer_button_down_on()
+        && !scene_response.dragged()
+    {
+        let time = ui.input(|r| r.time);
+        let time_down = time - ui.input(|r| r.pointer.press_start_time()).unwrap_or(time);
+        if time_down
+            > ui.ctx()
+                .options(|r| r.input_options.max_click_duration - 0.3)
+        {
+            app.popup.switch_to(RitmPopupEnum::StateEdit(None, scene_response.interact_pointer_pos()));
+        }
+        ui.ctx().request_repaint();
+    }
+
     // TODO maybe enable the button when small windows but change the behavior to save code as text file directly
     let layer = LayerId::new(egui::Order::Middle, Id::new("graph-button"));
 

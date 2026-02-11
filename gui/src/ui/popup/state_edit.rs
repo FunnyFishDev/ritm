@@ -55,7 +55,7 @@ pub fn show(ui: &mut Ui, app: &mut App) -> Result<(), RitmError> {
 
         let Some(state) = &app.turing.state_edit else {
             app.popup.close();
-            return;
+            return Ok(());
         };
 
         let state_name = state.to().name.clone();
@@ -82,13 +82,10 @@ pub fn show(ui: &mut Ui, app: &mut App) -> Result<(), RitmError> {
                     // if there is a selected state then we modify it
                     if let Some(selected) = selected {
                         // TODO: add a popup to warn that the name already exist
-                        let res = app.turing.tm.graph_mut().rename_state(selected, state_name);
-                        if res.is_err() {
-                            println!("name already exist")
-                        }
+                        app.turing.rename_state(*selected, state_name)?;
                         *selected
                     } else {
-                        app.turing.add_state_with_pos(state_name, *pos)
+                        app.turing.add_state_with_pos(state_name, *pos)?
                     }
                 // if there is no position passed or state selected
                 } else {
@@ -98,7 +95,7 @@ pub fn show(ui: &mut Ui, app: &mut App) -> Result<(), RitmError> {
                 app.graph.select_state(state_id);
                 app.popup.close();
             };
-        });
-    });
-    Ok(())
+            Ok::<(), RitmError>(())
+        }).inner
+    }).inner
 }

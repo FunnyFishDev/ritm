@@ -14,6 +14,7 @@ use egui_flex::{Flex, FlexInstance, item};
 
 use crate::App;
 /// Theme of the application, holding different color for each part
+#[derive(PartialEq)]
 pub struct Theme {
     pub primary: Color32,
     pub primary_variant: Color32,
@@ -83,19 +84,6 @@ impl Default for Theme {
 }
 
 impl Theme {
-    /// Default theme of the application
-    // pub const DEFAULT: Theme = Theme {
-    //     background: Color32::from_rgb(255, 163, 132),
-    //     graph: Color32::from_rgb(254, 239, 218),
-    //     ribbon: Color32::from_rgb(116, 189, 203),
-    //     code: Color32::from_rgb(231, 242, 248),
-    //     highlight: Color32::from_rgb(255, 105, 105),
-    //     selected: Color32::from_rgb(149, 189, 252),
-    //     gray: Color32::from_gray(102),
-    //     white: Color32::WHITE,
-    //     valid: Color32::GREEN,
-    //     invalid: Color32::RED,
-    // };
     pub fn retro() -> Self {
         Self {
             primary: hex_color!("#74bdcbff"),
@@ -130,6 +118,40 @@ impl Theme {
         }
     }
 
+    pub fn monochrome() -> Self {
+        Self {
+            primary: hex_color!("#bfbfbfff"),
+            primary_variant: hex_color!("#000000ff"),
+            secondary: hex_color!("#ffffffff"),
+            secondary_variant: hex_color!("#000000ff"),
+            background: hex_color!("#919191ff"),
+            surface: hex_color!("#ffffffff"),
+            border: hex_color!("#565656ff"),
+            divider: hex_color!("#a7a7a7ff"),
+            text_primary: hex_color!("#000000ff"),
+            text_secondary: hex_color!("#000000ff"),
+            text_disabled: hex_color!("#777777ff"),
+            icon: hex_color!("#000000ff"),
+            hover: hex_color!("#ff0000ff"),
+            active: hex_color!("#c93700ff"),
+            focus: hex_color!("#ff006bff"),
+            success: hex_color!("#00be00ff"),
+            warning: hex_color!("#ffff00ff"),
+            error: hex_color!("#ff1932ff"),
+            info: hex_color!("#7bbcffff"),
+            selection: hex_color!("#44e7ffff"),
+            overlay: hex_color!("#424242ff"),
+            shadow: hex_color!("#000000ff"),
+            code_background: hex_color!("#ffffffff"),
+            code: hex_color!("#000000ff"),
+            syntax_keyword: hex_color!("#000000ff"),
+            syntax_string: hex_color!("#000000ff"),
+            syntax_comment: hex_color!("#36bc00ff"),
+            highlight: hex_color!("#ff00f4ff"),
+            disabled: hex_color!("#949494ff"),
+        }
+    }
+
     pub fn save_new_theme(&mut self) {
         // TODO save here the custom theme in a file or with persistence
     }
@@ -146,8 +168,8 @@ impl Theme {
     }
 
     /// Set the global theme used in egui widget
-    pub fn set_global_theme(theme: &Self, ctx: &Context) {
-        let default_widget = theme.default_widget();
+    pub fn as_global_theme(&self, ctx: &Context) {
+        let default_widget = self.default_widget();
 
         let default_shadow = Shadow {
             offset: [2, 4],
@@ -158,16 +180,16 @@ impl Theme {
 
         ctx.set_visuals(Visuals {
             text_cursor: TextCursorStyle {
-                stroke: Stroke::new(1.0, theme.border),
+                stroke: Stroke::new(1.0, self.border),
                 ..Default::default()
             },
-            window_fill: theme.surface,
+            window_fill: self.surface,
             window_corner_radius: 5.into(),
-            window_stroke: Stroke::new(1.0, theme.border),
+            window_stroke: Stroke::new(1.0, self.border),
             window_shadow: Shadow::NONE,
             popup_shadow: default_shadow,
-            override_text_color: Some(theme.text_primary),
-            text_edit_bg_color: Some(theme.surface),
+            override_text_color: Some(self.text_primary),
+            text_edit_bg_color: Some(self.surface),
             widgets: Widgets {
                 active: WidgetVisuals { ..default_widget },
                 hovered: WidgetVisuals { ..default_widget },
@@ -177,7 +199,7 @@ impl Theme {
             },
             selection: Selection {
                 bg_fill: Color32::from_black_alpha(50),
-                stroke: Stroke::new(1.0, theme.highlight),
+                stroke: Stroke::new(1.0, self.highlight),
             },
             ..Default::default()
         });
@@ -217,7 +239,7 @@ pub fn theme_changer(ctx: &Context, app: &mut App) {
                         .inner_margin(Margin::same(10)),
                 )
                 .show(ctx, |ui| {
-                    if ui.button("print theme").clicked() {
+                    if ui.button("save theme").clicked() {
                         print_theme(app);
                     }
                     ScrollArea::vertical().show(ui, |ui| {

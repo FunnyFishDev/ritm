@@ -15,7 +15,7 @@ use crate::{
         graph::Graph,
         menu::Menu,
         popup::{RitmPopup, settings::Settings},
-        theme::Theme,
+        theme::{Theme, theme_changer},
     },
 };
 
@@ -109,7 +109,7 @@ impl App {
 
         let app: App = Default::default();
 
-        Theme::set_global_theme(&app.theme, &cc.egui_ctx);
+        app.theme.as_global_theme(&cc.egui_ctx);
         app
     }
 
@@ -130,6 +130,7 @@ impl App {
         self.code.new_tab(self.code.tab_name(), code);
     }
 
+    /// TODO: handle in case the code is invalid
     pub fn code_to_graph(&mut self) -> Result<(), RitmError> {
         match parse_turing_graph_string(self.code.current_code()?) {
             Ok(graph) => {
@@ -234,7 +235,10 @@ impl eframe::App for App {
         } else {
             self.transient.listen_to_keybind = true;
         }
-        // theme_changer(ctx, self);
+
+        if self.settings.theme_changer {
+            theme_changer(ctx, self);
+        }
     }
 }
 
