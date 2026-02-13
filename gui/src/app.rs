@@ -14,8 +14,12 @@ use crate::{
         edit::Edit,
         graph::Graph,
         menu::Menu,
-        popup::{RitmPopup, settings::Settings},
+        popup::{
+            RitmPopup,
+            settings::{Settings, debug_show},
+        },
         theme::{Theme, theme_changer},
+        tutorial::{self, Tutorial},
     },
 };
 
@@ -49,6 +53,8 @@ pub struct App {
     pub theme: Theme,
 
     pub help_slide_index: usize,
+
+    pub tutorial: Tutorial,
 }
 
 /// Keep the state of the application
@@ -84,6 +90,7 @@ impl Default for App {
             control: Control::default(),
             settings: Settings::default(),
             error: None,
+            tutorial: Tutorial::default(),
         }
     }
 }
@@ -157,6 +164,8 @@ impl eframe::App for App {
             self.error = Some(error)
         }
 
+        tutorial::show(ctx, self);
+
         error::error(ctx.clone(), self);
 
         if self.control.is_running() && self.control.update_time(ctx.input(|r| r.time)) {
@@ -200,7 +209,7 @@ impl eframe::App for App {
 
                 // Press U to unpin all state
                 if r.key_pressed(Key::U) {
-                    self.turing.unpin();
+                    self.turing.unpin_all();
                 }
 
                 // Press C to open and close code section
@@ -239,6 +248,10 @@ impl eframe::App for App {
         if self.settings.theme_changer {
             theme_changer(ctx, self);
         }
+
+        if self.settings.enable_debug {
+            debug_show(ctx, self);
+        }
     }
 }
 
@@ -269,29 +282,3 @@ fn load_font(cc: &eframe::CreationContext<'_>) {
 
     cc.egui_ctx.set_fonts(fonts);
 }
-
-// pub fn take_screenshot(app: &mut App, ui: &mut Ui) {
-//     let ctx = ui.ctx();
-//     let rect = ui.min_rect();
-//     if app.event.take_screenshot {
-//         app.event.take_screenshot = false;
-
-//         ctx.send_viewport_cmd(ViewportCommand::Screenshot(UserData::default()));
-
-//         ctx.input(|i| {
-//             i.events.iter().for_each(|e| {
-//                 if let egui::Event::Screenshot { image, .. } = e {
-//                     let image = image.region(&rect, Some(i.pixels_per_point));
-//                     save_buffer(
-//                         Path::new("assets/help/screenshot.png"),
-//                         image.as_raw(),
-//                         image.source_size.x as u32,
-//                         image.source_size.y as u32,
-//                         ExtendedColorType::Rgba8,
-//                     )
-//                     .unwrap();
-//                 }
-//             })
-//         });
-//     }
-// }

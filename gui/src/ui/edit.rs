@@ -131,8 +131,10 @@ pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
                         }
 
                         if let Some(transition_selected) = app.graph.selected_transitions() {
-                            app.popup
-                                .switch_to(RitmPopupEnum::TransitionEdit(transition_selected));
+                            app.popup.switch_to(RitmPopupEnum::TransitionEdit((
+                                transition_selected.source_id,
+                                transition_selected.target_id,
+                            )));
 
                             app.turing.prepare_transition_edit(
                                 transition_selected.source_id,
@@ -162,7 +164,7 @@ pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
                     )
                     .clicked()
                     {
-                        app.turing.unpin();
+                        app.turing.unpin_all();
                     }
 
                     Ok::<(), RitmError>(())

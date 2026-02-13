@@ -1,4 +1,10 @@
-use egui::{Button, Checkbox, ComboBox, Grid, RichText, Stroke, Ui, style::WidgetVisuals, vec2};
+use std::path::Path;
+
+use egui::{
+    Button, CentralPanel, Checkbox, ComboBox, Context, Grid, Id, RichText, Stroke, TextBuffer, Ui,
+    UserData, ViewportBuilder, ViewportCommand, ViewportId, style::WidgetVisuals, vec2,
+};
+use image::{ExtendedColorType, save_buffer};
 use ritm_core::turing_machine::Mode;
 
 use crate::{
@@ -182,4 +188,50 @@ fn theme_choose(ui: &mut Ui, app: &mut App) {
             }
         });
     ui.end_row();
+}
+
+pub fn debug_show(ctx: &Context, app: &mut App) {
+    let mut x = false;
+    ctx.show_viewport_immediate(
+        ViewportId::from_hash_of(Id::new("test")),
+        ViewportBuilder::default()
+            .with_always_on_top()
+            .with_inner_size(vec2(150.0, 30.0)),
+        |ctx, _vc| {
+            CentralPanel::default().show(ctx, |ui| {
+                if ui.button("Take screenshot").clicked() {
+                    x = true;
+                }
+            })
+        },
+    );
+
+    if x {
+        ctx.send_viewport_cmd(ViewportCommand::Screenshot(UserData::default()));
+    }
+    take_screenshot(app, ctx);
+}
+
+fn take_screenshot(_app: &mut App, ctx: &Context) {
+    let rect = ctx.screen_rect();
+
+    let time = ctx.input(|r| r.time);
+    ctx.input(|i| {
+        i.events.iter().for_each(|e| {
+            if let egui::Event::Screenshot { image, .. } = e {
+                let image = image.region(&rect, Some(i.pixels_per_point));
+                save_buffer(
+                    Path::new(&format!(
+                        "assets/help/screenshot-{}.png",
+                        time.to_string().char_range(0..4)
+                    )),
+                    image.as_raw(),
+                    image.source_size.x as u32,
+                    image.source_size.y as u32,
+                    ExtendedColorType::Rgba8,
+                )
+                .unwrap();
+            }
+        })
+    });
 }

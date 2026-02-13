@@ -118,16 +118,17 @@ pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
         })
         .response;
 
-    if scene_response.is_pointer_button_down_on()
-        && !scene_response.dragged()
-    {
+    if scene_response.is_pointer_button_down_on() && !scene_response.dragged() {
         let time = ui.input(|r| r.time);
         let time_down = time - ui.input(|r| r.pointer.press_start_time()).unwrap_or(time);
         if time_down
             > ui.ctx()
                 .options(|r| r.input_options.max_click_duration - 0.3)
         {
-            app.popup.switch_to(RitmPopupEnum::StateEdit(None, scene_response.interact_pointer_pos()));
+            app.popup.switch_to(RitmPopupEnum::StateEdit(
+                None,
+                scene_response.interact_pointer_pos(),
+            ));
         }
         ui.ctx().request_repaint();
     }
@@ -314,8 +315,12 @@ fn transition_dragging(ui: &mut Ui, app: &mut App, graph_rect: Rect) -> Result<(
     if let Some((source_id, target_id)) = app.graph.drag_transition {
         // If the mouse/pen is released then we check if a transition can be added
         if !ui.input(|r| r.pointer.any_down()) {
-            if let Some(target_id) = target_id {
-                app.turing.add_transition(source_id, target_id);
+            if let Some(target_id) = target_id
+                && app.turing.add_transition(source_id, target_id).is_ok()
+            {
+                app.turing.prepare_transition_edit(source_id, target_id)?;
+                app.popup
+                    .switch_to(RitmPopupEnum::TransitionEdit((source_id, target_id)));
             }
 
             app.graph.drag_transition = None;

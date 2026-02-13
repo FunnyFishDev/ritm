@@ -27,9 +27,8 @@ struct Tab {
 impl Default for Code {
     fn default() -> Self {
         Self {
-            tabs: vec![
-                Tab {
-                    code: "accepting = q_a;
+            tabs: vec![Tab {
+                code: "accepting = q_a;
 
 // Initialisation
 q_i {ç, ç -> R, ç, R} q_copy;
@@ -47,10 +46,10 @@ q_return {ç, _ -> R, _, L} q_check;
 // Compare each side until end
 q_check {0, 0 -> R, 0, L} q_check;
 q_check {1, 1 -> R, 1, L} q_check;
-q_check {$, ç -> N, ç, N} q_a;".to_string(),
-                    name: "binary_palindrome".to_string(),
-                },
-            ],
+q_check {$, ç -> N, ç, N} q_a;"
+                    .to_string(),
+                name: "binary_palindrome".to_string(),
+            }],
             code_closed: Default::default(),
             current_tab: 0,
             editing_name: false,
@@ -138,9 +137,7 @@ impl Code {
 
 pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
     Frame::new()
-        .fill(
-            Color32::from_gray(128).blend(app.theme.code_background.gamma_multiply_u8(240))
-        )
+        .fill(Color32::from_gray(128).blend(app.theme.code_background.gamma_multiply_u8(240)))
         .show(ui, |ui| {
             ScrollArea::horizontal()
                 .id_salt("tabs")
@@ -155,7 +152,8 @@ pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
                             let is_current_tab = app.code.current_tab == i;
                             Frame::new()
                                 .fill(if !is_current_tab {
-                                    Color32::from_gray(128).blend(app.theme.code_background.gamma_multiply_u8(210))
+                                    Color32::from_gray(128)
+                                        .blend(app.theme.code_background.gamma_multiply_u8(210))
                                 } else {
                                     app.theme.code_background
                                 })
@@ -253,7 +251,8 @@ pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
                         // ui.set_max_width(ui.available_width() + 50.0);
                         let plus = Frame::new()
                             .fill(
-                                Color32::from_gray(128).blend(app.theme.code_background.gamma_multiply_u8(210))
+                                Color32::from_gray(128)
+                                    .blend(app.theme.code_background.gamma_multiply_u8(210)),
                             )
                             .inner_margin(vec2(8.0, 0.0))
                             .show(ui, |ui| {

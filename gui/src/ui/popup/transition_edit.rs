@@ -33,6 +33,8 @@ pub fn show(ui: &mut Ui, app: &mut App) -> Result<(), RitmError> {
                     .inner_margin(10)
                     .corner_radius(5)
                     .show(ui, |ui| {
+                        ui.spacing_mut().scroll.floating = false;
+                        ui.spacing_mut().scroll.bar_width = 3.0;
                         ScrollArea::vertical()
                             .auto_shrink(Vec2b::new(true, false))
                             .scroll_bar_visibility(ScrollBarVisibility::AlwaysVisible)
@@ -78,10 +80,13 @@ pub fn show(ui: &mut Ui, app: &mut App) -> Result<(), RitmError> {
                 {
                     let k = app.turing.tm.graph_ref().get_k();
                     let selected_transition = &mut app.turing.get_transition_edit_mut()?.1;
-                    selected_transition.push((TransitionEdit::from(&TransitionWrapper {
-                        info: TuringTransitionInfo::create_default(k),
-                        inner_transition: Transition::new(),
-                    }), None));
+                    selected_transition.push((
+                        TransitionEdit::from(&TransitionWrapper {
+                            info: TuringTransitionInfo::create_default(k),
+                            inner_transition: Transition::new(),
+                        }),
+                        None,
+                    ));
                 }
                 Ok::<(), RitmError>(())
             })
@@ -107,16 +112,9 @@ pub fn show(ui: &mut Ui, app: &mut App) -> Result<(), RitmError> {
                 )
                 .clicked()
             {
-                let x = app.turing.apply_transition_change()?;
-                if x.iter().any(|t| t.is_err()) {
+                if let Err(reason) = app.turing.apply_transition_change() {
                     return Err(RitmError::GuiError(GuiError::InvalidTransition {
-                        reason: x
-                            .iter()
-                            .filter_map(|f| match f {
-                                Ok(_) => None,
-                                Err(err) => Some(err.to_string()),
-                            })
-                            .collect(),
+                        reason: reason.to_string(),
                     }));
                 } else {
                     app.popup.close();
@@ -154,13 +152,19 @@ pub fn show(ui: &mut Ui, app: &mut App) -> Result<(), RitmError> {
 // To remove later with a system based on the number of ribbons
 fn transition(app: &mut App, ui: &mut Ui, transition_index: usize) -> Result<bool, RitmError> {
     let mut marked_to_delete = false;
+    let error = &app.turing.get_transition_edit()?.1[transition_index].1;
     Frame::new()
         .fill(app.theme.surface)
-        .inner_margin(Margin::symmetric(5, 3))
+        .inner_margin(Margin::symmetric(10, 6))
         .corner_radius(5)
+        .stroke(if error.is_some() {
+            Stroke::new(2.0, app.theme.error)
+        } else {
+            Stroke::NONE
+        })
         .show(ui, |ui| {
             ui.allocate_ui_with_layout(
-                vec2(ui.available_width(), 10.0),
+                vec2(ui.available_width(), 30.0),
                 Layout::right_to_left(egui::Align::Center),
                 |ui| {
                     // Delete
@@ -168,7 +172,7 @@ fn transition(app: &mut App, ui: &mut Ui, transition_index: usize) -> Result<boo
                         .add(
                             ImageButton::new(
                                 Image::new(include_image!("../../../assets/icon/delete.svg"))
-                                    .fit_to_exact_size(vec2(35.0, 35.0))
+                                    .fit_to_exact_size(vec2(30.0, 30.0))
                                     .tint(app.theme.error),
                             )
                             .frame(false),
@@ -185,12 +189,14 @@ fn transition(app: &mut App, ui: &mut Ui, transition_index: usize) -> Result<boo
                         .add(
                             ImageButton::new(
                                 Image::new(include_image!("../../../assets/icon/undo.svg"))
-                                    .fit_to_exact_size(vec2(35.0, 35.0))
-                                    .tint(if selected_transition[transition_index].0.has_changed() {
-                                        app.theme.icon
-                                    } else {
-                                        app.theme.disabled
-                                    }),
+                                    .fit_to_exact_size(vec2(30.0, 30.0))
+                                    .tint(
+                                        if selected_transition[transition_index].0.has_changed() {
+                                            app.theme.icon
+                                        } else {
+                                            app.theme.disabled
+                                        },
+                                    ),
                             )
                             .frame(false),
                         )

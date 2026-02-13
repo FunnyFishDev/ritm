@@ -38,6 +38,8 @@ profiling = "1.0.17"
 profiling-procmacros = "1.0.17"
 include_directory = "0.1.1"
 serde = "1.0.225"
+i_triangle = "0.39.1"
+i_overlay = "4.2.0"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 env_logger = "0.11"

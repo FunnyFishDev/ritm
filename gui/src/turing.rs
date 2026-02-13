@@ -112,11 +112,11 @@ impl Turing {
         Ok(state_id)
     }
 
-    pub fn add_transition(&mut self, source_id: usize, target_id: usize) {
-        let _ = self
-            .tm
+    pub fn add_transition(&mut self, source_id: usize, target_id: usize) -> Result<(), RitmError> {
+        self.tm
             .graph_mut()
-            .append_default_transition(source_id, None, target_id);
+            .append_default_transition(source_id, None, target_id)
+            .map_err(|e| RitmError::CoreError(e.to_string()))
     }
 
     pub fn get_state(&self, id: usize) -> Result<&StateWrapper, RitmError> {
@@ -126,12 +126,11 @@ impl Turing {
             .ok_or(RitmError::CoreError("State not found".to_string()))
     }
 
-    pub fn get_state_mut(&mut self, id: usize) -> &mut StateWrapper {
+    pub fn get_state_mut(&mut self, id: usize) -> Result<&mut StateWrapper, RitmError> {
         self.tm
             .graph_mut()
             .try_get_state_mut(id)
             .map_err(|e| RitmError::CoreError(e.to_string()))
-            .expect("state exist")
     }
 
     /// Remove the state if it exist. If not an error [`RitmError::CoreError`]
@@ -237,48 +236,54 @@ impl Turing {
     }
 
     /// Apply transition changes if correct
-    pub fn apply_transition_change(&mut self) -> Result<Vec<Result<(), RitmError>>, RitmError> {
-        let Some(((source, target), transitions_edit)) = self.transition_edit.as_ref() else {
+    pub fn apply_transition_change(&mut self) -> Result<(), RitmError> {
+        let Some(((source, target), transitions_edit)) = self.transition_edit.as_mut() else {
             return Err(RitmError::GuiError(GuiError::InvalidState));
         };
 
         let mut new_transitions: Vec<Result<TuringTransitionWrapper<Transition>, RitmError>> =
             Vec::new();
 
-        for (transition_edit,_) in transitions_edit {
-            new_transitions.push(match transition_edit.to() {
-                Ok(transition) => Ok(transition),
-                Err(err) => Err(err),
-            })
+        for (transition_edit, _) in transitions_edit.iter() {
+            let new = transition_edit.to();
+            new_transitions.push(if new_transitions.contains(&new) {
+                Err(RitmError::GuiError(GuiError::InvalidTransition {
+                    reason: "The transition already exist".to_string(),
+                }))
+            } else {
+                transition_edit.to()
+            });
         }
 
+        // Check if all transition can be written, aborting if not
         if new_transitions.iter().any(|f| f.is_err()) {
-            return Ok(new_transitions
-                .into_iter()
-                .map(|e| match e {
-                    Ok(_) => Ok(()),
-                    Err(err) => Err(err),
-                })
-                .collect());
+            let mut reason = String::new();
+            for (i, trans) in new_transitions.into_iter().enumerate() {
+                if let Err(err) = trans {
+                    reason.push_str(format!("{i}:{err}").as_str());
+                    transitions_edit[i].1 = Some(err.to_string());
+                    println!("{:?}", Some(err.to_string()))
+                }
+            }
+            return Err(RitmError::GuiError(GuiError::InvalidTransition { reason }));
         }
 
-        let transitions_edit = transitions_edit
-            .iter()
-            .map(|(f,_)| f.to())
-            .collect::<Vec<Result<TransitionWrapper, RitmError>>>();
+        println!("{:#?}", new_transitions);
 
+        // Remove existing transitions
         self.tm
             .graph_mut()
-            .remove_transitions(source, target)
+            .remove_transitions(*source, *target)
             .map_err(|e| RitmError::CoreError(e.to_string()))?;
 
-        for transition in transitions_edit {
+        // Create new transition
+        for transition in new_transitions {
             self.tm
                 .graph_mut()
-                .append_transition(source, transition?.clone(), target)
+                .append_transition(*source, transition?.clone(), *target)
                 .map_err(|e| RitmError::CoreError(e.to_string()))?;
         }
-        Ok(vec![])
+        Ok(())
     }
 
     /// Update the position of each state so the graph
@@ -337,8 +342,14 @@ impl Turing {
         }
     }
 
+    /// Unpin a state
+    pub fn unpin(&mut self, state_id: usize) -> Result<(), RitmError> {
+        self.get_state_mut(state_id)?.inner_state.is_pinned = false;
+        Ok(())
+    }
+
     /// Unpin all states
-    pub fn unpin(&mut self) {
+    pub fn unpin_all(&mut self) {
         self.tm
             .graph_mut()
             .get_states_mut()
@@ -346,8 +357,14 @@ impl Turing {
             .for_each(|s| s.inner_state.is_pinned = false);
     }
 
+    /// Pin a state
+    pub fn pin(&mut self, state_id: usize) -> Result<(), RitmError> {
+        self.get_state_mut(state_id)?.inner_state.is_pinned = true;
+        Ok(())
+    }
+
     /// Pin all states
-    pub fn pin(&mut self) {
+    pub fn pin_all(&mut self) {
         self.tm
             .graph_mut()
             .get_states_mut()
@@ -395,9 +412,7 @@ impl Turing {
     }
 
     /// Return an error if the transition edit has not been set
-    pub fn get_transition_edit_mut(
-        &mut self,
-    ) -> Result<&mut TransitionsEdit, RitmError> {
+    pub fn get_transition_edit_mut(&mut self) -> Result<&mut TransitionsEdit, RitmError> {
         self.transition_edit
             .as_mut()
             .ok_or(RitmError::GuiError(GuiError::NoTransitionEditing))
@@ -446,11 +461,7 @@ impl Turing {
         Ok(transition_vector)
     }
 
-    pub fn rename_state(
-        &mut self,
-        selected: usize,
-        state_name: String,
-    ) -> Result<(), RitmError> {
+    pub fn rename_state(&mut self, selected: usize, state_name: String) -> Result<(), RitmError> {
         self.tm
             .graph_mut()
             .rename_state(selected, state_name)
@@ -571,7 +582,7 @@ impl TransitionWrapperCopy {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct TransitionEdit {
     base: TransitionWrapperCopy,
     edit: TransitionWrapperCopy,

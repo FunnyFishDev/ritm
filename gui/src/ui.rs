@@ -13,6 +13,7 @@ pub mod menu;
 pub mod popup;
 pub mod ribbon;
 pub mod theme;
+pub mod tutorial;
 pub mod utils;
 
 use crate::{App, error::RitmError, ui::font::Font};

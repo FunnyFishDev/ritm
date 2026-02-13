@@ -96,6 +96,8 @@ pub fn show(ui: &mut Ui, app: &mut App) -> Result<(), RitmError> {
                 app.popup.close();
             };
             Ok::<(), RitmError>(())
-        }).inner
-    }).inner
+        })
+        .inner
+    })
+    .inner
 }
