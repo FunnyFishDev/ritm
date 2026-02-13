@@ -13,6 +13,7 @@ use crate::{
         control::Control,
         edit::Edit,
         graph::Graph,
+        iteration_tree::IterationTree,
         menu::Menu,
         popup::{RitmPopup, settings::Settings},
         theme::{Theme, theme_changer},
@@ -39,6 +40,9 @@ pub struct App {
 
     /// The code used to create the turing machine
     pub code: Code,
+
+    /// The tree containing all iterations of the current machine
+    pub tree: IterationTree,
 
     pub error: Option<RitmError>,
 
@@ -76,6 +80,7 @@ impl Default for App {
             turing: Turing::default(),
             edit: Edit::default(),
             graph: Graph::default(),
+            tree: IterationTree::default(),
             transient: Transient::default(),
             theme: Theme::retro(),
             popup: RitmPopup::default(),
@@ -115,14 +120,14 @@ impl App {
 
     /// Reset the machine execution
     pub fn reset(&mut self) {
-        self.turing.reset();
+        self.turing.reset(&mut self.tree);
     }
 
     /// Reset the machine execution with the new input
     /// TODO: stop ignoring result to avoid cloudflare global shutdown
     pub fn set_input(&mut self) {
         let _ = self.turing.tm.reset_word(self.control.input());
-        self.turing.reset();
+        self.turing.reset(&mut self.tree);
     }
 
     pub fn graph_to_code(&mut self) {
@@ -160,7 +165,7 @@ impl eframe::App for App {
         error::error(ctx.clone(), self);
 
         if self.control.is_running() && self.control.update_time(ctx.input(|r| r.time)) {
-            self.turing.next_step();
+            self.turing.next_step(&mut self.tree);
             if self.turing.accepted.is_some() {
                 self.control.pause();
                 ctx.request_repaint(); // To update the ui one last time
@@ -215,7 +220,7 @@ impl eframe::App for App {
 
                 // Press Space to make 1 iteration
                 if self.turing.accepted.is_none() && r.key_pressed(Key::Space) {
-                    self.turing.next_step();
+                    self.turing.next_step(&mut self.tree);
                 }
 
                 // Press P to autoplay the machine

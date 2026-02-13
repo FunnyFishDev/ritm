@@ -10,7 +10,10 @@ use ritm_core::{
     },
 };
 
-use crate::error::{GuiError, RitmError};
+use crate::{
+    error::{GuiError, RitmError},
+    ui::iteration_tree::IterationTree,
+};
 
 pub type TransitionWrapper = TuringTransitionWrapper<Transition>;
 pub type StateWrapper = TuringStateWrapper<State>;
@@ -64,14 +67,17 @@ impl Turing {
     ///
     /// If there is no next step, then we check
     /// the last step state type to accept or reject.
-    pub fn next_step(&mut self) {
+    pub fn next_step(&mut self, tree: &mut IterationTree) {
         // Ignore if the machine already reached the last step
         if self.accepted.is_some() {
             return;
         }
 
         match self.tm.into_iter().next() {
-            Some(step) => self.current_step = step,
+            Some(step) => {
+                tree.add_step(step.clone());
+                self.current_step = step
+            }
             None => {
                 // If there is no next step, then we check the last step state type to accept or reject.
                 self.accepted = Some(
@@ -82,12 +88,12 @@ impl Turing {
     }
 
     /// Reset the machine to its initial state
-    pub fn reset(&mut self) {
+    pub fn reset(&mut self, tree: &mut IterationTree) {
         self.accepted = None;
         self.transition_edit = None;
         self.state_edit = None;
         self.tm.reset();
-        self.next_step();
+        self.next_step(tree);
     }
 
     /// The state is saved with the core assigned id
@@ -244,7 +250,7 @@ impl Turing {
         let mut new_transitions: Vec<Result<TuringTransitionWrapper<Transition>, RitmError>> =
             Vec::new();
 
-        for (transition_edit,_) in transitions_edit {
+        for (transition_edit, _) in transitions_edit {
             new_transitions.push(match transition_edit.to() {
                 Ok(transition) => Ok(transition),
                 Err(err) => Err(err),
@@ -263,7 +269,7 @@ impl Turing {
 
         let transitions_edit = transitions_edit
             .iter()
-            .map(|(f,_)| f.to())
+            .map(|(f, _)| f.to())
             .collect::<Vec<Result<TransitionWrapper, RitmError>>>();
 
         self.tm
@@ -375,11 +381,11 @@ impl Turing {
     }
 
     /// TODO: add error management
-    pub fn set_word(&mut self, word: &String) -> Result<(), RitmError> {
+    pub fn set_word(&mut self, word: &String, tree: &mut IterationTree) -> Result<(), RitmError> {
         self.tm
             .reset_word(word)
             .map_err(|e| RitmError::CoreError(e.to_string()))?;
-        self.reset();
+        self.reset(tree);
         Ok(())
     }
 
@@ -394,9 +400,7 @@ impl Turing {
     }
 
     /// Return an error if the transition edit has not been set
-    pub fn get_transition_edit_mut(
-        &mut self,
-    ) -> Result<&mut TransitionsEdit, RitmError> {
+    pub fn get_transition_edit_mut(&mut self) -> Result<&mut TransitionsEdit, RitmError> {
         self.transition_edit
             .as_mut()
             .ok_or(RitmError::GuiError(GuiError::NoTransitionEditing))
@@ -445,11 +449,7 @@ impl Turing {
         Ok(transition_vector)
     }
 
-    pub fn rename_state(
-        &mut self,
-        selected: usize,
-        state_name: String,
-    ) -> Result<(), RitmError> {
+    pub fn rename_state(&mut self, selected: usize, state_name: String) -> Result<(), RitmError> {
         self.tm
             .graph_mut()
             .rename_state(selected, state_name)

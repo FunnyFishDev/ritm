@@ -10,6 +10,7 @@ pub mod edit;
 pub mod font;
 pub mod graph;
 pub mod menu;
+pub mod iteration_tree;
 pub mod popup;
 pub mod ribbon;
 pub mod theme;
@@ -119,7 +120,10 @@ pub fn show(app: &mut App, ctx: &egui::Context) -> Result<(), RitmError> {
                                 },
                                 ..Default::default()
                             })
-                            .show_inside(ui, |ui| code::show(app, ui))
+                            .show_inside(ui, |ui| {
+                                iteration_tree::show(app, ui)
+                                // code::show(app, ui)
+                            })
                             .inner
                     });
 

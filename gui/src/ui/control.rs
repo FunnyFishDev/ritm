@@ -95,7 +95,7 @@ fn input(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
                 )
                 .clicked()
             {
-                app.turing.set_word(&app.control.input)?;
+                app.turing.set_word(&app.control.input, &mut app.tree)?;
             }
 
             if ui
@@ -176,7 +176,7 @@ fn control(app: &mut App, ui: &mut Ui) {
             )
             .clicked()
             {
-                app.turing.next_step();
+                app.turing.next_step(&mut app.tree);
             }
 
             // Reset button

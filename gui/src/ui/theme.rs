@@ -139,6 +139,7 @@ impl Theme {
             active: hex_color!("#c93700ff"),
             focus: hex_color!("#ff006bff"),
             success: hex_color!("#00be00ff"),
+            backtracked: hex_color!("#e49f45"),
             warning: hex_color!("#ffff00ff"),
             error: hex_color!("#ff1932ff"),
             info: hex_color!("#7bbcffff"),
