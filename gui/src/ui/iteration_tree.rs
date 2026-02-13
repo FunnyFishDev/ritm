@@ -1,10 +1,6 @@
-use std::collections::{HashMap, hash_map::Entry};
+use std::collections::HashMap;
 
-use egui::{
-    Align, Color32, Label, Layout, Margin, Pos2, Rect, RichText, Scene, ScrollArea, Stroke,
-    TextEdit, TextFormat, Ui, pos2, scroll_area::ScrollBarVisibility, text::LayoutJob, vec2,
-};
-use rand::rand_core::le;
+use egui::{Align, Color32, Label, Pos2, Rect, RichText, Scene, Stroke, Ui, pos2, vec2};
 use ritm_core::{
     turing_graph::TuringStateType,
     turing_machine::TuringExecutionSteps,
@@ -19,7 +15,7 @@ use crate::{
 
 const SIBLING_DIST: f32 = 200.;
 const CHILD_DIST: f32 = 200.;
-const DIST_BTW_TREES: f32 = 200.;
+const DIST_BTW_TREES: f32 = 150.;
 
 #[derive(Debug)]
 pub enum NodeType {
@@ -109,7 +105,17 @@ impl IterationTree {
         Ok(())
     }
 
-    pub fn draw_node(&mut self, ui: &mut Ui, current_id: usize) {
+    pub fn finished(&mut self, success: bool) {
+        if let Some(last_node) = self.nodes.last_mut() {
+            if success {
+                last_node.node_type = NodeType::Accepting;
+            } else {
+                last_node.node_type = NodeType::Rejecting;
+            }
+        }
+    }
+
+    fn draw_node(&mut self, ui: &mut Ui, current_id: usize) {
         for child_id in self.nodes[current_id].children.clone() {
             // draw line btw root and child
             ui.painter().line_segment(

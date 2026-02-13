@@ -80,9 +80,11 @@ impl Turing {
             }
             None => {
                 // If there is no next step, then we check the last step state type to accept or reject.
-                self.accepted = Some(
-                    self.current_step.get_current_state().get_type() == TuringStateType::Accepting,
-                );
+                let is_accepted =
+                    self.current_step.get_current_state().get_type() == TuringStateType::Accepting;
+                self.accepted = Some(is_accepted);
+
+                tree.finished(is_accepted);
             }
         }
     }
