@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use egui::{Align, Color32, Label, Pos2, Rect, RichText, Scene, Stroke, Ui, pos2, vec2};
+use egui::{Align, Color32, Label, Pos2, Rect, RichText, Scene, Sense, Stroke, Ui, pos2, vec2};
 use ritm_core::{
     turing_graph::TuringStateType,
     turing_machine::TuringExecutionSteps,
@@ -65,7 +65,6 @@ impl UiNode {
             .color(Theme::constrast_color(self.node_type.get_node_color()));
 
         let label = Label::new(name).wrap().halign(Align::Center);
-
         let rect = Rect::from_center_size(
             pos2(self.x, self.y),
             vec2(Constant::STATE_RADIUS, Constant::STATE_RADIUS) * 2.0,
@@ -73,16 +72,14 @@ impl UiNode {
 
         // Draw the label inside the node, without overflow
         ui.put(rect, label);
-    }
-}
 
-pub enum Node {
-    Future,
-    Explored {
-        reading_tape: TuringReadingTape,
-        writting_tapes: Vec<TuringWritingTape>,
-        node_type: NodeType,
-    },
+
+        // Listen for click and drag event on the node
+        let response = ui.allocate_rect(rect, Sense::HOVER);
+
+        println!("{:?}", response.clicked());
+
+    }
 }
 
 // #[derive(Debug)]
@@ -129,7 +126,7 @@ impl IterationTree {
         }
 
         // Draw root after child and lines to cover them
-        self.nodes[current_id].show(ui, current_id, false);
+        self.nodes[current_id].show(ui, current_id, current_id == self.nodes.len() - 1);
     }
 
     fn has_children(&self, id: usize) -> bool {
@@ -184,12 +181,6 @@ impl IterationTree {
                 self.get_node_mut(current_id).x = (last - first) / 2. + first;
             }
         } else {
-            println!(
-                "node_id: {current_id} - sibling id : {sibling_id} - prev_sibling_id : {:?} : x= {}",
-                self.get_parent(current_id).children[sibling_id - 1],
-                self.get_node(self.get_parent(current_id).children[sibling_id - 1])
-                    .x
-            );
             // get previous sibling position :
             let prev_sibling = self.get_parent(current_id).children[sibling_id - 1];
             self.get_node_mut(current_id).x = self.get_node(prev_sibling).x + SIBLING_DIST;
@@ -218,8 +209,8 @@ impl IterationTree {
         let mut tree_left_contour = HashMap::new();
         self.left_contour(current_id, 0, 0., &mut tree_left_contour);
 
-        // Check for conflicts with siblings
-        for sibling in 0..sibling_id {
+        // Check for conflicts with siblings but not with the tree directly to its left !
+        for sibling in 0..(sibling_id - 1) {
             // Check for conflicts with this child
             let mut sibling_right_contour = HashMap::new();
             self.right_contour(
@@ -247,20 +238,18 @@ impl IterationTree {
                 }
             }
 
-            // update all siblings except first if needed
+            // update all siblings except first
             if max_shift != 0. {
                 for sibling_to_update in 1..self.get_parent(current_id).children.len() {
                     let sibling_to_update_id =
                         self.get_parent(current_id).children[sibling_to_update];
                     self.get_node_mut(sibling_to_update_id).shift_val +=
                         max_shift * (sibling_to_update as f32 / current_id as f32);
-                    println!(
-                        "Because of {current_id}, Node {sibling_to_update_id} has to shift {}",
-                        self.get_node_mut(sibling_to_update_id).shift_val
-                    )
                 }
             }
         }
+
+        /* Check for conflicts involving the tree directly to the left of this one which could have been shifted  */
     }
 
     fn right_contour(
