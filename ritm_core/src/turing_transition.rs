@@ -59,11 +59,58 @@ pub trait TuringTransition: Clone + Default + Debug + PartialEq {}
 /// In order to simplify the graph exploration, when compared, only the [`TuringTransitionInfo`] fields will be compared.
 pub struct TuringTransitionWrapper<T: TuringTransition> {
     pub inner_transition: T,
-    pub info: TuringTransitionInfo,
+    pub info: TransitionsInfo,
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct TuringTransitionInfo {
+pub enum TransitionsInfo {
+    OneRibbon(TransitionOneRibbonInfo),
+    MultipleRibbon(TransitionMultRibbonInfo),
+}
+
+impl TransitionsInfo {
+    pub fn has_one_ribbon(&self) -> bool {
+        match self {
+            TransitionsInfo::OneRibbon(_transition_one_ribbon_info) => true,
+            TransitionsInfo::MultipleRibbon(_transition_mult_ribbon_info) => false,
+        }
+    }
+
+    pub fn get_nb_ribbons(&self) -> usize {
+        match self {
+            TransitionsInfo::OneRibbon(_transition_one_ribbon_info) => 1,
+            TransitionsInfo::MultipleRibbon(transition_mult_ribbon_info) => {
+                transition_mult_ribbon_info.get_number_of_affected_tapes()
+            }
+        }
+    }
+
+    pub fn is_valid(&self, chars_to_read: &Vec<char>) -> bool {
+        match self {
+            TransitionsInfo::OneRibbon(transition_one_ribbon_info) => {
+                chars_to_read.len() == 1
+                    && chars_to_read[0] == transition_one_ribbon_info.chars_read
+            }
+            TransitionsInfo::MultipleRibbon(transition_mult_ribbon_info) => {
+                transition_mult_ribbon_info.chars_read == *chars_to_read
+            }
+        }
+    }
+}
+
+impl From<TransitionMultRibbonInfo> for TransitionsInfo {
+    fn from(value: TransitionMultRibbonInfo) -> Self {
+        Self::MultipleRibbon(value)
+    }
+}
+impl From<TransitionOneRibbonInfo> for TransitionsInfo {
+    fn from(value: TransitionOneRibbonInfo) -> Self {
+        Self::OneRibbon(value)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct TransitionMultRibbonInfo {
     /// The chars that have to be read in order apply the rest of the transition : `a_0,..., a_{n-1}`
     pub chars_read: Vec<char>,
     /// The move to take after writing/reading the character : `D_0`
@@ -72,8 +119,38 @@ pub struct TuringTransitionInfo {
     pub chars_write: Vec<(char, TuringDirection)>,
 }
 
-impl<T: TuringTransition> From<TuringTransitionInfo> for TuringTransitionWrapper<T> {
-    fn from(value: TuringTransitionInfo) -> Self {
+#[derive(Debug, Clone, PartialEq)]
+pub struct TransitionOneRibbonInfo {
+    /// The chars that has to be read for this transition to be valid
+    pub chars_read: char,
+    /// The move to take after reading the character
+    pub move_pointer: TuringDirection,
+    /// The character to replace the character just read
+    pub replace_with: char,
+}
+
+impl TransitionOneRibbonInfo {
+    pub fn new(chars_read: char, move_pointer: TuringDirection, replace_with: char) -> Self {
+        Self {
+            chars_read,
+            replace_with,
+            move_pointer,
+        }
+    }
+}
+
+impl Default for TransitionOneRibbonInfo {
+    fn default() -> Self {
+        Self {
+            chars_read: 'ç',
+            replace_with: 'ç',
+            move_pointer: TuringDirection::None,
+        }
+    }
+}
+
+impl<T: TuringTransition> From<TransitionsInfo> for TuringTransitionWrapper<T> {
+    fn from(value: TransitionsInfo) -> Self {
         TuringTransitionWrapper {
             inner_transition: T::default(),
             info: value,
@@ -81,8 +158,26 @@ impl<T: TuringTransition> From<TuringTransitionInfo> for TuringTransitionWrapper
     }
 }
 
-impl TuringTransitionInfo {
-    /// Creates a new [`TuringTransitionInfo`].
+impl<T: TuringTransition> From<TransitionMultRibbonInfo> for TuringTransitionWrapper<T> {
+    fn from(value: TransitionMultRibbonInfo) -> Self {
+        TuringTransitionWrapper {
+            inner_transition: T::default(),
+            info: value.into(),
+        }
+    }
+}
+
+impl<T: TuringTransition> From<TransitionOneRibbonInfo> for TuringTransitionWrapper<T> {
+    fn from(value: TransitionOneRibbonInfo) -> Self {
+        TuringTransitionWrapper {
+            inner_transition: T::default(),
+            info: value.into(),
+        }
+    }
+}
+
+impl TransitionMultRibbonInfo {
+    /// Creates a new [`TransitionMultRibbonInfo`].
     pub fn new(
         char_read: Vec<char>,
         move_read: TuringDirection,
@@ -232,13 +327,28 @@ impl TuringTransitionInfo {
         }
     }
 
-    /// Returns the number of tapes that are going to be affected by this transition.
+    /// Returns the number of tapes that are going to be affected by this transition. (k + 1)
     pub fn get_number_of_affected_tapes(&self) -> usize {
         self.chars_write.len() + 1
     }
 }
 
-impl Display for TuringTransitionInfo {
+impl Display for TransitionsInfo {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                TransitionsInfo::OneRibbon(transition_one_ribbon_info) =>
+                    transition_one_ribbon_info.to_string(),
+                TransitionsInfo::MultipleRibbon(transition_mult_ribbon_info) =>
+                    transition_mult_ribbon_info.to_string(),
+            }
+        )
+    }
+}
+
+impl Display for TransitionMultRibbonInfo {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut char_read = String::from(self.chars_read[0]);
         for i in 1..self.chars_read.len() {
@@ -252,5 +362,15 @@ impl Display for TuringTransitionInfo {
         }
 
         write!(f, "{} -> {}", char_read, char_written)
+    }
+}
+
+impl Display for TransitionOneRibbonInfo {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{} -> {}, {}",
+            self.chars_read, self.replace_with, self.move_pointer
+        )
     }
 }

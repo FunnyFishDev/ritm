@@ -3,7 +3,7 @@ use ritm_core::{
     turing_graph::TuringStateType,
     turing_machine::TuringMachineError,
     turing_parser::{self, TuringParserError, parse_transition_string, parse_turing_graph_string},
-    turing_transition::{TuringDirection, TuringTransitionError, TuringTransitionInfo},
+    turing_transition::{TuringDirection, TuringTransitionError, TransitionMultRibbonInfo},
 };
 
 #[test]
@@ -24,7 +24,7 @@ fn test_parse_mt_valid() {
     graph.add_state(q1, TuringStateType::Normal);
 
     // q_i -> {ç, ç, => R, ç, R} -> q_1
-    let mut transition = TuringTransitionInfo::create(
+    let mut transition = TransitionMultRibbonInfo::create(
         vec!['ç', 'ç'],
         vec!['ç'],
         vec![TuringDirection::Right, TuringDirection::Right],
@@ -34,7 +34,7 @@ fn test_parse_mt_valid() {
         .append_transition("i", transition.clone(), q1)
         .unwrap();
 
-    transition = TuringTransitionInfo::create(
+    transition = TransitionMultRibbonInfo::create(
         vec!['0', '_'],
         vec!['a'],
         vec![TuringDirection::Right, TuringDirection::Right],
@@ -42,7 +42,7 @@ fn test_parse_mt_valid() {
     .unwrap();
     graph.append_transition(q1, transition.clone(), q1).unwrap();
 
-    transition = TuringTransitionInfo::create(
+    transition = TransitionMultRibbonInfo::create(
         vec!['1', '_'],
         vec!['a'],
         vec![TuringDirection::Right, TuringDirection::Right],
@@ -90,7 +90,7 @@ fn test_parse_transition_valid_mult() {
     assert_eq!(transitions.len(), 2);
     assert_eq!(
         transitions[0],
-        TuringTransitionInfo::new(
+        TransitionMultRibbonInfo::new(
             vec!('0', 'a'),
             TuringDirection::Right,
             vec!(('a', TuringDirection::Left))
@@ -99,7 +99,7 @@ fn test_parse_transition_valid_mult() {
     );
     assert_eq!(
         transitions[1],
-        TuringTransitionInfo::new(
+        TransitionMultRibbonInfo::new(
             vec!('1', 'b'),
             TuringDirection::None,
             vec!(('p', TuringDirection::Right))
@@ -120,7 +120,7 @@ fn test_parse_transition_valid_single() {
     assert_eq!(transitions.len(), 1);
     assert_eq!(
         transitions[0],
-        TuringTransitionInfo::new(
+        TransitionMultRibbonInfo::new(
             vec!('0', 'a'),
             TuringDirection::Right,
             vec!(('a', TuringDirection::Left))

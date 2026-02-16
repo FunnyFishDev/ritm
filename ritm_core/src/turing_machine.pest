@@ -1,23 +1,33 @@
 WHITESPACE = _{ " " | "\t" | NEWLINE }
 COMMENT = _{ "//" ~ (!"\n" ~ ANY)* }
 
-turing_machine = { WHITESPACE* ~ options* ~ (WHITESPACE* ~ (transition ~ semicolon)+) ~ EOI }
+turing_machine = { WHITESPACE* ~ options* ~ (WHITESPACE* ~ machine) ~ EOI }
+
+machine = _{machine_1_ribbons | machine_k_ribbons}
+machine_1_ribbons = {  (transition_1 ~ semicolon)+ }
+machine_k_ribbons = {  (transition_k ~ semicolon)+ }
+
 
 options = { (rename_initial | accepting_states) ~ ";" }
 
 rename_initial = {"initial" ~ "=" ~ state_name } 
 accepting_states = {"accepting" ~ "=" ~ (state_name ~ ("," ~ state_name)*)}
 
+
+transition_1 = { (state_name) ~ (left_bracket ~ transition_content_1 ~ ("|" ~ transition_content_1)* ~ right_bracket)+ ~ (state_name) }
+transition_content_1 = { char_special ~ "->" ~ char_special ~ "," ~ move }
+
+
 // Used when only reading a transition
-transition_only = _{ transition ~ EOI }
+transition_only_k = _{ transition_k ~ EOI }
 
-transition = { (state_name) ~ (left_bracket ~ transition_content ~ ("|" ~ transition_content)* ~ right_bracket)+ ~ (state_name) }
+transition_k = { (state_name) ~ (left_bracket ~ transition_content_k ~ ("|" ~ transition_content_k)* ~ right_bracket)+ ~ (state_name) }
 
-transition_content = { to_read ~ "->" ~ to_write_move }
+transition_content_k = { to_read_k ~ "->" ~ to_write_move_k }
 
-to_read = { char_special ~ ("," ~ char_special)* }
+to_read_k = { char_special ~ ("," ~ char_special)* }
 
-to_write_move = { move ~ ("," ~ char_special ~ "," ~ move)* }
+to_write_move_k = { move ~ ("," ~ char_special ~ "," ~ move)* }
 
 move      = _{ dir_left | dir_right | dir_none }
 dir_left  =  { "L" }

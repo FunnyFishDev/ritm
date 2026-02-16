@@ -3,7 +3,7 @@ use egui::{
     ScrollArea, Shadow, Stroke, TextEdit, Ui, Vec2b, include_image,
     scroll_area::ScrollBarVisibility, style::WidgetVisuals, vec2,
 };
-use ritm_core::turing_transition::{TuringDirection, TuringTransitionInfo};
+use ritm_core::turing_transition::{TuringDirection, TransitionMultRibbonInfo};
 
 use crate::{
     App,
@@ -79,7 +79,7 @@ pub fn show(ui: &mut Ui, app: &mut App) -> Result<(), RitmError> {
                     let k = app.turing.tm.graph_ref().get_k();
                     let selected_transition = &mut app.turing.get_transition_edit_mut()?.1;
                     selected_transition.push((TransitionEdit::from(&TransitionWrapper {
-                        info: TuringTransitionInfo::create_default(k),
+                        info: TransitionMultRibbonInfo::create_default(k),
                         inner_transition: Transition::new(),
                     }), None));
                 }

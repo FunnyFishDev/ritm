@@ -313,7 +313,7 @@ fn state(app: &mut App, ui: &mut Ui) {
                         TuringExecutionSteps::FirstIteration {
                             init_state: _,
                             init_reading_tape: _,
-                            init_write_tapes: _,
+                            init_tapes: _,
                         } => ("Initiation".to_string(), app.theme.text_primary),
                         TuringExecutionSteps::TransitionTaken {
                             previous_state,

@@ -1,9 +1,9 @@
-use ritm_core::turing_transition::{TuringDirection, TuringTransitionError, TuringTransitionInfo};
+use ritm_core::turing_transition::{TuringDirection, TuringTransitionError, TransitionMultRibbonInfo};
 
 // ________________________________________ Transitions tests ______________________________
 #[test]
 fn transition_creation_test() {
-    let t1 = TuringTransitionInfo::create(
+    let t1 = TransitionMultRibbonInfo::create(
         vec!['ç', 'ç'],
         vec!['ç'],
         vec![TuringDirection::Right, TuringDirection::None],
@@ -11,17 +11,17 @@ fn transition_creation_test() {
     .unwrap();
 
     assert!(matches!(
-        TuringTransitionInfo::create(vec!['ç', 'ç'], vec![], vec![TuringDirection::Right],),
+        TransitionMultRibbonInfo::create(vec!['ç', 'ç'], vec![], vec![TuringDirection::Right],),
         Err(TuringTransitionError::TransitionArgsError(_val))
     ));
 
     assert!(matches!(
-        TuringTransitionInfo::create(vec![], vec!['ç'], vec![TuringDirection::Right],),
+        TransitionMultRibbonInfo::create(vec![], vec!['ç'], vec![TuringDirection::Right],),
         Err(TuringTransitionError::TransitionArgsError(_val))
     ));
 
     assert!(matches!(
-        TuringTransitionInfo::create(vec!['ç'], vec!['ç'], vec![],),
+        TransitionMultRibbonInfo::create(vec!['ç'], vec!['ç'], vec![],),
         Err(TuringTransitionError::TransitionArgsError(_val))
     ));
 
@@ -35,7 +35,7 @@ fn transition_creation_test() {
 #[test]
 fn create_ill_transitions() {
     assert!(matches!(
-        TuringTransitionInfo::create(
+        TransitionMultRibbonInfo::create(
             vec!['$', '_'],
             vec!['_'],
             vec![TuringDirection::Right, TuringDirection::None],
@@ -44,7 +44,7 @@ fn create_ill_transitions() {
     ));
 
     assert!(matches!(
-        TuringTransitionInfo::create(
+        TransitionMultRibbonInfo::create(
             vec!['ç', '_'],
             vec!['_'],
             vec![TuringDirection::Left, TuringDirection::None],
@@ -53,7 +53,7 @@ fn create_ill_transitions() {
     ));
 
     assert!(matches!(
-        TuringTransitionInfo::create(
+        TransitionMultRibbonInfo::create(
             vec!['_', 'ç'],
             vec!['ç'],
             vec![TuringDirection::None, TuringDirection::Left],
@@ -62,7 +62,7 @@ fn create_ill_transitions() {
     ));
 
     assert!(matches!(
-        TuringTransitionInfo::create(
+        TransitionMultRibbonInfo::create(
             vec!['_', '_'],
             vec!['ç'],
             vec![TuringDirection::None, TuringDirection::Left],
@@ -71,7 +71,7 @@ fn create_ill_transitions() {
     ));
 
     assert!(matches!(
-        TuringTransitionInfo::create(
+        TransitionMultRibbonInfo::create(
             vec!['_', 'ç'],
             vec!['_'],
             vec![TuringDirection::None, TuringDirection::Left],
@@ -82,7 +82,7 @@ fn create_ill_transitions() {
 
 #[test]
 fn transition_eq() {
-    let t1 = TuringTransitionInfo::create(
+    let t1 = TransitionMultRibbonInfo::create(
         vec!['ç', 'ç'],
         vec!['ç'],
         vec![TuringDirection::None, TuringDirection::Right],
@@ -91,7 +91,7 @@ fn transition_eq() {
 
     assert_ne!(
         t1,
-        TuringTransitionInfo::create(
+        TransitionMultRibbonInfo::create(
             vec!('ç', 'ç'),
             vec!('ç'),
             vec!(TuringDirection::Right, TuringDirection::Right)
@@ -101,7 +101,7 @@ fn transition_eq() {
 
     assert_ne!(
         t1,
-        TuringTransitionInfo::create(
+        TransitionMultRibbonInfo::create(
             vec!('ç', 'v'),
             vec!('_'),
             vec!(TuringDirection::Right, TuringDirection::Right)
@@ -111,7 +111,7 @@ fn transition_eq() {
 
     assert_ne!(
         t1,
-        TuringTransitionInfo::create(
+        TransitionMultRibbonInfo::create(
             vec!('ç', 'v'),
             vec!('t'),
             vec!(TuringDirection::Right, TuringDirection::Right)
@@ -121,7 +121,7 @@ fn transition_eq() {
 
     assert_ne!(
         t1,
-        TuringTransitionInfo::create(
+        TransitionMultRibbonInfo::create(
             vec!('ç', 'v', 'p'),
             vec!('t', 'x'),
             vec!(
@@ -135,7 +135,7 @@ fn transition_eq() {
 
     assert_eq!(
         t1,
-        TuringTransitionInfo::create(
+        TransitionMultRibbonInfo::create(
             vec!('ç', 'ç'),
             vec!('ç'),
             vec!(TuringDirection::None, TuringDirection::Right)

@@ -2,7 +2,10 @@ use ritm_core::{
     EmptyTransition, SimpleTuringGraph,
     turing_graph::{TuringGraphError, TuringStateType},
     turing_index::TuringStateIndex,
-    turing_transition::{TuringDirection, TuringTransitionInfo, TuringTransitionWrapper},
+    turing_transition::{
+        TransitionMultRibbonInfo, TransitionOneRibbonInfo, TransitionsInfo, TuringDirection,
+        TuringTransitionWrapper,
+    },
 };
 
 #[test]
@@ -12,10 +15,6 @@ fn create_graph_test() {
     assert_eq!(graph.try_get_state("i").expect("present").get_id(), 0);
     assert_eq!(graph.try_get_state("a").expect("present").get_id(), 1);
 
-    assert!(matches!(
-        SimpleTuringGraph::new(0, false),
-        Err(TuringGraphError::NotEnoughTapesError)
-    ));
     // Check the final states
     assert_eq!(
         TuringStateType::Accepting,
@@ -156,9 +155,29 @@ fn get_nodes_test() {
 }
 
 #[test]
-fn add_transitions() {
+fn add_transitions_one() {
+    let mut graph = SimpleTuringGraph::new(0, true).unwrap();
+
+    graph
+        .append_transition(
+            "i",
+            TransitionOneRibbonInfo::new('ç', TuringDirection::Right, 'ç'),
+            "a",
+        )
+        .expect("no problem");
+
+    let res = graph.append_transition("i", TransitionMultRibbonInfo::create_default(1), "a");
+    assert!(matches!(
+        res,
+        Err(TuringGraphError::IncompatibleTransitionError { expected, received })
+        if expected == 1 && received == 2
+    ))
+}
+
+#[test]
+fn add_transitions_k() {
     let mut graph = SimpleTuringGraph::new(1, true).unwrap();
-    let transition = TuringTransitionInfo::create(
+    let transition = TransitionMultRibbonInfo::create(
         vec!['ç', 'ç'],
         vec!['ç'],
         vec![TuringDirection::None, TuringDirection::Right],
@@ -211,6 +230,8 @@ fn add_transitions() {
             .is_none()
     );
 
+    let transition: TransitionsInfo = transition.into();
+
     // add transition
     graph
         .append_transition("e", transition.clone(), "o")
@@ -248,12 +269,45 @@ fn add_default_transitions() {
             .expect("no errors")
             .expect("present")[0]
             .info,
-        TuringTransitionInfo::create_default(3)
+        TransitionMultRibbonInfo::create_default(3).into()
     );
 
     // Try to add a default transition already added
     graph
-        .append_transition(1, TuringTransitionInfo::create_default(3), 0)
+        .append_transition(1, TransitionMultRibbonInfo::create_default(3), 0)
+        .expect("no errors");
+
+    assert!(matches!(
+        graph.append_default_transition(1, None, 0),
+        Err(TuringGraphError::AlreadyPresentTransitionError {
+            from: _,
+            to: _,
+            transition: _
+        })
+    ));
+
+    let mut graph = SimpleTuringGraph::new(0, true).unwrap();
+
+    graph
+        .append_default_transition(0, None, 1)
+        .expect("no erros");
+    assert_eq!(
+        graph
+            .get_transitions(0, 1)
+            .expect("no errors")
+            .expect("present")[0]
+            .info,
+        TransitionOneRibbonInfo {
+            chars_read: 'ç',
+            move_pointer: TuringDirection::None,
+            replace_with: 'ç'
+        }
+        .into()
+    );
+
+    // Try to add a default transition already added
+    graph
+        .append_transition(1, TransitionOneRibbonInfo::default(), 0)
         .expect("no errors");
 
     assert!(matches!(
@@ -269,14 +323,14 @@ fn add_default_transitions() {
 #[test]
 fn delete_transitions() {
     let mut graph = SimpleTuringGraph::new(1, true).unwrap();
-    let t1 = TuringTransitionInfo::create(
+    let t1 = TransitionMultRibbonInfo::create(
         vec!['ç', 'ç'],
         vec!['ç'],
         vec![TuringDirection::None, TuringDirection::Right],
     )
     .unwrap();
 
-    let t2 = TuringTransitionInfo::create(
+    let t2 = TransitionMultRibbonInfo::create(
         vec!['ç', '_'],
         vec!['_'],
         vec![TuringDirection::None, TuringDirection::Right],
@@ -318,21 +372,21 @@ fn delete_transitions() {
             .first()
             .expect("at least one element")
             .info,
-        t2
+        t2.into()
     );
 }
 
 #[test]
 fn delete_transitions_with_indexes() {
     let mut graph = SimpleTuringGraph::new(1, true).unwrap();
-    let t1 = TuringTransitionInfo::create(
+    let t1 = TransitionMultRibbonInfo::create(
         vec!['ç', 'ç'],
         vec!['ç'],
         vec![TuringDirection::None, TuringDirection::Right],
     )
     .unwrap();
 
-    let t2 = TuringTransitionInfo::create(
+    let t2 = TransitionMultRibbonInfo::create(
         vec!['ç', '_'],
         vec!['_'],
         vec![TuringDirection::None, TuringDirection::Right],
@@ -362,26 +416,26 @@ fn delete_transitions_with_indexes() {
             .first()
             .expect("at least one element")
             .info,
-        t1
+        t1.into()
     );
 }
 
 #[test]
 fn delete_all_transitions_two_nodes() {
     let mut graph = SimpleTuringGraph::new(1, true).unwrap();
-    let t1 = TuringTransitionInfo::create(
+    let t1 = TransitionMultRibbonInfo::create(
         vec!['ç', 'ç'],
         vec!['ç'],
         vec![TuringDirection::None, TuringDirection::Right],
     )
     .unwrap();
-    let t2 = TuringTransitionInfo::create(
+    let t2 = TransitionMultRibbonInfo::create(
         vec!['ç', '_'],
         vec!['_'],
         vec![TuringDirection::None, TuringDirection::Right],
     )
     .unwrap();
-    let t3 = TuringTransitionInfo::create(
+    let t3 = TransitionMultRibbonInfo::create(
         vec!['_', '_'],
         vec!['_'],
         vec![TuringDirection::None, TuringDirection::Right],
@@ -405,26 +459,26 @@ fn delete_all_transitions_two_nodes() {
             .expect("no error")
             .expect("present")[0]
             .info,
-        t3
+        t3.into()
     );
 }
 
 #[test]
 fn delete_node() {
     let mut graph = SimpleTuringGraph::new(1, true).expect("no errors");
-    let t1 = TuringTransitionInfo::create(
+    let t1 = TransitionMultRibbonInfo::create(
         vec!['ç', 'ç'],
         vec!['ç'],
         vec![TuringDirection::None, TuringDirection::Right],
     )
     .expect("no errors");
-    let t2 = TuringTransitionInfo::create(
+    let t2 = TransitionMultRibbonInfo::create(
         vec!['ç', '_'],
         vec!['_'],
         vec![TuringDirection::None, TuringDirection::Right],
     )
     .expect("no errors");
-    let t3 = TuringTransitionInfo::create(
+    let t3 = TransitionMultRibbonInfo::create(
         vec!['_', '_'],
         vec!['_'],
         vec![TuringDirection::None, TuringDirection::Right],
@@ -495,19 +549,19 @@ fn rename_state() {
 fn get_valid_transitions() {
     let mut graph = SimpleTuringGraph::new(1, true).unwrap();
 
-    let t1 = TuringTransitionInfo::create(
+    let t1 = TransitionMultRibbonInfo::create(
         vec!['ç', 'ç'],
         vec!['ç'],
         vec![TuringDirection::None, TuringDirection::Right],
     )
     .unwrap();
-    let t2 = TuringTransitionInfo::create(
+    let t2 = TransitionMultRibbonInfo::create(
         vec!['ç', '_'],
         vec!['0'],
         vec![TuringDirection::None, TuringDirection::Left],
     )
     .unwrap();
-    let t3 = TuringTransitionInfo::create(
+    let t3 = TransitionMultRibbonInfo::create(
         vec!['ç', '_'],
         vec!['0'],
         vec![TuringDirection::None, TuringDirection::Right],
@@ -539,7 +593,7 @@ fn get_valid_transitions() {
             .expect("no problem"),
         vec!((
             &TuringTransitionWrapper {
-                info: t1,
+                info: t1.into(),
                 inner_transition: EmptyTransition
             },
             1
@@ -552,14 +606,14 @@ fn get_valid_transitions() {
         vec!(
             (
                 &TuringTransitionWrapper {
-                    info: t2,
+                    info: t2.into(),
                     inner_transition: EmptyTransition
                 },
                 1
             ),
             (
                 &TuringTransitionWrapper {
-                    info: t3,
+                    info: t3.into(),
                     inner_transition: EmptyTransition
                 },
                 1

@@ -299,7 +299,7 @@ fn print_step(
         TuringExecutionSteps::FirstIteration {
             init_state: _,
             init_reading_tape: _,
-            init_write_tapes: _,
+            init_tapes: _,
         } => {
             println!(
                 "{} {}",

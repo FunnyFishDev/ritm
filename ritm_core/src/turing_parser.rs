@@ -8,7 +8,7 @@ use crate::{
         DEFAULT_INIT_STATE, TuringGraph, TuringGraphError, TuringState, TuringStateType,
     },
     turing_machine::TuringMachineError,
-    turing_transition::{TuringDirection, TuringTransition, TuringTransitionInfo},
+    turing_transition::{TuringDirection, TuringTransition, TransitionMultRibbonInfo},
 };
 
 #[derive(Debug, Error)]
@@ -151,7 +151,7 @@ where
                 Ok(())
             }
             // For every rule matched :
-            Rule::transition => {
+            Rule::transition_k => {
                 let (from_var, transitions, to_var) = parse_transition(turing_machine_rule)?;
 
                 /* Add the colected transitions to the MT */
@@ -230,8 +230,8 @@ where
 /// When giving multiple transitions, each one must affect the same number of tapes or an error will be returned.
 pub fn parse_transition_string(
     to_parse: String,
-) -> Result<(String, Vec<TuringTransitionInfo>, String), TuringParserError> {
-    let parsed = TuringGrammar::parse(Rule::transition_only, &to_parse);
+) -> Result<(String, Vec<TransitionMultRibbonInfo>, String), TuringParserError> {
+    let parsed = TuringGrammar::parse(Rule::transition_only_k, &to_parse);
     if let Err(e) = parsed {
         return Err(TuringParserError::ParsingError {
             line_col_pos: get_line_col(&e),
@@ -246,7 +246,7 @@ pub fn parse_transition_string(
 /// For more information look at the documentation of the structure [TuringTransition]
 pub fn parse_transition_content_string(
     transition: String,
-) -> Result<TuringTransitionInfo, TuringParserError> {
+) -> Result<TransitionMultRibbonInfo, TuringParserError> {
     let parsed = TuringGrammar::parse(Rule::turing_machine, &transition);
     if let Err(e) = parsed {
         return Err(TuringParserError::ParsingError {
@@ -302,7 +302,7 @@ where
 
 fn parse_transition(
     rule: Pair<Rule>,
-) -> Result<(String, Vec<TuringTransitionInfo>, String), TuringParserError> {
+) -> Result<(String, Vec<TransitionMultRibbonInfo>, String), TuringParserError> {
     let mut transitions = vec![];
     let mut to_var = String::new();
     let mut from_var = String::new();
@@ -321,7 +321,7 @@ fn parse_transition(
                 }
             }
             // Read all transitions
-            Rule::transition_content => {
+            Rule::transition_content_k => {
                 let rule_cp = rule.clone();
                 // Add the transition
                 let tr_res = parse_transition_content(rule);
@@ -352,7 +352,7 @@ fn parse_str_token(rule: Pair<Rule>) -> String {
     }
 }
 
-fn parse_transition_content(rule: Pair<Rule>) -> Result<TuringTransitionInfo, TuringMachineError> {
+fn parse_transition_content(rule: Pair<Rule>) -> Result<TransitionMultRibbonInfo, TuringMachineError> {
     let mut chars_read: Vec<char> = vec![];
     let mut directions: Vec<TuringDirection> = vec![];
     let mut chars_written: Vec<char> = vec![];
@@ -360,14 +360,14 @@ fn parse_transition_content(rule: Pair<Rule>) -> Result<TuringTransitionInfo, Tu
     // Parse all the informations
     for transition_rule in rule.into_inner() {
         match transition_rule.as_rule() {
-            Rule::to_read => {
+            Rule::to_read_k => {
                 // Parse all the characters to read
                 for chars_rule in transition_rule.into_inner() {
                     // turns the rule into a string, then gets the first (and only) char
                     chars_read.push(chars_rule.as_str().chars().next().unwrap());
                 }
             }
-            Rule::to_write_move => {
+            Rule::to_write_move_k => {
                 for write_move_rule in transition_rule.into_inner() {
                     match write_move_rule.as_rule() {
                         Rule::dir_left => {
@@ -390,7 +390,7 @@ fn parse_transition_content(rule: Pair<Rule>) -> Result<TuringTransitionInfo, Tu
         }
     }
 
-    Ok(TuringTransitionInfo::create(
+    Ok(TransitionMultRibbonInfo::create(
         chars_read,
         chars_written,
         directions,

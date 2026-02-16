@@ -152,6 +152,7 @@ impl Theme {
             syntax_comment: hex_color!("#36bc00ff"),
             highlight: hex_color!("#ff00f4ff"),
             disabled: hex_color!("#949494ff"),
+            backtracked: hex_color!("#e49f45"),
         }
     }
 

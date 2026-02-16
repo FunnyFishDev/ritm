@@ -1,4 +1,4 @@
-use crate::turing_transition::TuringTransitionInfo;
+use crate::turing_transition::TransitionsInfo;
 use std::fmt::Display;
 
 /// Can be used to try to find a state in the graph.
@@ -96,7 +96,7 @@ pub enum TransitionId {
     /// Represents the index value of the transition to get in the list of transitions present.
     ID(usize),
     /// Represents the value of the transition to try to get.
-    Value(TuringTransitionInfo),
+    Value(TransitionsInfo),
 }
 
 impl TransitionId {
@@ -120,7 +120,7 @@ impl Display for TransitionId {
 
 impl<T> From<T> for TransitionId
 where
-    T: Into<TuringTransitionInfo>,
+    T: Into<TransitionsInfo>,
 {
     fn from(value: T) -> Self {
         TransitionId::Value(value.into())
