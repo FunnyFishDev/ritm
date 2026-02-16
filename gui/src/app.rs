@@ -19,42 +19,52 @@ use crate::{
             settings::{Settings, debug_show},
         },
         theme::{Theme, theme_changer},
-        tutorial::{self, Tutorial},
+        tutorial::{self, TutorialEnum, Tutorials},
     },
 };
 
 /// The only structure that is persistent each redraw of the application
+#[derive(serde::Deserialize, serde::Serialize)]
 pub struct App {
     /// The turing machine itself
+    #[serde(skip)]
     pub turing: Turing,
 
+    #[serde(skip)]
     pub edit: Edit,
 
+    #[serde(skip)]
     pub graph: Graph,
 
+    #[serde(skip)]
     pub control: Control,
 
     pub settings: Settings,
 
+    #[serde(skip)]
     pub menu: Menu,
 
     /// Which popup to display
+    #[serde(skip)]
     pub popup: RitmPopup,
 
     /// The code used to create the turing machine
     pub code: Code,
 
+    #[serde(skip)]
     pub error: Option<RitmError>,
 
     /// The event/state of the application
+    #[serde(skip)]
     pub transient: Transient,
 
     /// Current theme
     pub theme: Theme,
 
+    #[serde(skip)]
     pub help_slide_index: usize,
 
-    pub tutorial: Tutorial,
+    pub tutorial: Tutorials,
 }
 
 /// Keep the state of the application
@@ -72,7 +82,9 @@ pub struct Transient {
 
     pub take_screenshot: bool,
 
-    pub code: Option<String>,
+    pub temp_code: Option<String>,
+
+    pub temp_tutorial: Option<TutorialEnum>,
 }
 
 impl Default for App {
@@ -90,7 +102,7 @@ impl Default for App {
             control: Control::default(),
             settings: Settings::default(),
             error: None,
-            tutorial: Tutorial::default(),
+            tutorial: Tutorials::default(),
         }
     }
 }
@@ -102,7 +114,8 @@ impl Default for Transient {
             is_small_window: false,
             listen_to_keybind: true,
             take_screenshot: false,
-            code: None,
+            temp_code: None,
+            temp_tutorial: None,
         }
     }
 }
@@ -114,7 +127,11 @@ impl App {
         // Load the fonts used in the application
         load_font(cc);
 
-        let app: App = Default::default();
+        let app: App = if let Some(storage) = cc.storage {
+            eframe::get_value(storage, "ritm").unwrap_or_default()
+        } else {
+            Default::default()
+        };
 
         app.theme.as_global_theme(&cc.egui_ctx);
         app
@@ -155,9 +172,17 @@ impl App {
 
 /// Update loop
 impl eframe::App for App {
+    fn save(&mut self, storage: &mut dyn eframe::Storage) {
+        eframe::set_value(storage, "ritm", self);
+    }
+
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         install_image_loaders(ctx);
 
+        if let Some(tutorial) = self.transient.temp_tutorial {
+            self.transient.temp_tutorial = None;
+            self.tutorial.start(tutorial);
+        }
         if let Err(error) = ui::show(self, ctx)
             && self.error.is_none()
         {
@@ -165,6 +190,14 @@ impl eframe::App for App {
         }
 
         tutorial::show(ctx, self);
+
+        if let Some(tutorial) = self.tutorial.has_finished {
+            self.tutorial.has_finished = None;
+            self.tutorial
+                .already_played
+                .entry(tutorial)
+                .and_modify(|b| *b = true);
+        }
 
         error::error(ctx.clone(), self);
 
@@ -197,6 +230,13 @@ impl eframe::App for App {
 
         if self.transient.listen_to_keybind && self.popup.current().is_none() {
             ctx.input(|r| {
+                if self.tutorial.in_tutorial() {
+                    if r.key_pressed(Key::Enter) {
+                        self.tutorial.next();
+                    }
+                    return;
+                }
+
                 // Press A to create a state
                 if r.key_pressed(Key::A) {
                     self.edit.is_adding_state ^= true;

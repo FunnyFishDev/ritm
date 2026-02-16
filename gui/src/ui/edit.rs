@@ -1,5 +1,5 @@
 use egui::{
-    Align, Frame, Id, Image, ImageButton, ImageSource, LayerId, Layout, Margin, Pos2, Rect,
+    Align, Align2, Frame, Id, Image, ImageButton, ImageSource, LayerId, Layout, Margin, Pos2, Rect,
     Response, Sense, Stroke, Ui, UiBuilder, Vec2, include_image, vec2,
 };
 
@@ -7,7 +7,11 @@ use crate::{
     App,
     error::RitmError,
     turing::StateEdit,
-    ui::{constant::Constant, popup::RitmPopupEnum},
+    ui::{
+        constant::Constant,
+        popup::RitmPopupEnum,
+        tutorial::{TutorialBox, TutorialEnum},
+    },
 };
 
 pub struct Edit {
@@ -44,6 +48,13 @@ pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
             .layout(Layout::bottom_up(Align::Center).with_cross_align(Align::Center))
             .layer_id(layer),
         |ui| {
+            if let Some(tutorial) = app.tutorial.current_tutorial()
+                && tutorial == TutorialEnum::Edit
+                && app.tutorial.current_step() == 4
+            {
+                app.graph.select_state(0);
+            }
+
             // TODO: replace with flags from bitflags crate
             let state_selected =
                 app.graph.selected_state().is_some() && app.graph.selected_transitions().is_none();
@@ -57,118 +68,168 @@ pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
                 app.graph.selected_state().is_none() && app.graph.selected_transitions().is_none();
 
             // Vertical alignment, bottom to up
-            ui.allocate_ui_with_layout(
-                vec2(icon_size, ui.available_height()),
-                Layout::bottom_up(Align::Center).with_cross_align(Align::Center),
-                |ui| {
-                    ui.spacing_mut().item_spacing = vec2(0.0, 5.0);
+            let edit = ui
+                .allocate_ui_with_layout(
+                    vec2(icon_size, ui.available_height()),
+                    Layout::bottom_up(Align::Center).with_cross_align(Align::Center),
+                    |ui| {
+                        ui.spacing_mut().item_spacing = vec2(0.0, 5.0);
 
-                    // State
-                    // Only possible to add a state if nothing is selected
-                    // IDEA : maybe permit it for state selected, and create a transition directly
-                    if none_selected
-                        && button(
+                        // State
+                        // Only possible to add a state if nothing is selected
+                        // IDEA : maybe permit it for state selected, and create a transition directly
+                        if none_selected {
+                            let state = button(
+                                ui,
+                                app,
+                                include_image!("../../assets/icon/stateplus.svg"),
+                                app.edit.is_adding_state,
+                            );
+                            if state.clicked() {
+                                app.edit.is_adding_state ^= true;
+                            }
+                            app.tutorial.add_boxe(
+                                "add_state",
+                                TutorialBox::new(state.rect.expand(6.0))
+                                    .with_align(Align2::LEFT_TOP),
+                            );
+                        }
+
+                        // Transition
+                        // Only possible to create transition if a state is selected
+                        if state_selected {
+                            let button = button(
+                                ui,
+                                app,
+                                include_image!("../../assets/icon/transition.svg"),
+                                app.edit.is_adding_transition,
+                            );
+                            if button.clicked() {
+                                app.edit.is_adding_transition ^= true;
+                                app.edit.is_adding_transition ^= app.settings.reset_after_action
+                                    || !app.edit.is_adding_transition;
+                            }
+
+                            app.tutorial.add_boxe(
+                                "add_transition",
+                                TutorialBox::new(button.rect.expand(6.0))
+                                    .with_align(Align2::LEFT_TOP),
+                            );
+                        }
+
+                        // Delete
+                        // If a state or transition is selected, then display the delete button
+                        if either_selected {
+                            let delete = button(
+                                ui,
+                                app,
+                                include_image!("../../assets/icon/delete.svg"),
+                                false,
+                            );
+                            if delete.clicked() {
+                                if let Some(state_selected) = app.graph.selected_state() {
+                                    app.turing.remove_state(state_selected)?;
+                                }
+
+                                if let Some(transition_selected) = app.graph.selected_transitions()
+                                {
+                                    app.turing.remove_transitions(
+                                        transition_selected.source_id,
+                                        transition_selected.target_id,
+                                    )?;
+                                }
+                            }
+                            app.tutorial.add_boxe(
+                                "delete",
+                                TutorialBox::new(delete.rect.expand(6.0))
+                                    .with_align(Align2::LEFT_TOP),
+                            );
+                        }
+
+                        // Edit the selected transitions or state
+                        if either_selected {
+                            let edit = button(
+                                ui,
+                                app,
+                                include_image!("../../assets/icon/edit.svg"),
+                                false,
+                            );
+                            if edit.clicked() {
+                                if let Some(state_selected) = app.graph.selected_state() {
+                                    app.popup.switch_to(RitmPopupEnum::StateEdit(
+                                        Some(state_selected),
+                                        None,
+                                    ));
+
+                                    app.turing.state_edit = Some(StateEdit::from(
+                                        app.turing.get_state(state_selected)?,
+                                    ));
+                                }
+
+                                if let Some(transition_selected) = app.graph.selected_transitions()
+                                {
+                                    app.popup.switch_to(RitmPopupEnum::TransitionEdit((
+                                        transition_selected.source_id,
+                                        transition_selected.target_id,
+                                    )));
+
+                                    app.turing.prepare_transition_edit(
+                                        transition_selected.source_id,
+                                        transition_selected.target_id,
+                                    )?;
+                                }
+                            }
+                            app.tutorial.add_boxe(
+                                "edit",
+                                TutorialBox::new(edit.rect.expand(6.0))
+                                    .with_align(Align2::LEFT_TOP),
+                            );
+                        }
+
+                        // Recenter the graph
+                        let recenter = button(
                             ui,
                             app,
-                            include_image!("../../assets/icon/stateplus.svg"),
-                            app.edit.is_adding_state,
-                        )
-                        .clicked()
-                    {
-                        app.edit.is_adding_state ^= true;
-                    }
-
-                    // Transition
-                    // Only possible to create transition if a state is selected
-                    if state_selected
-                        && button(
-                            ui,
-                            app,
-                            include_image!("../../assets/icon/transition.svg"),
-                            app.edit.is_adding_transition,
-                        )
-                        .clicked()
-                    {
-                        app.edit.is_adding_transition ^= true;
-                        app.edit.is_adding_transition ^=
-                            app.settings.reset_after_action || !app.edit.is_adding_transition;
-                    }
-
-                    // Delete
-                    // If a state or transition is selected, then display the delete button
-                    if either_selected
-                        && button(
-                            ui,
-                            app,
-                            include_image!("../../assets/icon/delete.svg"),
+                            include_image!("../../assets/icon/recenter.svg"),
                             false,
-                        )
-                        .clicked()
-                    {
-                        if let Some(state_selected) = app.graph.selected_state() {
-                            app.turing.remove_state(state_selected)?;
+                        );
+                        if recenter.clicked() {
+                            app.graph.recenter();
                         }
 
-                        if let Some(transition_selected) = app.graph.selected_transitions() {
-                            app.turing.remove_transitions(
-                                transition_selected.source_id,
-                                transition_selected.target_id,
-                            )?;
-                        }
-                    }
+                        app.tutorial.add_boxe(
+                            "recenter",
+                            TutorialBox::new(recenter.rect.expand(6.0))
+                                .with_align(Align2::LEFT_TOP),
+                        );
 
-                    // Edit the selected transitions or state
-                    if either_selected
-                        && button(ui, app, include_image!("../../assets/icon/edit.svg"), false)
-                            .clicked()
-                    {
-                        if let Some(state_selected) = app.graph.selected_state() {
-                            app.popup
-                                .switch_to(RitmPopupEnum::StateEdit(Some(state_selected), None));
-
-                            app.turing.state_edit =
-                                Some(StateEdit::from(app.turing.get_state(state_selected)?));
+                        // Unpin every state of the graph
+                        let unpin = button(
+                            ui,
+                            app,
+                            include_image!("../../assets/icon/unpin.svg"),
+                            false,
+                        );
+                        if unpin.clicked() {
+                            app.turing.unpin_all();
                         }
 
-                        if let Some(transition_selected) = app.graph.selected_transitions() {
-                            app.popup.switch_to(RitmPopupEnum::TransitionEdit((
-                                transition_selected.source_id,
-                                transition_selected.target_id,
-                            )));
+                        app.tutorial.add_boxe(
+                            "unpin",
+                            TutorialBox::new(unpin.rect).with_align(Align2::LEFT_TOP),
+                        );
 
-                            app.turing.prepare_transition_edit(
-                                transition_selected.source_id,
-                                transition_selected.target_id,
-                            )?;
-                        }
-                    }
-
-                    // Recenter the graph
-                    if button(
-                        ui,
-                        app,
-                        include_image!("../../assets/icon/recenter.svg"),
-                        false,
-                    )
-                    .clicked()
-                    {
-                        app.graph.recenter();
-                    }
-
-                    // Unpin every state of the graph
-                    if button(
-                        ui,
-                        app,
-                        include_image!("../../assets/icon/unpin.svg"),
-                        false,
-                    )
-                    .clicked()
-                    {
-                        app.turing.unpin_all();
-                    }
-
-                    Ok::<(), RitmError>(())
-                },
+                        Ok::<(), RitmError>(())
+                    },
+                )
+                .response;
+            app.tutorial.add_boxe(
+                "edit_section",
+                TutorialBox::new(edit.rect.expand(3.0)).with_align(Align2::LEFT_TOP),
+            );
+            app.tutorial.add_boxe(
+                "by_edit",
+                TutorialBox::new(edit.rect.expand(3.0)).with_align(Align2::LEFT_CENTER),
             );
         },
     );

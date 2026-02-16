@@ -11,7 +11,7 @@ targets = ["x86_64-unknown-linux-gnu", "wasm32-unknown-unknown"]
 rustflags = ['--cfg', 'getrandom_backend="wasm_js"']
 
 [dependencies]
-eframe = "0.32.0"
+eframe = {version = "0.32.0", features = ["persistence"]}
 getrandom = { version = "0.3", features = ["wasm_js"] }
 egui = { version = "0.32.0", features = ["color-hex"] }
 egui_extras = { version = "0.32.0", features = ["svg", "gif"] }
@@ -40,6 +40,8 @@ include_directory = "0.1.1"
 serde = "1.0.225"
 i_triangle = "0.39.1"
 i_overlay = "4.2.0"
+phf = "0.13.1"
+phf_macros = "0.13.1"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 env_logger = "0.11"

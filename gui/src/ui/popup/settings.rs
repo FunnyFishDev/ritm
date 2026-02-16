@@ -13,12 +13,22 @@ use crate::{
     ui::{font::Font, theme::Theme},
 };
 
+#[derive(serde::Deserialize, serde::Serialize)]
 pub struct Settings {
     pub reset_after_action: bool,
     pub convert_to_graph_on_load: bool,
+    #[serde(with = "ModeRitm")]
     pub turing_machine_mode: Mode,
     pub enable_debug: bool,
     pub theme_changer: bool,
+}
+
+#[derive(serde::Deserialize, serde::Serialize)]
+#[serde(remote = "Mode")]
+enum ModeRitm {
+    SaveAll,
+    StopAfter(usize),
+    StopFirstReject,
 }
 
 impl Default for Settings {

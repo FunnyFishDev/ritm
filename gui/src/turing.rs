@@ -262,13 +262,10 @@ impl Turing {
                 if let Err(err) = trans {
                     reason.push_str(format!("{i}:{err}").as_str());
                     transitions_edit[i].1 = Some(err.to_string());
-                    println!("{:?}", Some(err.to_string()))
                 }
             }
             return Err(RitmError::GuiError(GuiError::InvalidTransition { reason }));
         }
-
-        println!("{:#?}", new_transitions);
 
         // Remove existing transitions
         self.tm

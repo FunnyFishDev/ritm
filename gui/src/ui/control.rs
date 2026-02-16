@@ -7,7 +7,7 @@ use egui_flex::{Flex, FlexAlign, FlexAlignContent, FlexInstance, item};
 use crate::{
     App,
     error::RitmError,
-    ui::{component::grid::Grid, constant::Constant, font::Font},
+    ui::{component::grid::Grid, constant::Constant, font::Font, tutorial::TutorialBox},
 };
 
 #[derive(Default)]
@@ -59,21 +59,46 @@ impl Control {
 }
 
 pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
-    Frame::new()
-        .show(ui, |ui| {
-            ui.set_height(Constant::scale(ui, 70.0));
-            let grid = Grid::new(ui, 2, 3);
+    let res = Frame::new().show(ui, |ui| {
+        ui.set_height(Constant::scale(ui, 70.0));
+        let grid = Grid::new(ui, 2, 3);
 
-            grid.place(ui, 1, 1, |ui| input(app, ui)).inner?;
+        let input = grid.place(ui, 1, 1, |ui| input(app, ui));
+        app.tutorial.add_boxe(
+            "input",
+            TutorialBox::new(input.response.rect).with_align(Align2::LEFT_CENTER),
+        );
+        input.inner?;
 
-            grid.place(ui, 1, 2, |ui| control(app, ui));
-            grid.place(ui, 2, 2, |ui| speed_control(app, ui));
+        let control = grid.place(ui, 1, 2, |ui| control(app, ui));
+        app.tutorial.add_boxe(
+            "autoplay",
+            TutorialBox::new(control.response.rect).with_align(Align2::CENTER_TOP),
+        );
+        let speed = grid.place(ui, 2, 2, |ui| speed_control(app, ui));
+        app.tutorial.add_boxe(
+            "speed",
+            TutorialBox::new(speed.response.rect).with_align(Align2::CENTER_BOTTOM),
+        );
 
-            grid.place(ui, 1, 3, |ui| step(app, ui));
-            grid.place(ui, 2, 3, |ui| state(app, ui));
-            Ok::<(), RitmError>(())
-        })
-        .inner
+        let step = grid.place(ui, 1, 3, |ui| step(app, ui));
+        app.tutorial.add_boxe(
+            "step",
+            TutorialBox::new(step.response.rect).with_align(Align2::LEFT_CENTER),
+        );
+        let result = grid.place(ui, 2, 3, |ui| state(app, ui));
+        app.tutorial.add_boxe(
+            "result",
+            TutorialBox::new(result.response.rect).with_align(Align2::LEFT_CENTER),
+        );
+        Ok::<(), RitmError>(())
+    });
+
+    app.tutorial.add_boxe(
+        "control_section",
+        TutorialBox::new(res.response.rect).with_align(Align2::CENTER_BOTTOM),
+    );
+    res.inner
 }
 
 /// Input section of the controls
@@ -154,41 +179,50 @@ fn control(app: &mut App, ui: &mut Ui) {
                 }
             } else {
                 // Else display play button
-                if button(
+                let button = button(
                     flex,
                     app,
                     include_image!("../../assets/icon/play.svg"),
                     finished,
-                )
-                .clicked()
-                {
+                );
+                if button.clicked() {
                     app.control.run();
                 }
+                app.tutorial.add_boxe(
+                    "play",
+                    TutorialBox::new(button.rect).with_align(Align2::CENTER_BOTTOM),
+                );
             }
 
             // Next button
-            if button(
+            let res = button(
                 flex,
                 app,
                 include_image!("../../assets/icon/next.svg"),
                 finished,
-            )
-            .clicked()
-            {
+            );
+            if res.clicked() {
                 app.turing.next_step();
             }
+            app.tutorial.add_boxe(
+                "next",
+                TutorialBox::new(res.rect).with_align(Align2::CENTER_BOTTOM),
+            );
 
             // Reset button
-            if button(
+            let res = button(
                 flex,
                 app,
                 include_image!("../../assets/icon/reset.svg"),
                 initial,
-            )
-            .clicked()
-            {
+            );
+            if res.clicked() {
                 app.reset();
             }
+            app.tutorial.add_boxe(
+                "reset",
+                TutorialBox::new(res.rect).with_align(Align2::CENTER_BOTTOM),
+            );
 
             flex.grow();
         });
