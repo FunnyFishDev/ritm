@@ -28,7 +28,7 @@ impl Default for Turing {
     fn default() -> Self {
         let graph: TuringGraph<State, Transition> =
             TuringGraph::new(1, true).expect("Turing graph creation fail");
-        let mode = Mode::StopFirstReject;
+        let mode = Mode::SaveAll;
         let mut tm =
             TuringMachine::new(graph, "".to_string(), mode).expect("Turing machine creation fail");
         let step = tm.into_iter().next().expect("Initial step creation fail");
@@ -47,7 +47,7 @@ impl Default for Turing {
 impl Turing {
     /// Return a turing machine using the graph passed
     pub fn new_graph(graph: TuringGraph<State, Transition>) -> Self {
-        let mode = Mode::StopFirstReject;
+        let mode = Mode::SaveAll;
         let mut tm =
             TuringMachine::new(graph, "".to_string(), mode).expect("Turing machine creation fail");
         let step = tm.into_iter().next().expect("Initial step creation fail");
