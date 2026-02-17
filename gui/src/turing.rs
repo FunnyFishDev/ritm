@@ -6,7 +6,6 @@ use ritm_core::{
     turing_graph::{TuringGraph, TuringState, TuringStateType, TuringStateWrapper},
     turing_machine::{Mode, TuringExecutionSteps, TuringMachine},
     turing_transition::{
-        TransitionMultRibbonInfo, TransitionOneRibbonInfo, TransitionsInfo, TuringDirection,
         TuringTransition, TuringTransitionWrapper,
     },
 };
@@ -28,7 +27,7 @@ pub struct Turing {
 impl Default for Turing {
     fn default() -> Self {
         let graph: TuringGraph<State, Transition> =
-            TuringGraph::new(1, true).expect("Turing graph creation fail");
+            TuringGraph::new(0, true).expect("Turing graph creation fail");
         let mode = Mode::SaveAll;
         let mut tm =
             TuringMachine::new(graph, "".to_string(), mode).expect("Turing machine creation fail");
@@ -36,7 +35,7 @@ impl Default for Turing {
         let mut turing = Self {
             tm,
             accepted: None,
-            current_step: step,
+            current_step: step.clone(),
             state_edit: None,
             transition_edit: None,
         };
@@ -113,11 +112,11 @@ impl Turing {
         Ok(state_id)
     }
 
-    pub fn add_transition(&mut self, source_id: usize, target_id: usize) {
-        let _ = self
-            .tm
+    pub fn add_transition(&mut self, source_id: usize, target_id: usize) -> Result<(), RitmError> {
+        self.tm
             .graph_mut()
-            .append_default_transition(source_id, None, target_id);
+            .append_default_transition(source_id, None, target_id)
+            .map_err(|e| RitmError::CoreError(e.to_string()))
     }
 
     pub fn get_state(&self, id: usize) -> Result<&StateWrapper, RitmError> {
@@ -127,12 +126,11 @@ impl Turing {
             .ok_or(RitmError::CoreError("State not found".to_string()))
     }
 
-    pub fn get_state_mut(&mut self, id: usize) -> &mut StateWrapper {
+    pub fn get_state_mut(&mut self, id: usize) -> Result<&mut StateWrapper, RitmError> {
         self.tm
             .graph_mut()
             .try_get_state_mut(id)
             .map_err(|e| RitmError::CoreError(e.to_string()))
-            .expect("state exist")
     }
 
     /// Remove the state if it exist. If not an error [`RitmError::CoreError`]
@@ -238,8 +236,8 @@ impl Turing {
     }
 
     /// Apply transition changes if correct
-    pub fn apply_transition_change(&mut self) -> Result<Vec<Result<(), RitmError>>, RitmError> {
-        let Some(((source, target), transitions_edit)) = self.transition_edit.as_ref() else {
+    pub fn apply_transition_change(&mut self) -> Result<(), RitmError> {
+        let Some(((source, target), transitions_edit)) = self.transition_edit.as_mut() else {
             return Err(RitmError::GuiError(GuiError::InvalidState));
         };
 
@@ -253,33 +251,30 @@ impl Turing {
             })
         }
 
+        // Check if all transition can be written, aborting if not
         if new_transitions.iter().any(|f| f.is_err()) {
-            return Ok(new_transitions
-                .into_iter()
-                .map(|e| match e {
-                    Ok(_) => Ok(()),
-                    Err(err) => Err(err),
-                })
-                .collect());
+            let mut reason = String::new();
+            for (i, trans) in new_transitions.into_iter().enumerate() {
+                if let Err(err) = trans {
+                    reason.push_str(format!("{i}:{err}").as_str());
+                }
+            }
+            return Err(RitmError::GuiError(GuiError::InvalidTransition { reason }));
         }
-
-        let transitions_edit = transitions_edit
-            .iter()
-            .map(|(f, _)| f.to())
-            .collect::<Vec<Result<TransitionWrapper, RitmError>>>();
 
         self.tm
             .graph_mut()
-            .remove_transitions(source, target)
+            .remove_transitions(*source, *target)
             .map_err(|e| RitmError::CoreError(e.to_string()))?;
 
-        for transition in transitions_edit {
+        // Create new transition
+        for transition in new_transitions {
             self.tm
                 .graph_mut()
-                .append_transition(source, transition?.clone(), target)
+                .append_transition(*source, transition?.clone(), *target)
                 .map_err(|e| RitmError::CoreError(e.to_string()))?;
         }
-        Ok(vec![])
+        Ok(())
     }
 
     /// Update the position of each state so the graph
@@ -338,8 +333,14 @@ impl Turing {
         }
     }
 
+    /// Unpin a state
+    pub fn unpin(&mut self, state_id: usize) -> Result<(), RitmError> {
+        self.get_state_mut(state_id)?.inner_state.is_pinned = false;
+        Ok(())
+    }
+
     /// Unpin all states
-    pub fn unpin(&mut self) {
+    pub fn unpin_all(&mut self) {
         self.tm
             .graph_mut()
             .get_states_mut()
@@ -347,8 +348,14 @@ impl Turing {
             .for_each(|s| s.inner_state.is_pinned = false);
     }
 
+    /// Pin a state
+    pub fn pin(&mut self, state_id: usize) -> Result<(), RitmError> {
+        self.get_state_mut(state_id)?.inner_state.is_pinned = true;
+        Ok(())
+    }
+
     /// Pin all states
-    pub fn pin(&mut self) {
+    pub fn pin_all(&mut self) {
         self.tm
             .graph_mut()
             .get_states_mut()
@@ -512,39 +519,7 @@ pub struct Transition {}
 
 impl TuringTransition for Transition {}
 
-pub fn try_to(tw: TransitionWrapper) -> Result<TransitionWrapper, RitmError> {
-    if tw.info.get_chars_read().iter().any(|c| *c == '\0') {
-        return Err(RitmError::GuiError(GuiError::InvalidTransition {
-            reason: "Empty char present in the transition".to_string(),
-        }));
-    }
-    let info = match tw.info {
-        TransitionsInfo::OneTape(transition_one_ribbon_info) => {
-            TransitionsInfo::OneTape(TransitionOneRibbonInfo::new(
-                transition_one_ribbon_info.chars_read,
-                transition_one_ribbon_info.move_pointer,
-                transition_one_ribbon_info.replace_with,
-            ))
-        }
-        TransitionsInfo::MultipleTapes(transition_mult_ribbon_info) => {
-            TransitionsInfo::MultipleTapes(
-                TransitionMultRibbonInfo::new(
-                    transition_mult_ribbon_info.chars_read,
-                    transition_mult_ribbon_info.move_read,
-                    transition_mult_ribbon_info.chars_write,
-                )
-                .map_err(|e| RitmError::CoreError(e.to_string()))?,
-            )
-        }
-    };
-
-    Ok(TransitionWrapper {
-        info,
-        inner_transition: tw.inner_transition.clone(),
-    })
-}
-
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct TransitionEdit {
     base: TransitionWrapper,
     edit: TransitionWrapper,
@@ -561,7 +536,7 @@ impl TransitionEdit {
     }
 
     pub fn to(&self) -> Result<TransitionWrapper, RitmError> {
-        if self.edit.info.get_chars_read().iter().any(|c| *c == '\0') {
+        if self.edit.info.get_chars_read().contains(&'\0') {
             return Err(RitmError::GuiError(GuiError::InvalidTransition {
                 reason: "Empty char present in the transition".to_string(),
             }));

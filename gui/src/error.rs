@@ -4,13 +4,13 @@ use egui::{Context, Id, Label, LayerId, Popup, PopupAnchor, RichText, vec2};
 
 use crate::{App, ui::font::Font};
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum RitmError {
     GuiError(GuiError),
     CoreError(String),
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum GuiError {
     InvalidState,
     GraphError(String),

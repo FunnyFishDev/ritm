@@ -7,7 +7,6 @@ use egui_flex::{Flex, FlexAlignContent, item};
 use crate::{
     App,
     error::RitmError,
-    turing::TransitionId,
     ui::{font::Font, theme::Theme},
 };
 
@@ -18,7 +17,7 @@ pub mod transition_edit;
 
 #[derive(PartialEq, Clone, Debug)]
 pub enum RitmPopupEnum {
-    TransitionEdit(TransitionId),
+    TransitionEdit((usize, usize)),
     StateEdit(Option<usize>, Option<Pos2>),
     Settings,
     Help,
@@ -46,10 +45,19 @@ impl RitmPopup {
 pub fn show(ctx: &Context, app: &mut App) -> Result<(), RitmError> {
     if let Some(ritmpopup) = app.popup.current_popup.clone() {
         match ritmpopup {
-            RitmPopupEnum::TransitionEdit(transition_id) => {
-                let source = app.turing.get_state(transition_id.source_id)?.get_name();
-                let target = app.turing.get_state(transition_id.target_id)?.get_name();
-                let max_size = vec2(300.0, ctx.available_rect().height());
+            RitmPopupEnum::TransitionEdit((source_id, target_id)) => {
+                let source = app.turing.get_state(source_id)?.get_name();
+                let target = app.turing.get_state(target_id)?.get_name();
+                let max_size = vec2(
+                    200.0
+                        + app.turing.tm.graph_ref().get_k() as f32 * 125.0
+                        + if app.turing.tm.graph_ref().get_k() == 0 {
+                            25.0
+                        } else {
+                            0.0
+                        },
+                    ctx.available_rect().height(),
+                );
                 modal(
                     ctx,
                     app,
@@ -57,7 +65,7 @@ pub fn show(ctx: &Context, app: &mut App) -> Result<(), RitmError> {
                     false,
                     |ui, app| {
                         ui.set_max_size(max_size);
-                        ui.set_min_size(vec2(max_size.x, 0.0));
+                        // ui.set_min_size(vec2(max_size.x, 0.0));
                         transition_edit::show(ui, app)
                     },
                 )?

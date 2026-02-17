@@ -41,6 +41,7 @@ pub enum TuringTapeError {
 
 #[derive(Debug, Clone)]
 pub struct TuringTape {
+    is_reading_tape: bool,
     chars_vec: Vec<char>,
     pointer: usize,
 }
@@ -54,6 +55,7 @@ impl TuringTape {
             BLANK_CHAR
         };
         Self {
+            is_reading_tape,
             chars_vec: vec![INIT_CHAR, last_char],
             pointer: 0,
         }
@@ -126,7 +128,11 @@ impl TuringTape {
         for ch in word.chars() {
             self.chars_vec.push(ch);
         }
-        self.chars_vec.push(END_CHAR);
+        self.chars_vec.push(if self.is_reading_tape {
+            END_CHAR
+        } else {
+            BLANK_CHAR
+        });
         self.pointer = 0;
         Ok(())
     }

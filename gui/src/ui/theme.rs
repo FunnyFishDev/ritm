@@ -14,7 +14,7 @@ use egui_flex::{Flex, FlexInstance, item};
 
 use crate::App;
 /// Theme of the application, holding different color for each part
-#[derive(PartialEq)]
+#[derive(serde::Serialize, serde::Deserialize, PartialEq)]
 pub struct Theme {
     pub primary: Color32,
     pub primary_variant: Color32,

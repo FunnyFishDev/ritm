@@ -82,7 +82,7 @@ pub fn draw_node(app: &mut App, ui: &mut Ui, state_id: usize) -> Result<(), Ritm
             app.turing.add_transition(
                 app.graph.selected_state().expect("state selected"),
                 state_id,
-            );
+            )?;
             app.edit.is_adding_transition &= !app.settings.reset_after_action;
             app.edit.is_adding_state = false;
         } else {

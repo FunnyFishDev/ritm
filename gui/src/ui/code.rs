@@ -1,16 +1,19 @@
 use egui::{
-    Align, Atom, Button, Color32, Frame, Id, Image, ImageButton, Label, Layout, Margin, RichText,
-    ScrollArea, TextEdit, TextFormat, Ui, Vec2, include_image, scroll_area::ScrollBarVisibility,
-    text::LayoutJob, vec2,
+    Align, Align2, Atom, Button, Color32, Frame, Id, Image, ImageButton, Label, Layout, Margin,
+    RichText, ScrollArea, TextEdit, TextFormat, Ui, Vec2, include_image,
+    scroll_area::ScrollBarVisibility, text::LayoutJob, vec2,
 };
 
 use crate::{
     App,
     error::{GuiError, RitmError},
-    ui::font::Font,
+    ui::{
+        font::Font,
+        tutorial::{TutorialBox, TutorialEnum},
+    },
 };
 
-// #[derive(Default)]
+#[derive(serde::Deserialize, serde::Serialize)]
 pub struct Code {
     tabs: Vec<Tab>,
     code_closed: bool,
@@ -19,6 +22,7 @@ pub struct Code {
     auto_scroll: bool,
 }
 
+#[derive(serde::Deserialize, serde::Serialize)]
 struct Tab {
     name: String,
     code: String,
@@ -27,9 +31,8 @@ struct Tab {
 impl Default for Code {
     fn default() -> Self {
         Self {
-            tabs: vec![
-                Tab {
-                    code: "accepting = q_a;
+            tabs: vec![Tab {
+                code: "accepting = q_a;
 
 // Initialisation
 q_i {ç, ç -> R, ç, R} q_copy;
@@ -47,10 +50,10 @@ q_return {ç, _ -> R, _, L} q_check;
 // Compare each side until end
 q_check {0, 0 -> R, 0, L} q_check;
 q_check {1, 1 -> R, 1, L} q_check;
-q_check {$, ç -> N, ç, N} q_a;".to_string(),
-                    name: "binary_palindrome".to_string(),
-                },
-            ],
+q_check {$, ç -> N, ç, N} q_a;"
+                    .to_string(),
+                name: "binary_palindrome".to_string(),
+            }],
             code_closed: Default::default(),
             current_tab: 0,
             editing_name: false,
@@ -137,10 +140,13 @@ impl Code {
 }
 
 pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
-    Frame::new()
-        .fill(
-            Color32::from_gray(128).blend(app.theme.code_background.gamma_multiply_u8(240))
-        )
+    app.tutorial.add_boxe(
+        "code_section",
+        TutorialBox::new(ui.available_rect_before_wrap()).with_align(Align2::RIGHT_CENTER),
+    );
+
+    let tab_response = Frame::new()
+        .fill(Color32::from_gray(128).blend(app.theme.code_background.gamma_multiply_u8(240)))
         .show(ui, |ui| {
             ScrollArea::horizontal()
                 .id_salt("tabs")
@@ -153,9 +159,10 @@ pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
                         let mut marked_to_delete: Vec<usize> = vec![];
                         for i in 0..app.code.tabs.len() {
                             let is_current_tab = app.code.current_tab == i;
-                            Frame::new()
+                            let frame = Frame::new()
                                 .fill(if !is_current_tab {
-                                    Color32::from_gray(128).blend(app.theme.code_background.gamma_multiply_u8(210))
+                                    Color32::from_gray(128)
+                                        .blend(app.theme.code_background.gamma_multiply_u8(210))
                                 } else {
                                     app.theme.code_background
                                 })
@@ -247,13 +254,30 @@ pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
                                     }
 
                                     Ok::<(), RitmError>(())
-                                });
+                                })
+                                .response;
+
+                            if i == 0 {
+                                app.tutorial.add_boxe(
+                                    "tab_rename",
+                                    TutorialBox::new(frame.rect).with_align(Align2::RIGHT_CENTER),
+                                );
+
+                                if let Some(tutorial) = app.tutorial.current_tutorial()
+                                    && tutorial == TutorialEnum::Code
+                                    && app.tutorial.current_step() == 2
+                                {
+                                    frame.scroll_to_me(Some(Align::Min));
+                                    app.code.auto_scroll = false
+                                }
+                            }
                         }
 
                         // ui.set_max_width(ui.available_width() + 50.0);
                         let plus = Frame::new()
                             .fill(
-                                Color32::from_gray(128).blend(app.theme.code_background.gamma_multiply_u8(210))
+                                Color32::from_gray(128)
+                                    .blend(app.theme.code_background.gamma_multiply_u8(210)),
                             )
                             .inner_margin(vec2(8.0, 0.0))
                             .show(ui, |ui| {
@@ -267,10 +291,22 @@ pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
                                 )
                             });
 
+                        app.tutorial.add_boxe(
+                            "tab_add",
+                            TutorialBox::new(plus.response.rect).with_align(Align2::RIGHT_CENTER),
+                        );
+
+                        if let Some(tutorial) = app.tutorial.current_tutorial()
+                            && tutorial == TutorialEnum::Code
+                            && app.tutorial.current_step() == 3
+                        {
+                            plus.response.scroll_to_me(Some(Align::Max));
+                            app.code.auto_scroll = false
+                        }
+
                         // move the scrollbar to the last element
                         if app.code.auto_scroll {
                             plus.response.scroll_to_me(Some(Align::Max));
-                            // ui.scroll_to_cursor(Some(Align::Max));
                             app.code.auto_scroll = false
                         }
 
@@ -291,7 +327,13 @@ pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
                         Ok::<(), RitmError>(())
                     });
                 });
-        });
+        })
+        .response;
+
+    app.tutorial.add_boxe(
+        "tabs",
+        TutorialBox::new(tab_response.rect).with_align(Align2::CENTER_BOTTOM),
+    );
 
     code(app, ui)?;
     Ok(())

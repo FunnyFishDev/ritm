@@ -109,7 +109,7 @@ where
             data: IterationData {
                 state_pointer: 0,
                 tapes: {
-                    let mut v = vec![TuringTape::new(true)];
+                    let mut v = vec![TuringTape::new(mt.get_k()>0)];
                     // Creates k tapes
                     for _ in 0..mt.get_k() {
                         v.push(TuringTape::new(false));

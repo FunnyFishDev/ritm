@@ -1,14 +1,19 @@
 use egui::{
-    Align, Frame, Label, Layout, Margin, RichText, ScrollArea, Sense, Stroke, StrokeKind, Ui, Vec2,
+    Align, Align2, Frame, Label, Layout, Margin, Rect, Response, RichText, ScrollArea, Sense,
+    Stroke, StrokeKind, Ui, Vec2,
     epaint::PathShape,
+    pos2,
     scroll_area::{ScrollBarVisibility, ScrollSource},
     vec2,
 };
 
-use crate::{App, ui::constant::Constant};
+use crate::{
+    App,
+    ui::{constant::Constant, tutorial::TutorialBox},
+};
 
 pub fn show(app: &mut App, ui: &mut Ui) {
-    let ribbon_count = app.turing.tm.graph_ref().get_k() + 1;
+    let tape_count = app.turing.tm.graph_ref().get_k() + 1;
 
     // Apply a scale correction to element for small screen
     let square_size = Constant::scale(ui, Constant::SQUARE_SIZE);
@@ -16,8 +21,8 @@ pub fn show(app: &mut App, ui: &mut Ui) {
     let vertical_space = Constant::scale(ui, Constant::VERTICAL_SPACING);
     let scale = Constant::scale(ui, 1.0);
 
-    // Ribbons frame
-    Frame::new()
+    // Tapes frame
+    let res = Frame::new()
         .inner_margin(Margin::same(3))
         .outer_margin(Margin::same(0))
         .fill(app.theme.primary)
@@ -52,12 +57,46 @@ pub fn show(app: &mut App, ui: &mut Ui) {
                 .show(ui, |ui| {
                     let width = ui.available_width();
                     // Draw each ribbon
-                    for i in 0..ribbon_count {
+                    let mut write_rect = Rect::ZERO;
+                    let mut center_rect = Rect::ZERO;
+                    for i in 0..tape_count {
                         // Get the top of the current ribbon to draw the arrow
                         let top = ui.available_rect_before_wrap().top();
 
                         // Draw the ribbon
-                        ribbon(app, ui, width, i);
+                        let res = tape(app, ui, width, i);
+
+                        if i == 0 {
+                            app.tutorial.add_boxe(
+                                "reading_tape",
+                                TutorialBox::new(res.interact_rect)
+                                    .with_align(Align2::CENTER_BOTTOM),
+                            );
+                        } else if write_rect == Rect::ZERO {
+                            write_rect =
+                                Rect::from_min_size(res.interact_rect.min, res.interact_rect.size())
+                        } else {
+                            write_rect = Rect::from_min_max(
+                                write_rect.min,
+                                write_rect.max + vec2(0.0, res.interact_rect.height()),
+                            )
+                        }
+
+                        if center_rect == Rect::ZERO {
+                            center_rect = Rect::from_min_size(
+                                pos2(
+                                    res.interact_rect.center().x - 3.0 - square_size / 2.0,
+                                    res.interact_rect.min.y,
+                                ),
+                                Vec2::splat(square_size + 6.0),
+                            )
+                        } else {
+                            center_rect = Rect::from_min_max(
+                                center_rect.min,
+                                center_rect.max
+                                    + vec2(0.0, res.interact_rect.height() + vertical_space),
+                            )
+                        }
 
                         // Draw the arrow on top of the ribbon
                         ui.painter().add(PathShape::convex_polygon(
@@ -70,12 +109,27 @@ pub fn show(app: &mut App, ui: &mut Ui) {
                             Stroke::NONE,
                         ));
                     }
+
+                    app.tutorial.add_boxe(
+                        "writing_tape",
+                        TutorialBox::new(write_rect).with_align(Align2::CENTER_BOTTOM),
+                    );
+
+                    app.tutorial.add_boxe(
+                        "current_character",
+                        TutorialBox::new(center_rect).with_align(Align2::CENTER_BOTTOM),
+                    );
                 });
         });
+
+    app.tutorial.add_boxe(
+        "tape_section",
+        TutorialBox::new(res.response.rect).with_align(Align2::CENTER_BOTTOM),
+    );
 }
 
 /// Draw a ribbon with the correct spacing and character
-fn ribbon(app: &mut App, ui: &mut Ui, width: f32, tape_id: usize) {
+fn tape(app: &mut App, ui: &mut Ui, width: f32, tape_id: usize) -> Response {
     // Apply a scale correction to element for small screen
     let horizontal_space = Constant::scale(ui, Constant::HORIZONTAL_SPACING);
     let square_size = Constant::scale(ui, Constant::SQUARE_SIZE);
@@ -97,25 +151,26 @@ fn ribbon(app: &mut App, ui: &mut Ui, width: f32, tape_id: usize) {
                 (tape.get_contents(), tape.get_pointer() as i32);
 
             // Create a vector with the character that are needed
-            let ribbon_center = square_count as i32 / 2;
-            let mut ribbon_vec = vec![' '; (ribbon_center - pointer).max(0) as usize];
-            ribbon_vec.append(
-                &mut chars[(pointer - ribbon_center).max(0) as usize
-                    ..(pointer + ribbon_center + 1).min(chars.len() as i32) as usize]
+            let tape_center = square_count as i32 / 2;
+            let mut tape_vec = vec![' '; (tape_center - pointer).max(0) as usize];
+            tape_vec.append(
+                &mut chars[(pointer - tape_center).max(0) as usize
+                    ..(pointer + tape_center + 1).min(chars.len() as i32) as usize]
                     .to_vec(),
             );
 
-            ribbon_vec.append(&mut vec![
+            tape_vec.append(&mut vec![
                 ' ';
-                (ribbon_center - (chars.len() as i32 - pointer - 1)).max(0)
+                (tape_center - (chars.len() as i32 - pointer - 1)).max(0)
                     as usize
             ]);
 
-            for (i, char) in ribbon_vec.iter().enumerate().take(square_count) {
-                square(app, ui, *char, i == ribbon_center as usize);
+            for (i, char) in tape_vec.iter().enumerate().take(square_count) {
+                square(app, ui, *char, i == tape_center as usize);
             }
         },
-    );
+    )
+    .response
 }
 
 /// Draw a single square with a character
