@@ -1,4 +1,8 @@
-use pest::{Parser, error::Error, iterators::Pair};
+use pest::{
+    Parser,
+    error::Error,
+    iterators::{Pair, Pairs},
+};
 use pest_derive::Parser;
 use std::{fmt::Display, fs, io};
 use thiserror::Error;
@@ -8,7 +12,9 @@ use crate::{
         DEFAULT_INIT_STATE, TuringGraph, TuringGraphError, TuringState, TuringStateType,
     },
     turing_machine::TuringMachineError,
-    turing_transition::{TuringDirection, TuringTransition, TransitionMultRibbonInfo},
+    turing_transition::{
+        TransitionMultRibbonInfo, TransitionOneRibbonInfo, TuringDirection, TuringTransition,
+    },
 };
 
 #[derive(Debug, Error)]
@@ -132,9 +138,8 @@ where
     let mut accepting_state_rule: Option<Pair<Rule>> = None;
 
     for turing_machine_rule in file.into_inner() {
-        let rule_cp = turing_machine_rule.clone();
         // Inside the 'turing_machine' rule, only two things can be matched : a transition (or multiple in one), and EOI
-        let res = match turing_machine_rule.as_rule() {
+        match turing_machine_rule.as_rule() {
             Rule::options => {
                 if let Some(option_rule) = turing_machine_rule.into_inner().next() {
                     match &option_rule.as_rule() {
@@ -150,9 +155,138 @@ where
 
                 Ok(())
             }
+            Rule::machine_1_ribbon => parse_tm_1_ribbon(
+                &mut turing_graph,
+                &mut init_rule,
+                &mut accepting_state_rule,
+                turing_machine_rule.into_inner(),
+            ),
+            Rule::machine_k_ribbons => parse_tm_k_ribbons(
+                &mut turing_graph,
+                &mut init_rule,
+                &mut accepting_state_rule,
+                turing_machine_rule.into_inner(),
+            ),
+            // The input has ended, this means we reached the last matched rule
+            Rule::EOI => Ok(()),
+            _ => unreachable!(),
+        }?;
+    }
+    Ok(turing_graph.unwrap_or_default())
+}
+
+fn parse_tm_1_ribbon<S, T>(
+    turing_graph: &mut Option<TuringGraph<S, T>>,
+    init_rule: &mut Option<Pair<Rule>>,
+    accepting_state_rule: &mut Option<Pair<Rule>>,
+    rules: Pairs<Rule>,
+) -> Result<(), TuringParserError>
+where
+    S: TuringState,
+    T: TuringTransition,
+{
+    let graph = turing_graph.get_or_insert({
+        let mut g = TuringGraph::new(0, false).expect("correct machine");
+
+        if let Some(init_rule) = init_rule.take()
+            && let Err(e) = parse_rename_init(&mut g, init_rule.clone())
+        {
+            return Err(TuringParserError::TuringError {
+                line_col_pos: Some(init_rule.line_col()),
+                turing_error: Box::new(e.into()),
+                value: init_rule.as_str().to_string(),
+            });
+        }
+        if let Some(accepting_state_rule) = accepting_state_rule.take()
+            && let Err(e) = parse_add_accepting_states(&mut g, accepting_state_rule.clone())
+        {
+            return Err(TuringParserError::TuringError {
+                line_col_pos: Some(accepting_state_rule.line_col()),
+                turing_error: Box::new(e.into()),
+                value: accepting_state_rule.as_str().to_string(),
+            });
+        }
+
+        g
+    });
+    for rule in rules {
+        let rule_copy = rule.clone();
+        match rule.as_rule() {
+            Rule::transition_1 => {
+                let mut transition_rules = rule.into_inner();
+                let from =
+                    parse_str_token(transition_rules.next().expect("contains starting state"));
+
+                let mut contents = Vec::new();
+
+                transition_rules.next().expect("left bracket");
+                let mut transition_content = transition_rules
+                    .next()
+                    .expect("transition content rule expected");
+                while let Rule::transition_content_1 = transition_content.as_rule() {
+                    let mut transition_content_inner_rules = transition_content.into_inner();
+                    // Ex : ç -> ç, R := Tokens: "ç", "ç" and "R"
+                    contents.push((
+                        parse_char_token(
+                            transition_content_inner_rules
+                                .next()
+                                .expect("first char present"),
+                        ),
+                        parse_char_token(
+                            transition_content_inner_rules
+                                .next()
+                                .expect("second char present"),
+                        ),
+                        parse_direction(
+                            transition_content_inner_rules
+                                .next()
+                                .expect("direction present"),
+                        ),
+                    ));
+                    transition_content = transition_rules.next().expect("another rule expected");
+                }
+                // When leaving this condition we are at the right bracket token.
+                let to = parse_str_token(transition_rules.next().expect("contains ending state"));
+
+                let to = graph.add_state(to, TuringStateType::Normal);
+                let from = graph.add_state(from, TuringStateType::Normal);
+                for transition in contents {
+                    if let Err(e) = graph.append_transition(
+                        from,
+                        TransitionOneRibbonInfo::new(transition.0, transition.2, transition.1),
+                        to,
+                    ) {
+                        return Err(TuringParserError::TuringError {
+                            line_col_pos: Some(rule_copy.line_col()),
+                            turing_error: Box::new(e.into()),
+                            value: rule_copy.as_str().to_string(),
+                        });
+                    }
+                }
+            }
+            Rule::semicolon => {}
+            _ => unreachable!(""),
+        }
+    }
+    Ok(())
+}
+
+fn parse_tm_k_ribbons<S, T>(
+    turing_graph: &mut Option<TuringGraph<S, T>>,
+    init_rule: &mut Option<Pair<Rule>>,
+    accepting_state_rule: &mut Option<Pair<Rule>>,
+    rules: Pairs<Rule>,
+) -> Result<(), TuringParserError>
+where
+    S: TuringState,
+    T: TuringTransition,
+{
+    for rule in rules {
+        let rule_copy = rule.clone();
+        match rule.as_rule() {
             // For every rule matched :
             Rule::transition_k => {
-                let (from_var, transitions, to_var) = parse_transition(turing_machine_rule)?;
+                let (from_var, transitions, to_var) = parse_transition(rule)?;
 
                 /* Add the colected transitions to the MT */
 
@@ -172,18 +306,18 @@ where
                         && let Err(e) = parse_rename_init(&mut g, init_rule)
                     {
                         return Err(TuringParserError::TuringError {
-                            line_col_pos: Some(rule_cp.line_col()),
+                            line_col_pos: Some(rule_copy.line_col()),
                             turing_error: Box::new(e.into()),
-                            value: rule_cp.as_str().to_string(),
+                            value: rule_copy.as_str().to_string(),
                         });
                     }
                     if let Some(accepting_state_rule) = accepting_state_rule.take()
                         && let Err(e) = parse_add_accepting_states(&mut g, accepting_state_rule)
                     {
                         return Err(TuringParserError::TuringError {
-                            line_col_pos: Some(rule_cp.line_col()),
+                            line_col_pos: Some(rule_copy.line_col()),
                             turing_error: Box::new(e.into()),
-                            value: rule_cp.as_str().to_string(),
+                            value: rule_copy.as_str().to_string(),
                         });
                     }
 
@@ -194,30 +328,22 @@ where
                 // and get their index
                 let var1 = graph.add_state(&from_var, TuringStateType::Normal);
                 let var2 = graph.add_state(&to_var, TuringStateType::Normal);
-                let mut inner_res = Ok(());
                 // Adds all the collected transitions for these states
                 for transition in transitions {
                     if let Err(e) = graph.append_transition(var1, transition, var2) {
-                        inner_res = Err(e);
-                        break;
+                        return Err(TuringParserError::TuringError {
+                            line_col_pos: Some(rule_copy.line_col()),
+                            turing_error: Box::new(e.into()),
+                            value: rule_copy.as_str().to_string(),
+                        });
                     }
                 }
-                inner_res
             }
-            Rule::semicolon => Ok(()),
-            // The input has ended, this means we reached the last matched rule
-            Rule::EOI => Ok(()),
-            _ => unreachable!(),
-        };
-        if let Err(e) = res {
-            return Err(TuringParserError::TuringError {
-                line_col_pos: Some(rule_cp.line_col()),
-                turing_error: Box::new(e.into()),
-                value: rule_cp.as_str().to_string(),
-            });
+            Rule::semicolon => {}
+            _ => unreachable!(""),
         }
     }
-    Ok(turing_graph.unwrap_or_default())
+    Ok(())
 }
 
 /// Parses a string containing a transition of the form :
@@ -300,6 +426,15 @@ where
     Ok(())
 }
 
+fn parse_direction(rule: Pair<Rule>) -> TuringDirection {
+    match rule.as_rule() {
+        Rule::dir_left => TuringDirection::Left,
+        Rule::dir_right => TuringDirection::Right,
+        Rule::dir_none => TuringDirection::None,
+        _ => unreachable!(" "),
+    }
+}
+
 fn parse_transition(
     rule: Pair<Rule>,
 ) -> Result<(String, Vec<TransitionMultRibbonInfo>, String), TuringParserError> {
@@ -352,7 +487,16 @@ fn parse_str_token(rule: Pair<Rule>) -> String {
     }
 }
 
-fn parse_transition_content(rule: Pair<Rule>) -> Result<TransitionMultRibbonInfo, TuringMachineError> {
+fn parse_char_token(rule: Pair<Rule>) -> char {
+    match rule.as_rule() {
+        Rule::special_chars | Rule::char => rule.as_str().chars().next().expect("char present"),
+        _ => unreachable!(),
+    }
+}
+
+fn parse_transition_content(
+    rule: Pair<Rule>,
+) -> Result<TransitionMultRibbonInfo, TuringMachineError> {
     let mut chars_read: Vec<char> = vec![];
     let mut directions: Vec<TuringDirection> = vec![];
     let mut chars_written: Vec<char> = vec![];
@@ -370,19 +514,10 @@ fn parse_transition_content(rule: Pair<Rule>) -> Result<TransitionMultRibbonInfo
             Rule::to_write_move_k => {
                 for write_move_rule in transition_rule.into_inner() {
                     match write_move_rule.as_rule() {
-                        Rule::dir_left => {
-                            directions.push(TuringDirection::Left);
-                        }
-                        Rule::dir_right => {
-                            directions.push(TuringDirection::Right);
-                        }
-                        Rule::dir_none => {
-                            directions.push(TuringDirection::None);
-                        }
                         Rule::char | Rule::special_chars => {
-                            chars_written.push(write_move_rule.as_str().chars().next().unwrap());
+                            chars_written.push(parse_char_token(write_move_rule));
                         }
-                        _ => unreachable!(),
+                        _ => directions.push(parse_direction(write_move_rule)),
                     };
                 }
             }

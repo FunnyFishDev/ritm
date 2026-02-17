@@ -12,7 +12,7 @@ pub mod turing_tape;
 
 pub mod turing_index;
 
-// pub mod turing_parser;
+pub mod turing_parser;
 
 pub mod turing_transition;
 
@@ -36,4 +36,4 @@ impl TuringTransition for EmptyTransition {}
 
 pub type SimpleTuringGraph = TuringGraph<EmptyState, EmptyTransition>;
 
-// pub type SimpleTuringMachine = TuringMachine<EmptyState, EmptyTransition>;
+pub type SimpleTuringMachine = TuringMachine<EmptyState, EmptyTransition>;

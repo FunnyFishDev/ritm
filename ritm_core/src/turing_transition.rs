@@ -64,22 +64,22 @@ pub struct TuringTransitionWrapper<T: TuringTransition> {
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum TransitionsInfo {
-    OneRibbon(TransitionOneRibbonInfo),
-    MultipleRibbon(TransitionMultRibbonInfo),
+    OneTape(TransitionOneRibbonInfo),
+    MultipleTapes(TransitionMultRibbonInfo),
 }
 
 impl TransitionsInfo {
     pub fn has_one_ribbon(&self) -> bool {
         match self {
-            TransitionsInfo::OneRibbon(_transition_one_ribbon_info) => true,
-            TransitionsInfo::MultipleRibbon(_transition_mult_ribbon_info) => false,
+            TransitionsInfo::OneTape(_transition_one_ribbon_info) => true,
+            TransitionsInfo::MultipleTapes(_transition_mult_ribbon_info) => false,
         }
     }
 
     pub fn get_nb_ribbons(&self) -> usize {
         match self {
-            TransitionsInfo::OneRibbon(_transition_one_ribbon_info) => 1,
-            TransitionsInfo::MultipleRibbon(transition_mult_ribbon_info) => {
+            TransitionsInfo::OneTape(_transition_one_ribbon_info) => 1,
+            TransitionsInfo::MultipleTapes(transition_mult_ribbon_info) => {
                 transition_mult_ribbon_info.get_number_of_affected_tapes()
             }
         }
@@ -87,12 +87,34 @@ impl TransitionsInfo {
 
     pub fn is_valid(&self, chars_to_read: &Vec<char>) -> bool {
         match self {
-            TransitionsInfo::OneRibbon(transition_one_ribbon_info) => {
+            TransitionsInfo::OneTape(transition_one_ribbon_info) => {
                 chars_to_read.len() == 1
                     && chars_to_read[0] == transition_one_ribbon_info.chars_read
             }
-            TransitionsInfo::MultipleRibbon(transition_mult_ribbon_info) => {
+            TransitionsInfo::MultipleTapes(transition_mult_ribbon_info) => {
                 transition_mult_ribbon_info.chars_read == *chars_to_read
+            }
+        }
+    }
+
+    pub fn get_chars_read(&self) -> Vec<char> {
+        match self {
+            TransitionsInfo::OneTape(transition_one_ribbon_info) => {
+                vec![transition_one_ribbon_info.chars_read]
+            }
+            TransitionsInfo::MultipleTapes(transition_mult_ribbon_info) => {
+                transition_mult_ribbon_info.chars_read.clone()
+            }
+        }
+    }
+
+    pub fn get_move_read(&self) -> TuringDirection {
+        match self {
+            TransitionsInfo::OneTape(transition_one_ribbon_info) => {
+                transition_one_ribbon_info.move_pointer.clone()
+            }
+            TransitionsInfo::MultipleTapes(transition_mult_ribbon_info) => {
+                transition_mult_ribbon_info.move_read.clone()
             }
         }
     }
@@ -100,12 +122,12 @@ impl TransitionsInfo {
 
 impl From<TransitionMultRibbonInfo> for TransitionsInfo {
     fn from(value: TransitionMultRibbonInfo) -> Self {
-        Self::MultipleRibbon(value)
+        Self::MultipleTapes(value)
     }
 }
 impl From<TransitionOneRibbonInfo> for TransitionsInfo {
     fn from(value: TransitionOneRibbonInfo) -> Self {
-        Self::OneRibbon(value)
+        Self::OneTape(value)
     }
 }
 
@@ -339,9 +361,9 @@ impl Display for TransitionsInfo {
             f,
             "{}",
             match self {
-                TransitionsInfo::OneRibbon(transition_one_ribbon_info) =>
+                TransitionsInfo::OneTape(transition_one_ribbon_info) =>
                     transition_one_ribbon_info.to_string(),
-                TransitionsInfo::MultipleRibbon(transition_mult_ribbon_info) =>
+                TransitionsInfo::MultipleTapes(transition_mult_ribbon_info) =>
                     transition_mult_ribbon_info.to_string(),
             }
         )

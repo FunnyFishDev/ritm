@@ -3,7 +3,7 @@ use ritm_core::{
     turing_graph::TuringStateType,
     turing_machine::TuringMachineError,
     turing_parser::{self, TuringParserError, parse_transition_string, parse_turing_graph_string},
-    turing_transition::{TuringDirection, TuringTransitionError, TransitionMultRibbonInfo},
+    turing_transition::{TransitionMultRibbonInfo, TuringDirection, TuringTransitionError},
 };
 
 #[test]
@@ -402,6 +402,29 @@ fn test_parse_machine_k_ribbons() {
         parse_turing_graph_string::<EmptyState, EmptyTransition>(machine).expect("no errors");
 
     let str_graph = turing_parser::graph_to_string(&parsed_graph);
+
+    assert_eq!(
+        parsed_graph,
+        parse_turing_graph_string::<EmptyState, EmptyTransition>(str_graph).expect("no errors")
+    );
+}
+
+#[test]
+fn test_parse_machine_1_ribbon() {
+    // This test checks that we can parse a graph, turn it into a string, parse it again and end up with the same graph
+    let machine = String::from(
+        "accepting = q_a;
+         q_i {ç -> ç, R } q_1;
+         q1 {  0 -> a, R  
+            |  1 -> a, R } qa;",
+    );
+
+    let parsed_graph =
+        parse_turing_graph_string::<EmptyState, EmptyTransition>(machine).expect("no errors");
+
+    let str_graph = turing_parser::graph_to_string(&parsed_graph);
+
+    println!("{str_graph}");
 
     assert_eq!(
         parsed_graph,

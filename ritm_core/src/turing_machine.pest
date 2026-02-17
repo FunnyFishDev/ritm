@@ -3,8 +3,8 @@ COMMENT = _{ "//" ~ (!"\n" ~ ANY)* }
 
 turing_machine = { WHITESPACE* ~ options* ~ (WHITESPACE* ~ machine) ~ EOI }
 
-machine = _{machine_1_ribbons | machine_k_ribbons}
-machine_1_ribbons = {  (transition_1 ~ semicolon)+ }
+machine = _{machine_1_ribbon | machine_k_ribbons}
+machine_1_ribbon = {  (transition_1 ~ semicolon)+ }
 machine_k_ribbons = {  (transition_k ~ semicolon)+ }
 
 
