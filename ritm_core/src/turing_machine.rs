@@ -109,7 +109,7 @@ where
             data: IterationData {
                 state_pointer: 0,
                 tapes: {
-                    let mut v = vec![TuringTape::new(mt.get_k()>0)];
+                    let mut v = vec![TuringTape::new(mt.get_k() != 0)];
                     // Creates k tapes
                     for _ in 0..mt.get_k() {
                         v.push(TuringTape::new(false));
@@ -132,7 +132,7 @@ where
             .tapes
             .first_mut()
             .expect("Always one tape present")
-            .feed_word(word)?;
+            .feed_word(word, s.graph.get_k() != 0)?;
 
         Ok(s)
     }
@@ -155,7 +155,7 @@ where
             .tapes
             .first_mut()
             .expect("Always one tape present")
-            .feed_word(word)?;
+            .feed_word(word, self.graph.get_k() != 0)?;
 
         self.set_word(word);
 

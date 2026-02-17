@@ -88,7 +88,9 @@ impl TuringTape {
                 });
             }
             // In a writing tape, we have an *infinite size*, so we can simulate this by adding, when needed, a new empty char
-            if new_pointer >= self.chars_vec.len() as isize {
+            if new_pointer + 1 >= self.chars_vec.len() as isize
+                && *self.chars_vec.last().expect("one present") != END_CHAR
+            {
                 self.chars_vec.push('_');
             }
 
@@ -119,7 +121,11 @@ impl TuringTape {
         self.pointer
     }
 
-    pub fn feed_word(&mut self, word: impl ToString) -> Result<(), TuringTapeError> {
+    pub fn feed_word(
+        &mut self,
+        word: impl ToString,
+        add_end_char: bool,
+    ) -> Result<(), TuringTapeError> {
         let word = word.to_string();
         check_word_validity(&word)?;
 
@@ -128,11 +134,11 @@ impl TuringTape {
         for ch in word.chars() {
             self.chars_vec.push(ch);
         }
-        self.chars_vec.push(if self.is_reading_tape {
-            END_CHAR
+        if add_end_char {
+            self.chars_vec.push(END_CHAR);
         } else {
-            BLANK_CHAR
-        });
+            self.chars_vec.push(BLANK_CHAR);
+        }
         self.pointer = 0;
         Ok(())
     }
@@ -228,7 +234,7 @@ mod tests {
     fn test_feed_word_tape() {
         let mut tape = TuringTape::new(false);
 
-        tape.feed_word("test".to_string()).unwrap();
+        tape.feed_word("test".to_string(), true).unwrap();
 
         assert_eq!(
             tape.chars_vec,
@@ -240,15 +246,15 @@ mod tests {
     fn test_feed_word_tape_illegal_char() {
         let mut tape = TuringTape::new(true);
 
-        match tape.feed_word("dsdçaaz".to_string()) {
+        match tape.feed_word("dsdçaaz".to_string(), true) {
             Ok(_) => panic!("Exepected an error"),
             Err(te) => expect_ill_action_error(te),
         }
-        match tape.feed_word("dsdaaz$".to_string()) {
+        match tape.feed_word("dsdaaz$".to_string(), true) {
             Ok(_) => panic!("Exepected an error"),
             Err(te) => expect_ill_action_error(te),
         }
-        match tape.feed_word("_dsdaaz".to_string()) {
+        match tape.feed_word("_dsdaaz".to_string(), true) {
             Ok(_) => panic!("Exepected an error"),
             Err(te) => expect_ill_action_error(te),
         }
@@ -279,7 +285,7 @@ mod tests {
     fn test_transition_read_tape() {
         let mut tape = TuringTape::new(false);
 
-        tape.feed_word("test".to_string()).unwrap();
+        tape.feed_word("test".to_string(), true).unwrap();
 
         tape.try_apply_transition(INIT_CHAR, INIT_CHAR, &TuringDirection::Right)
             .unwrap();
