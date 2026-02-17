@@ -1,4 +1,6 @@
-use ritm_core::turing_transition::{TuringDirection, TuringTransitionError, TransitionMultRibbonInfo};
+use ritm_core::turing_transition::{
+    TransitionMultRibbonInfo, TuringDirection, TuringTransitionError,
+};
 
 // ________________________________________ Transitions tests ______________________________
 #[test]

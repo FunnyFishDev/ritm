@@ -5,8 +5,8 @@ use crate::{
     turing_index::{TransitionId, TuringStateIndex, TuringTransitionIndex},
     turing_tape::TuringTapeError,
     turing_transition::{
-        TransitionMultRibbonInfo, TransitionOneRibbonInfo, TransitionsInfo,
-        TuringTransition, TuringTransitionWrapper,
+        TransitionMultRibbonInfo, TransitionOneRibbonInfo, TransitionsInfo, TuringTransition,
+        TuringTransitionWrapper,
     },
 };
 use std::{

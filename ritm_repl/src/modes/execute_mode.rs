@@ -6,7 +6,7 @@ use ritm_core::{
     SimpleTuringMachine,
     turing_graph::{TuringStateInfo, TuringStateType},
     turing_machine::{Mode, TuringExecutionSteps},
-    turing_tape::{TuringReadingTape, TuringWritingTape},
+    turing_tape::TuringTape,
 };
 use strum_macros::EnumIter;
 
@@ -298,7 +298,6 @@ fn print_step(
     match st {
         TuringExecutionSteps::FirstIteration {
             init_state: _,
-            init_reading_tape: _,
             init_tapes: _,
         } => {
             println!(
@@ -306,14 +305,7 @@ fn print_step(
                 "* Iteration: ".bold().magenta(),
                 st.get_nb_iterations().to_string().bold()
             );
-            println!(
-                "{}",
-                format_tape(
-                    st.get_reading_tape(),
-                    st.get_writing_tapes(),
-                    Color::Magenta
-                )
-            );
+            println!("{}", format_tape(st.get_tapes(), Color::Magenta));
         }
         TuringExecutionSteps::TransitionTaken {
             previous_state,
@@ -321,8 +313,7 @@ fn print_step(
             state_pointer: _,
             transition_index: _,
             transition_taken,
-            reading_tape: _,
-            writing_tapes: _,
+            tapes: _,
             iteration: _,
         } => {
             if let TuringStateType::Accepting = reached_state.get_type() {
@@ -340,10 +331,7 @@ fn print_step(
                     color_state(reached_state)
                 );
 
-                println!(
-                    "{}",
-                    format_tape(st.get_reading_tape(), st.get_writing_tapes(), Color::Green)
-                );
+                println!("{}", format_tape(st.get_tapes(), Color::Green));
             } else {
                 println!(
                     "{} {}",
@@ -358,18 +346,14 @@ fn print_step(
                     transition_taken,
                     color_state(reached_state)
                 );
-                println!(
-                    "{}",
-                    format_tape(st.get_reading_tape(), st.get_writing_tapes(), Color::Blue)
-                );
+                println!("{}", format_tape(st.get_tapes(), Color::Blue));
             }
         }
         TuringExecutionSteps::Backtracked {
             previous_state,
             reached_state,
             state_pointer: _,
-            reading_tape: _,
-            writing_tapes: _,
+            tapes: _,
             iteration,
             backtracked_iteration,
         } => {
@@ -386,10 +370,7 @@ fn print_step(
                 color_state(previous_state),
                 color_state(reached_state)
             );
-            println!(
-                "{}",
-                format_tape(st.get_reading_tape(), st.get_writing_tapes(), Color::Yellow)
-            );
+            println!("{}", format_tape(st.get_tapes(), Color::Yellow));
         }
     }
 }
@@ -402,22 +383,12 @@ fn color_state(state: &TuringStateInfo) -> ColoredString {
     })
 }
 
-fn format_tape(
-    reading_tape: &TuringReadingTape,
-    writing_tapes: &Vec<TuringWritingTape>,
-    color: Color,
-) -> ColoredString {
-    let first = format!(
-        "{}\n{}\n",
-        "* Reading tape: ".bold(),
-        reading_tape.to_string().white()
-    );
-
-    let mut second = format!("{}\n", "* Writing tapes: ".bold());
-    for rib in writing_tapes {
+fn format_tape(tapes: &Vec<TuringTape>, color: Color) -> ColoredString {
+    let mut second = format!("{}\n", "* Tapes: ".bold());
+    for rib in tapes {
         second = format!("{}{}", second, format!("{}\n", rib).white());
     }
-    format!("{}{}", first, second).color(color)
+    second.to_string().color(color)
 }
 
 fn query_mode(
@@ -501,11 +472,7 @@ fn summarise_execution(
         );
         println!(
             "Saved Tapes :\n{}",
-            format_tape(
-                &saved_state.saved_reading_tape,
-                &saved_state.saved_writing_tapes,
-                Color::Cyan
-            )
+            format_tape(&saved_state.saved_tapes, Color::Cyan)
         );
     }
 }
