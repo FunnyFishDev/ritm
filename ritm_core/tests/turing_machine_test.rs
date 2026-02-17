@@ -3,8 +3,7 @@ use ritm_core::{
     turing_graph::TuringStateType,
     turing_machine::{Mode, TuringExecutionSteps, TuringMachine},
     turing_parser::parse_turing_graph_string,
-    turing_tape::TuringTape,
-    turing_transition::{TuringDirection, TuringTransitionInfo},
+    turing_transition::{TransitionMultRibbonInfo, TransitionsInfo, TuringDirection},
 };
 
 const TM_ACCEPT_XX: &str = "// Turing machine that only accepts words of the form : xx
@@ -57,16 +56,14 @@ fn save_all_accept() {
         match state {
             TuringExecutionSteps::FirstIteration {
                 init_state: _,
-                init_reading_tape: _,
-                init_write_tapes: _,
+                init_tapes: _,
             } => panic!("Wrong outcome"),
             TuringExecutionSteps::TransitionTaken {
                 previous_state: _,
                 reached_state,
                 transition_index: _,
                 transition_taken: _,
-                reading_tape: _,
-                writing_tapes: _,
+                tapes: _,
                 iteration: _,
                 state_pointer: _,
             } => {
@@ -75,8 +72,7 @@ fn save_all_accept() {
             TuringExecutionSteps::Backtracked {
                 previous_state: _,
                 reached_state: _,
-                reading_tape: _,
-                writing_tapes: _,
+                tapes: _,
                 iteration: _,
                 state_pointer: _,
                 backtracked_iteration: _,
@@ -102,16 +98,14 @@ fn save_all_not_accept() {
         match state {
             TuringExecutionSteps::FirstIteration {
                 init_state: _,
-                init_reading_tape: _,
-                init_write_tapes: _,
+                init_tapes: _,
             } => panic!("Wrong outcome"),
             TuringExecutionSteps::TransitionTaken {
                 previous_state: _,
                 reached_state,
                 transition_index: _,
                 transition_taken: _,
-                reading_tape: _,
-                writing_tapes: _,
+                tapes: _,
                 iteration: _,
                 state_pointer: _,
             } => {
@@ -120,8 +114,7 @@ fn save_all_not_accept() {
             TuringExecutionSteps::Backtracked {
                 previous_state: _,
                 reached_state: _,
-                reading_tape: _,
-                writing_tapes: _,
+                tapes: _,
                 iteration: _,
                 state_pointer: _,
                 backtracked_iteration: _,
@@ -167,8 +160,7 @@ fn stop_first_reject() {
             reached_state,
             transition_index: _,
             transition_taken: _,
-            reading_tape: _,
-            writing_tapes: _,
+            tapes: _,
             iteration: _,
             state_pointer: _,
         } = step
@@ -187,7 +179,7 @@ fn _get_smaller_non_deter_graph() -> SimpleTuringGraph {
 
     graph.add_state(q2, TuringStateType::Normal);
 
-    let mut transition = TuringTransitionInfo::create(
+    let mut transition = TransitionMultRibbonInfo::create(
         vec!['ç', 'ç'],
         vec!['ç'],
         vec![TuringDirection::Right, TuringDirection::Right],
@@ -197,7 +189,7 @@ fn _get_smaller_non_deter_graph() -> SimpleTuringGraph {
         .append_transition("i", transition.clone(), q2)
         .unwrap();
 
-    transition = TuringTransitionInfo::create(
+    transition = TransitionMultRibbonInfo::create(
         vec!['0', '_'],
         vec!['_'],
         vec![TuringDirection::Right, TuringDirection::None],
@@ -205,7 +197,7 @@ fn _get_smaller_non_deter_graph() -> SimpleTuringGraph {
     .unwrap();
     graph.append_transition(q2, transition.clone(), q2).unwrap();
 
-    transition = TuringTransitionInfo::create(
+    transition = TransitionMultRibbonInfo::create(
         vec!['0', '_'],
         vec!['_'],
         vec![TuringDirection::Right, TuringDirection::None],
@@ -229,7 +221,7 @@ fn get_test_non_deter_graph() -> SimpleTuringGraph {
     graph.add_state(q2, TuringStateType::Normal);
 
     // q_0 -> {ç, ç, => R, ç, R} -> q_1
-    let mut transition = TuringTransitionInfo::create(
+    let mut transition = TransitionMultRibbonInfo::create(
         vec!['ç', 'ç'],
         vec!['ç'],
         vec![TuringDirection::Right, TuringDirection::Right],
@@ -240,7 +232,7 @@ fn get_test_non_deter_graph() -> SimpleTuringGraph {
         .unwrap();
 
     // q_1 -> {0, _ => R, a, R} -> q_1
-    transition = TuringTransitionInfo::create(
+    transition = TransitionMultRibbonInfo::create(
         vec!['0', '_'],
         vec!['a'],
         vec![TuringDirection::Right, TuringDirection::Right],
@@ -248,7 +240,7 @@ fn get_test_non_deter_graph() -> SimpleTuringGraph {
     .unwrap();
     graph.append_transition(q1, transition.clone(), q1).unwrap();
     // q_1 -> {1, _ => R, a, R} -> q_1
-    transition = TuringTransitionInfo::create(
+    transition = TransitionMultRibbonInfo::create(
         vec!['1', '_'],
         vec!['a'],
         vec![TuringDirection::Right, TuringDirection::Right],
@@ -257,7 +249,7 @@ fn get_test_non_deter_graph() -> SimpleTuringGraph {
     graph.append_transition(q1, transition.clone(), q1).unwrap();
 
     // q_1 -> {1, _ => R, _, L} -> q_2
-    transition = TuringTransitionInfo::create(
+    transition = TransitionMultRibbonInfo::create(
         vec!['1', '_'],
         vec!['_'],
         vec![TuringDirection::Right, TuringDirection::Left],
@@ -266,7 +258,7 @@ fn get_test_non_deter_graph() -> SimpleTuringGraph {
     graph.append_transition(q1, transition.clone(), q2).unwrap();
 
     // q_2 -> {0, a => R, a, L} -> q_2
-    transition = TuringTransitionInfo::create(
+    transition = TransitionMultRibbonInfo::create(
         vec!['0', 'a'],
         vec!['a'],
         vec![TuringDirection::Right, TuringDirection::Left],
@@ -275,7 +267,7 @@ fn get_test_non_deter_graph() -> SimpleTuringGraph {
     graph.append_transition(q2, transition.clone(), q2).unwrap();
 
     // q_2 -> {1, a => R, a, L} -> q_2
-    transition = TuringTransitionInfo::create(
+    transition = TransitionMultRibbonInfo::create(
         vec!['1', 'a'],
         vec!['a'],
         vec![TuringDirection::Right, TuringDirection::Left],
@@ -284,7 +276,7 @@ fn get_test_non_deter_graph() -> SimpleTuringGraph {
     graph.append_transition(q2, transition.clone(), q2).unwrap();
 
     // q_2 -> {$, ç => N, ç, N} -> a
-    transition = TuringTransitionInfo::create(
+    transition = TransitionMultRibbonInfo::create(
         vec!['$', 'ç'],
         vec!['ç'],
         vec![TuringDirection::None, TuringDirection::None],
@@ -304,7 +296,7 @@ fn get_small_inf_machine(mode: Mode) -> SimpleTuringMachine {
     graph.add_state(q1, TuringStateType::Normal);
 
     // q_0 -> {ç, ç, => R, ç, R} -> q_1
-    let transition = TuringTransitionInfo::create(
+    let transition = TransitionMultRibbonInfo::create(
         vec!['ç', 'ç'],
         vec!['ç'],
         vec![TuringDirection::Right, TuringDirection::Right],
@@ -315,7 +307,7 @@ fn get_small_inf_machine(mode: Mode) -> SimpleTuringMachine {
         .unwrap();
 
     // q_1 -> {1, _, => N, _, N} -> q_1
-    let transition = TuringTransitionInfo::create(
+    let transition = TransitionMultRibbonInfo::create(
         vec!['1', '_'],
         vec!['_'],
         vec![TuringDirection::None, TuringDirection::None],
@@ -345,8 +337,7 @@ fn get_path_to_accept_test() {
     // Skip first step
     let first_step = path_iter.next().unwrap();
 
-    let mut reading_tape = first_step.get_reading_tape().clone();
-    let mut writting_tapes = first_step.get_writing_tapes().clone();
+    let mut tapes = first_step.get_tapes().clone();
 
     let mut last_step_type = first_step.get_current_state().get_type();
     // Check that the path leads to the correct output.
@@ -360,38 +351,41 @@ fn get_path_to_accept_test() {
                 state_pointer: _,
                 transition_index: _,
                 transition_taken,
-                reading_tape: _,
-                writing_tapes: _,
+                tapes: _,
                 iteration: _,
-            } => {
-                assert!(
-                    reading_tape
-                        .try_apply_transition(
-                            transition_taken.chars_read[0],
-                            ' ',
-                            &transition_taken.move_read
-                        )
-                        .unwrap()
-                );
-                #[allow(clippy::needless_range_loop)]
-                for i in 0..(transition_taken.get_number_of_affected_tapes() - 1) {
+            } => match transition_taken {
+                TransitionsInfo::OneTape(_transition_one_ribbon_info) => {
+                    panic!("wrong transition")
+                }
+                TransitionsInfo::MultipleTapes(transition_taken) => {
                     assert!(
-                        writting_tapes[i]
+                        tapes[0]
                             .try_apply_transition(
-                                transition_taken.chars_read[i + 1],
-                                transition_taken.chars_write[i].0,
-                                &transition_taken.chars_write[i].1
+                                transition_taken.chars_read[0],
+                                transition_taken.chars_read[0],
+                                &transition_taken.move_read
                             )
                             .unwrap()
                     );
+                    #[allow(clippy::needless_range_loop)]
+                    for i in 1..(transition_taken.get_number_of_affected_tapes() - 1) {
+                        assert!(
+                            tapes[i]
+                                .try_apply_transition(
+                                    transition_taken.chars_read[i + 1],
+                                    transition_taken.chars_write[i].0,
+                                    &transition_taken.chars_write[i].1
+                                )
+                                .unwrap()
+                        );
+                    }
                 }
-            }
+            },
             TuringExecutionSteps::Backtracked {
                 previous_state: _,
                 reached_state: _,
                 state_pointer: _,
-                reading_tape: _,
-                writing_tapes: _,
+                tapes: _,
                 iteration: _,
                 backtracked_iteration: _,
             } => {
@@ -399,8 +393,7 @@ fn get_path_to_accept_test() {
             }
             TuringExecutionSteps::FirstIteration {
                 init_state: _,
-                init_reading_tape: _,
-                init_write_tapes: _,
+                init_tapes: _,
             } => {
                 panic!("Wrong step struct found");
             }

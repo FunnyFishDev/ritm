@@ -3,7 +3,7 @@ use ritm_core::{
     turing_graph::TuringStateType,
     turing_machine::TuringMachineError,
     turing_parser::{self, TuringParserError, parse_transition_string, parse_turing_graph_string},
-    turing_transition::{TuringDirection, TuringTransitionError, TuringTransitionInfo},
+    turing_transition::{TransitionMultRibbonInfo, TuringDirection, TuringTransitionError},
 };
 
 #[test]
@@ -24,7 +24,7 @@ fn test_parse_mt_valid() {
     graph.add_state(q1, TuringStateType::Normal);
 
     // q_i -> {ç, ç, => R, ç, R} -> q_1
-    let mut transition = TuringTransitionInfo::create(
+    let mut transition = TransitionMultRibbonInfo::create(
         vec!['ç', 'ç'],
         vec!['ç'],
         vec![TuringDirection::Right, TuringDirection::Right],
@@ -34,7 +34,7 @@ fn test_parse_mt_valid() {
         .append_transition("i", transition.clone(), q1)
         .unwrap();
 
-    transition = TuringTransitionInfo::create(
+    transition = TransitionMultRibbonInfo::create(
         vec!['0', '_'],
         vec!['a'],
         vec![TuringDirection::Right, TuringDirection::Right],
@@ -42,7 +42,7 @@ fn test_parse_mt_valid() {
     .unwrap();
     graph.append_transition(q1, transition.clone(), q1).unwrap();
 
-    transition = TuringTransitionInfo::create(
+    transition = TransitionMultRibbonInfo::create(
         vec!['1', '_'],
         vec!['a'],
         vec![TuringDirection::Right, TuringDirection::Right],
@@ -90,7 +90,7 @@ fn test_parse_transition_valid_mult() {
     assert_eq!(transitions.len(), 2);
     assert_eq!(
         transitions[0],
-        TuringTransitionInfo::new(
+        TransitionMultRibbonInfo::new(
             vec!('0', 'a'),
             TuringDirection::Right,
             vec!(('a', TuringDirection::Left))
@@ -99,7 +99,7 @@ fn test_parse_transition_valid_mult() {
     );
     assert_eq!(
         transitions[1],
-        TuringTransitionInfo::new(
+        TransitionMultRibbonInfo::new(
             vec!('1', 'b'),
             TuringDirection::None,
             vec!(('p', TuringDirection::Right))
@@ -120,7 +120,7 @@ fn test_parse_transition_valid_single() {
     assert_eq!(transitions.len(), 1);
     assert_eq!(
         transitions[0],
-        TuringTransitionInfo::new(
+        TransitionMultRibbonInfo::new(
             vec!('0', 'a'),
             TuringDirection::Right,
             vec!(('a', TuringDirection::Left))
@@ -402,6 +402,29 @@ fn test_parse_machine_k_ribbons() {
         parse_turing_graph_string::<EmptyState, EmptyTransition>(machine).expect("no errors");
 
     let str_graph = turing_parser::graph_to_string(&parsed_graph);
+
+    assert_eq!(
+        parsed_graph,
+        parse_turing_graph_string::<EmptyState, EmptyTransition>(str_graph).expect("no errors")
+    );
+}
+
+#[test]
+fn test_parse_machine_1_ribbon() {
+    // This test checks that we can parse a graph, turn it into a string, parse it again and end up with the same graph
+    let machine = String::from(
+        "accepting = q_a;
+         q_i {ç -> ç, R } q_1;
+         q1 {  0 -> a, R  
+            |  1 -> a, R } qa;",
+    );
+
+    let parsed_graph =
+        parse_turing_graph_string::<EmptyState, EmptyTransition>(machine).expect("no errors");
+
+    let str_graph = turing_parser::graph_to_string(&parsed_graph);
+
+    println!("{str_graph}");
 
     assert_eq!(
         parsed_graph,

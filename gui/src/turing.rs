@@ -6,7 +6,7 @@ use ritm_core::{
     turing_graph::{TuringGraph, TuringState, TuringStateType, TuringStateWrapper},
     turing_machine::{Mode, TuringExecutionSteps, TuringMachine},
     turing_transition::{
-        TuringDirection, TuringTransition, TuringTransitionInfo, TuringTransitionWrapper,
+        TuringDirection, TuringTransition, TransitionMultRibbonInfo, TuringTransitionWrapper,
     },
 };
 
@@ -563,7 +563,7 @@ impl TransitionWrapperCopy {
             })
             .collect();
         Ok(TransitionWrapper {
-            info: TuringTransitionInfo::new(chars_read, self.move_read.clone(), chars_write)
+            info: TransitionMultRibbonInfo::new(chars_read, self.move_read.clone(), chars_write)
                 .map_err(|e| RitmError::CoreError(e.to_string()))?,
 
             inner_transition: self.inner_transition.clone(),

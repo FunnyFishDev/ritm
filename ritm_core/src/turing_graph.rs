@@ -4,7 +4,10 @@ use thiserror::Error;
 use crate::{
     turing_index::{TransitionId, TuringStateIndex, TuringTransitionIndex},
     turing_tape::TuringTapeError,
-    turing_transition::{TuringTransition, TuringTransitionInfo, TuringTransitionWrapper},
+    turing_transition::{
+        TransitionMultRibbonInfo, TransitionOneRibbonInfo, TransitionsInfo, TuringTransition,
+        TuringTransitionWrapper,
+    },
 };
 use std::{
     collections::VecDeque,
@@ -13,8 +16,6 @@ use std::{
 
 #[derive(Debug, Error)]
 pub enum TuringGraphError {
-    #[error("Tried to create a turing machine with no writting tapes")]
-    NotEnoughTapesError,
     #[error("Tried to modify (or remove) a state that cannot be changed : {state}")]
     ImmutableStateError { state: TuringStateInfo },
     #[error(
@@ -30,7 +31,7 @@ pub enum TuringGraphError {
     AlreadyPresentTransitionError {
         from: TuringStateIndex,
         to: TuringStateIndex,
-        transition: TuringTransitionInfo,
+        transition: TransitionsInfo,
     },
     #[error(
         "Tried to access a state using index \"{accessed_index}\" but it is not present in the graph"
@@ -174,7 +175,8 @@ type TransitionRefs<'a, S, T> = (
 );
 
 #[derive(Debug, Clone, PartialEq)]
-/// A struct representing a Turing Machine graph with `k` **writting** tapes (`k >= 1`).
+/// A struct representing a Turing Machine graph either with a reading and `k` **writting** tapes (`k >= 1`).
+/// Or a graph for a machine with only one ribbon.
 pub struct TuringGraph<S, T>
 where
     S: TuringState,
@@ -227,15 +229,12 @@ where
     S: TuringState,
     T: TuringTransition,
 {
-    /// Creates a new empty Turing Machine graph that has `k` writting tapes (`k >= 1`).
-    /// * Always created :
+    /// Creates a new empty Turing Machine graph. The graph accepts transitions involving `k` writting tapes (`k > 0`), as well as transitions only involving one tape.
+    /// * Always creates :
     ///     * `q_i` : The initial state
     /// * If `default_state` parameter is set to [`true`] :
     ///     * `q_a` : The default accepting state.
     pub fn new(k: usize, default_state: bool) -> Result<Self, TuringGraphError> {
-        if k == 0 {
-            return Err(TuringGraphError::NotEnoughTapesError);
-        }
         // Add the default states
         let mut state_hashmap = IndexMap::new();
 
@@ -288,10 +287,10 @@ where
         let to = to.into();
 
         // Checks if the given number of tapes is correct
-        if transition.info.get_number_of_affected_tapes() != (self.k + 1) {
+        if transition.info.get_nb_ribbons() != (self.k + 1) {
             return Err(TuringGraphError::IncompatibleTransitionError {
-                expected: self.get_k(),
-                received: transition.info.get_number_of_affected_tapes() - 1,
+                expected: self.k + 1,
+                received: transition.info.get_nb_ribbons(),
             });
         }
 
@@ -321,7 +320,11 @@ where
         additional_info: Option<T>,
         to: impl Into<TuringStateIndex>,
     ) -> Result<(), TuringGraphError> {
-        let default_transition = TuringTransitionInfo::create_default(self.k);
+        let default_transition = if self.k == 0 {
+            TransitionOneRibbonInfo::default().into()
+        } else {
+            TransitionMultRibbonInfo::create_default(self.k).into()
+        };
 
         if let Some(inner_transition) = additional_info {
             self.append_transition(
@@ -465,7 +468,7 @@ where
                 if *from == state_id {
                     // If the character to read are equivalent
                     transitions.iter().for_each(|transition| {
-                        if transition.info.chars_read == chars_read {
+                        if transition.info.is_valid(&chars_read) {
                             res.push((transition, *to));
                         }
                     });
@@ -495,7 +498,7 @@ where
                 if *from == state_id {
                     // If the character to read are equivalent
                     transitions.iter().enumerate().for_each(|(i, transition)| {
-                        if transition.info.chars_read == chars_read {
+                        if transition.info.is_valid(&chars_read) {
                             res.push((*to, i));
                         }
                     });
