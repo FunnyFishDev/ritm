@@ -94,7 +94,8 @@ pub fn show(app: &mut App, ui: &mut Ui) {
                         } else {
                             center_rect = Rect::from_min_max(
                                 center_rect.min,
-                                center_rect.max + vec2(0.0, res.interact_rect.height() + vertical_space),
+                                center_rect.max
+                                    + vec2(0.0, res.interact_rect.height() + vertical_space),
                             )
                         }
 

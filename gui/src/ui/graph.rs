@@ -82,6 +82,12 @@ impl Graph {
     pub fn is_dragging(&self) -> bool {
         self.is_dragging
     }
+
+    pub fn reset(&mut self) {
+        self.selected_state = None;
+        self.selected_transitions = None;
+        self.drag_transition = None;
+    }
 }
 
 /// Show the graph display of the turing machine

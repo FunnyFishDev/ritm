@@ -1,6 +1,6 @@
-use std::{collections::BTreeMap, time::Duration};
+use std::time::Duration;
 
-use egui::{FontData, FontDefinitions, FontFamily, Key};
+use egui::Key;
 use egui_extras::install_image_loaders;
 use ritm_core::turing_parser::{graph_to_string, parse_turing_graph_string};
 
@@ -12,6 +12,7 @@ use crate::{
         code::Code,
         control::Control,
         edit::Edit,
+        font::load_font,
         graph::Graph,
         menu::Menu,
         popup::{
@@ -293,32 +294,4 @@ impl eframe::App for App {
             debug_show(ctx, self);
         }
     }
-}
-
-/// Load the necessary font for the application
-fn load_font(cc: &eframe::CreationContext<'_>) {
-    let mut fonts = FontDefinitions::default();
-
-    fonts.font_data.insert(
-        "RobotoMono-regular".into(),
-        FontData::from_static(include_bytes!("../assets/fonts/RobotoMono-Regular.ttf")).into(),
-    );
-    fonts.font_data.insert(
-        "RobotoMono-Bold".into(),
-        FontData::from_static(include_bytes!("../assets/fonts/RobotoMono-Bold.ttf")).into(),
-    );
-
-    let mut newfam = BTreeMap::new();
-
-    newfam.insert(
-        FontFamily::Name("RobotoMono-Bold".into()),
-        vec!["RobotoMono-Bold".to_owned()],
-    );
-    newfam.insert(
-        FontFamily::Name("RobotoMono-regular".into()),
-        vec!["RobotoMono-regular".to_owned()],
-    );
-    fonts.families.append(&mut newfam);
-
-    cc.egui_ctx.set_fonts(fonts);
 }

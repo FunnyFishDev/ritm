@@ -99,6 +99,23 @@ pub fn show(ui: &mut Ui, app: &mut App) -> Result<(), RitmError> {
         ui.spacing_mut().button_padding = vec2(0.0, 8.0);
         ui.spacing_mut().item_spacing = vec2(10.0, 0.0);
         ui.columns(2, |columns| {
+            let text = RichText::new("Cancel")
+                .color(Theme::constrast_color(app.theme.error))
+                .font(Font::default_medium())
+                .atom_grow(true);
+            if columns[1]
+                .add(
+                    Button::new(text)
+                        .stroke(Stroke::new(2.0, app.theme.border))
+                        .fill(app.theme.error)
+                        .corner_radius(10.0),
+                )
+                .clicked()
+            {
+                app.popup.close();
+                app.turing.cancel_transition_change();
+            };
+
             let text = RichText::new("Save")
                 .color(Theme::constrast_color(app.theme.success))
                 .font(Font::default_medium())
@@ -119,23 +136,6 @@ pub fn show(ui: &mut Ui, app: &mut App) -> Result<(), RitmError> {
                 } else {
                     app.popup.close();
                 }
-            };
-
-            let text = RichText::new("Cancel")
-                .color(Theme::constrast_color(app.theme.error))
-                .font(Font::default_medium())
-                .atom_grow(true);
-            if columns[1]
-                .add(
-                    Button::new(text)
-                        .stroke(Stroke::new(2.0, app.theme.border))
-                        .fill(app.theme.error)
-                        .corner_radius(10.0),
-                )
-                .clicked()
-            {
-                app.popup.close();
-                app.turing.cancel_transition_change();
             };
 
             Ok::<(), RitmError>(())

@@ -5,7 +5,9 @@ use std::{
 };
 
 use egui::{
-    Align2, Area, Color32, Context, CornerRadius, Frame, Id, Image, ImageButton, Label, Layout, Margin, Mesh, Pos2, Rect, Sense, Ui, UiBuilder, Vec2, include_image, pos2, text::LayoutJob, vec2
+    Align2, Area, Color32, Context, CornerRadius, Frame, Id, Image, ImageButton, Label, Layout,
+    Margin, Mesh, Pos2, Rect, Sense, Ui, UiBuilder, Vec2, include_image, pos2, text::LayoutJob,
+    vec2,
 };
 use i_overlay::{
     core::{fill_rule::FillRule, overlay_rule::OverlayRule},
@@ -23,7 +25,7 @@ static TUTORIALS: phf::Map<&'static str, (TutorialEnum, RangeInclusive<usize>, &
     "graph_section" => (TutorialEnum::Graph, 0..=0, "The graph section allow you to \"draw\" the turing machine without writing a single line of code."),
     "initial_state" => (TutorialEnum::Graph, 1..=2, "This is the initial state..."),
     "accept_state" => (TutorialEnum::Graph, 2..=2, "...and this is the accept state"),
-    "to_code" => (TutorialEnum::Graph, 3..=3, "Click on this button to convert the current graph into code"),
+    "to_code" => (TutorialEnum::Graph, 3..=3, "Click on this button to convert the current graph into code\nMany operations can delete the graph, save it often to avoid losing it !"),
     "erase" => (TutorialEnum::Graph, 4..=4, "This button reset the graph, keeping only the initial and accept state"),
     "new_element_creation" => (TutorialEnum::Graph, 5..=5, "You can create new state and transition in 2 different ways :"),
     "by_edit" => (TutorialEnum::Graph, 6..=6, "You can use the edit menu..."),
@@ -62,17 +64,19 @@ static TUTORIALS: phf::Map<&'static str, (TutorialEnum, RangeInclusive<usize>, &
     "result" => (TutorialEnum::Control, 8..=8, "The current state of the machine. It can be 'idle', 'running', 'accepted' or 'rejected'"),
 
     "edit_section" => (TutorialEnum::Edit, 0..=0, "Here you can interact with the graph and its elements"),
-    "unpin" => (TutorialEnum::Edit, 1..=1, "Unpin the state so the natural force apply"),
-    "recenter" => (TutorialEnum::Edit, 2..=2, "Recenter the graph"),
-    "add_state" => (TutorialEnum::Edit, 3..=3, "Once toggled, the next click on the background of the graph will add a new state"),
-    "edit" => (TutorialEnum::Edit, 4..=4, "Edit the selected state or transitions"),
-    "delete" => (TutorialEnum::Edit, 5..=5, "Delete the selected state or transitions"),
-    "add_transition" => (TutorialEnum::Edit, 6..=6, "Once toggled, the next click on a state will create a transition."),
+    "tape_counter" => (TutorialEnum::Edit, 1..=1, "You can change the number of tape here\n\n/!\\ ANY CHANGE WILL ERASE THE CURRENT MACHINE /!\\"),
+    "unpin" => (TutorialEnum::Edit, 2..=2, "Unpin the state so the natural force apply"),
+    "recenter" => (TutorialEnum::Edit, 3..=3, "Recenter the graph"),
+    "add_state" => (TutorialEnum::Edit, 4..=4, "Once toggled, the next click on the background of the graph will add a new state"),
+    "edit" => (TutorialEnum::Edit, 5..=5, "Edit the selected state or transitions"),
+    "delete" => (TutorialEnum::Edit, 6..=6, "Delete the selected state or transitions"),
+    "add_transition" => (TutorialEnum::Edit, 7..=7, "Once toggled, the next click on a state will create a transition."),
 
     // "keybind" => (TutorialEnum::Misc, 0..=0, ""),
 };
-#[derive(serde::Deserialize, serde::Serialize)]
-#[derive(Eq, Hash, PartialEq, PartialOrd, Ord, Debug, Clone, Copy)]
+#[derive(
+    serde::Deserialize, serde::Serialize, Eq, Hash, PartialEq, PartialOrd, Ord, Debug, Clone, Copy,
+)]
 pub enum TutorialEnum {
     Graph,
     Control,
@@ -228,7 +232,6 @@ pub fn show(ctx: &Context, app: &mut App) {
         .show(ctx, |ui| {
             let mut mesh = Mesh::default();
             let mut main = vec![rect_to_contour(&ui.clip_rect()).to_vec()];
-
 
             if app.tutorial.tutorial_boxs.is_empty() {
                 app.tutorial.close();

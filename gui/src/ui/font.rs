@@ -1,4 +1,9 @@
-use egui::{Color32, FontFamily, FontId, Ui, Vec2, text::LayoutJob, vec2};
+use std::collections::BTreeMap;
+
+use egui::{
+    Color32, FontData, FontDefinitions, FontFamily, FontId, TextStyle, Ui, Vec2, text::LayoutJob,
+    vec2,
+};
 
 /// Access to the different font used in the application
 pub struct Font;
@@ -80,4 +85,44 @@ impl Font {
                 .x
         })
     }
+}
+
+/// Load the necessary font for the application
+pub fn load_font(cc: &eframe::CreationContext<'_>) {
+    let mut fonts = FontDefinitions::default();
+
+    fonts.font_data.insert(
+        "RobotoMono-regular".into(),
+        FontData::from_static(include_bytes!("../../assets/fonts/RobotoMono-Regular.ttf")).into(),
+    );
+    fonts.font_data.insert(
+        "RobotoMono-Bold".into(),
+        FontData::from_static(include_bytes!("../../assets/fonts/RobotoMono-Bold.ttf")).into(),
+    );
+
+    let mut newfam = BTreeMap::new();
+
+    newfam.insert(
+        FontFamily::Name("RobotoMono-Bold".into()),
+        vec!["RobotoMono-Bold".to_owned()],
+    );
+    newfam.insert(
+        FontFamily::Name("RobotoMono-regular".into()),
+        vec!["RobotoMono-regular".to_owned()],
+    );
+    fonts.families.append(&mut newfam);
+
+    let text_styles: BTreeMap<_, _> = [
+        (TextStyle::Heading, Font::default_big()),
+        (TextStyle::Body, Font::default_medium()),
+        (TextStyle::Monospace, Font::default_medium()),
+        (TextStyle::Button, Font::default_medium()),
+        (TextStyle::Small, Font::default_small()),
+    ]
+    .into();
+
+    cc.egui_ctx
+        .all_styles_mut(move |r| r.text_styles = text_styles.clone());
+
+    cc.egui_ctx.set_fonts(fonts);
 }

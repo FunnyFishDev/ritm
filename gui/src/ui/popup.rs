@@ -48,7 +48,10 @@ pub fn show(ctx: &Context, app: &mut App) -> Result<(), RitmError> {
             RitmPopupEnum::TransitionEdit((source_id, target_id)) => {
                 let source = app.turing.get_state(source_id)?.get_name();
                 let target = app.turing.get_state(target_id)?.get_name();
-                let max_size = vec2(300.0, ctx.available_rect().height());
+                let max_size = vec2(
+                    200.0 + app.turing.tm.graph_ref().get_k() as f32 * 125.0,
+                    ctx.available_rect().height(),
+                );
                 modal(
                     ctx,
                     app,
@@ -56,7 +59,7 @@ pub fn show(ctx: &Context, app: &mut App) -> Result<(), RitmError> {
                     false,
                     |ui, app| {
                         ui.set_max_size(max_size);
-                        ui.set_min_size(vec2(max_size.x, 0.0));
+                        // ui.set_min_size(vec2(max_size.x, 0.0));
                         transition_edit::show(ui, app)
                     },
                 )?

@@ -1,12 +1,13 @@
 use egui::{
-    Align, Align2, Frame, Id, Image, ImageButton, ImageSource, LayerId, Layout, Margin, Pos2, Rect,
-    Response, Sense, Stroke, Ui, UiBuilder, Vec2, include_image, vec2,
+    Align, Align2, DragValue, Frame, Id, Image, ImageButton, ImageSource, LayerId, Layout, Margin,
+    Pos2, Rect, Response, Sense, Stroke, Ui, UiBuilder, Vec2, include_image, vec2,
 };
+use ritm_core::turing_graph::TuringGraph;
 
 use crate::{
     App,
     error::RitmError,
-    turing::StateEdit,
+    turing::{StateEdit, Turing},
     ui::{
         constant::Constant,
         popup::RitmPopupEnum,
@@ -50,7 +51,7 @@ pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
         |ui| {
             if let Some(tutorial) = app.tutorial.current_tutorial()
                 && tutorial == TutorialEnum::Edit
-                && app.tutorial.current_step() == 4
+                && app.tutorial.current_step() == 5
             {
                 app.graph.select_state(0);
             }
@@ -106,8 +107,6 @@ pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
                             );
                             if button.clicked() {
                                 app.edit.is_adding_transition ^= true;
-                                app.edit.is_adding_transition ^= app.settings.reset_after_action
-                                    || !app.edit.is_adding_transition;
                             }
 
                             app.tutorial.add_boxe(
@@ -219,6 +218,13 @@ pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
                             TutorialBox::new(unpin.rect).with_align(Align2::LEFT_TOP),
                         );
 
+                        let tape_counter = tape_dropdown(ui, app);
+
+                        app.tutorial.add_boxe(
+                            "tape_counter",
+                            TutorialBox::new(tape_counter.rect).with_align(Align2::LEFT_TOP),
+                        );
+
                         Ok::<(), RitmError>(())
                     },
                 )
@@ -259,4 +265,34 @@ fn button(ui: &mut Ui, app: &mut App, icon: ImageSource, selected: bool) -> Resp
             )
         })
         .inner
+}
+
+fn tape_dropdown(ui: &mut Ui, app: &mut App) -> Response {
+    let margin = 5;
+    Frame::new()
+        .stroke(Stroke::new(1.0, app.theme.border))
+        .corner_radius(app.edit.icon_size / 2.0)
+        .fill(app.theme.surface)
+        .inner_margin(Margin::same(margin))
+        .show(ui, |ui| {
+            let mut k = app.turing.tm.graph_ref().get_k();
+            ui.spacing_mut().interact_size.x = 0.0;
+            ui.spacing_mut().button_padding = vec2(0.0, 0.0);
+            ui.visuals_mut().selection.stroke = Stroke::new(1.0, app.theme.border);
+            if ui
+                .add_sized(
+                    vec2(ui.available_width(), 0.0),
+                    DragValue::new(&mut k)
+                        .range(1..=9)
+                        .clamp_existing_to_range(true)
+                        .update_while_editing(false),
+                )
+                .changed()
+            {
+                app.graph.reset();
+                app.turing = Turing::new_graph(TuringGraph::new(k, true).expect("should work"));
+                app.turing.layer_graph();
+            }
+        })
+        .response
 }
