@@ -4,7 +4,6 @@ use egui::{
     scroll_area::{ScrollBarVisibility, ScrollSource},
     vec2,
 };
-use ritm_core::turing_tape::TuringTape;
 
 use crate::{App, ui::constant::Constant};
 
@@ -76,7 +75,7 @@ pub fn show(app: &mut App, ui: &mut Ui) {
 }
 
 /// Draw a ribbon with the correct spacing and character
-fn ribbon(app: &mut App, ui: &mut Ui, width: f32, ribbon_id: usize) {
+fn ribbon(app: &mut App, ui: &mut Ui, width: f32, tape_id: usize) {
     // Apply a scale correction to element for small screen
     let horizontal_space = Constant::scale(ui, Constant::HORIZONTAL_SPACING);
     let square_size = Constant::scale(ui, Constant::SQUARE_SIZE);
@@ -93,19 +92,9 @@ fn ribbon(app: &mut App, ui: &mut Ui, width: f32, ribbon_id: usize) {
                 ((width + horizontal_space) / (horizontal_space + square_size)) as usize + 2;
 
             // Get the chars and pointer from reading or writing ribbon
-            let (chars, pointer): (&Vec<char>, i32) = if ribbon_id == 0 {
-                (
-                    app.turing.current_step.get_reading_tape().get_contents(),
-                    app.turing.current_step.get_reading_tape().get_pointer() as i32,
-                )
-            } else {
-                let write_ribbon =
-                    &app.turing.current_step.get_writing_tapes()[ribbon_id - 1_usize];
-                (
-                    write_ribbon.get_contents(),
-                    write_ribbon.get_pointer() as i32,
-                )
-            };
+            let tape = &app.turing.current_step.get_tapes()[tape_id];
+            let (chars, pointer): (&Vec<char>, i32) =
+                (tape.get_contents(), tape.get_pointer() as i32);
 
             // Create a vector with the character that are needed
             let ribbon_center = square_count as i32 / 2;

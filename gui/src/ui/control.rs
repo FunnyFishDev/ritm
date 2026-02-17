@@ -312,27 +312,16 @@ fn state(app: &mut App, ui: &mut Ui) {
                     match &app.turing.current_step {
                         TuringExecutionSteps::FirstIteration {
                             init_state: _,
-                            init_reading_tape: _,
                             init_tapes: _,
                         } => ("Initiation".to_string(), app.theme.text_primary),
                         TuringExecutionSteps::TransitionTaken {
                             previous_state,
-                            transition_index: _,
                             reached_state,
-                            state_pointer: _,
-                            transition_taken: _,
-                            reading_tape: _,
-                            writing_tapes: _,
-                            iteration: _,
+                            ..
                         } => is_running(previous_state, reached_state),
                         TuringExecutionSteps::Backtracked {
-                            previous_state: _,
-                            reached_state: _,
-                            state_pointer: _,
-                            reading_tape: _,
-                            writing_tapes: _,
-                            iteration: _,
                             backtracked_iteration,
+                            ..
                         } => (
                             format!("Backtracked to step {backtracked_iteration}"),
                             app.theme.backtracked,
