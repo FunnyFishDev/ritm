@@ -62,8 +62,8 @@ pub fn show(ui: &mut Ui, app: &mut App) -> Result<(), RitmError> {
                 edit_mode(ui, app);
                 load_setting(ui, app);
                 theme_choose(ui, app);
-                debug(ui, app);
-                theme_changer(ui, app);
+                // debug(ui, app);
+                // theme_changer(ui, app);
             });
     });
     Ok(())
