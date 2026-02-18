@@ -10,7 +10,6 @@ use crate::{
     ui::{font::Font, theme::Theme},
 };
 
-pub mod help;
 pub mod settings;
 pub mod state_edit;
 pub mod transition_edit;
@@ -20,7 +19,6 @@ pub enum RitmPopupEnum {
     TransitionEdit((usize, usize)),
     StateEdit(Option<usize>, Option<Pos2>),
     Settings,
-    Help,
 }
 
 #[derive(Debug, Default)]
@@ -83,11 +81,6 @@ pub fn show(ctx: &Context, app: &mut App) -> Result<(), RitmError> {
                     state_edit::show(ui, app)
                 })?
             }
-            RitmPopupEnum::Help => modal(ctx, app, "Help".to_string(), true, |ui, app| {
-                ui.set_max_size(ui.ctx().screen_rect().size() * 0.8);
-                ui.set_min_size(ui.ctx().screen_rect().size() * 0.8);
-                help::show(ui, app)
-            })?,
             RitmPopupEnum::Settings => modal(ctx, app, "Settings".to_string(), true, |ui, app| {
                 ui.set_max_size(ui.ctx().screen_rect().size() * 0.8);
                 ui.set_min_size(ui.ctx().screen_rect().size() * 0.8);
