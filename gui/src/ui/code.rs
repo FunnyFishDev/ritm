@@ -352,7 +352,7 @@ pub fn code(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
                     ui.spacing_mut().item_spacing = vec2(0.0, 0.0);
 
                     let code_width = ui.available_width()
-                        - 35.0
+                        - 30.0
                         - Font::get_width(ui, &Font::default_medium()) * 3.0;
 
                     let job = LayoutJob::simple(

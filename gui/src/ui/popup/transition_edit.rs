@@ -3,7 +3,9 @@ use egui::{
     ScrollArea, Shadow, Stroke, TextEdit, Ui, Vec2, Vec2b, include_image,
     scroll_area::ScrollBarVisibility, style::WidgetVisuals, vec2,
 };
-use ritm_core::turing_transition::{TransitionMultRibbonInfo, TransitionsInfo, TuringDirection};
+use ritm_core::turing_transition::{
+    TransitionMultRibbonInfo, TransitionOneRibbonInfo, TransitionsInfo, TuringDirection,
+};
 
 use crate::{
     App,
@@ -36,7 +38,7 @@ pub fn show(ui: &mut Ui, app: &mut App) -> Result<(), RitmError> {
                         ui.spacing_mut().scroll.floating = false;
                         ui.spacing_mut().scroll.bar_width = 3.0;
                         ScrollArea::vertical()
-                            .auto_shrink(Vec2b::new(true, false))
+                            .auto_shrink(Vec2b::new(true, true))
                             .scroll_bar_visibility(ScrollBarVisibility::AlwaysVisible)
                             .max_height(ui.ctx().input(|i| i.screen_rect()).height() / 3.0)
                             .show(ui, |ui| {
@@ -49,10 +51,18 @@ pub fn show(ui: &mut Ui, app: &mut App) -> Result<(), RitmError> {
                                 let count = selected_transition.len();
                                 let mut marked_to_delete: Vec<usize> = vec![];
                                 for transition_index in 0..count {
-                                    if transition(app, ui, transition_index)? {
+                                    if transition(
+                                        app,
+                                        ui,
+                                        transition_index,
+                                        transition_index == count - 1
+                                            && app.transient.add_transition,
+                                    )? {
                                         marked_to_delete.push(transition_index);
                                     }
                                 }
+
+                                app.transient.add_transition = false;
 
                                 // Reborrow because the transition() above borrow app
                                 let selected_transition =
@@ -82,13 +92,19 @@ pub fn show(ui: &mut Ui, app: &mut App) -> Result<(), RitmError> {
                     let selected_transition = &mut app.turing.get_transitions_edit_mut()?.1;
                     selected_transition.push((
                         TransitionEdit::from(&TransitionWrapper {
-                            info: TransitionsInfo::MultipleTapes(
-                                TransitionMultRibbonInfo::create_default(k),
-                            ),
+                            info: if k == 0 {
+                                TransitionsInfo::OneTape(TransitionOneRibbonInfo::default())
+                            } else {
+                                TransitionsInfo::MultipleTapes(
+                                    TransitionMultRibbonInfo::create_default(k),
+                                )
+                            },
                             inner_transition: Transition::new(),
                         }),
                         None,
                     ));
+
+                    app.transient.add_transition = true;
                 }
                 Ok::<(), RitmError>(())
             })
@@ -154,10 +170,15 @@ const MARGIN: Vec2 = vec2(3.0, 2.0);
 
 // Right to left to allow the text edit to take the remaining space
 // To remove later with a system based on the number of ribbons
-fn transition(app: &mut App, ui: &mut Ui, transition_index: usize) -> Result<bool, RitmError> {
+fn transition(
+    app: &mut App,
+    ui: &mut Ui,
+    transition_index: usize,
+    scroll: bool,
+) -> Result<bool, RitmError> {
     let mut marked_to_delete = false;
     let error = &app.turing.get_transitions_edit()?.1[transition_index].1;
-    Frame::new()
+    let frame = Frame::new()
         .fill(app.theme.surface)
         .inner_margin(Margin::symmetric(10, 6))
         .corner_radius(5)
@@ -196,7 +217,7 @@ fn transition(app: &mut App, ui: &mut Ui, transition_index: usize) -> Result<boo
                                     .fit_to_exact_size(vec2(30.0, 30.0))
                                     .tint(
                                         if selected_transition[transition_index].0.has_changed() {
-                                            app.theme.icon
+                                            app.theme.overlay
                                         } else {
                                             app.theme.disabled
                                         },
@@ -221,8 +242,6 @@ fn transition(app: &mut App, ui: &mut Ui, transition_index: usize) -> Result<boo
                     ui.visuals_mut().widgets.open.weak_bg_fill =
                         ui.visuals_mut().widgets.inactive.weak_bg_fill;
 
-                    // Make access easier
-
                     // Layout single character TextEdit
                     ui.with_layout(Layout::left_to_right(Align::Center), |ui| {
                         ui.spacing_mut().item_spacing = vec2(5.0, 0.0);
@@ -230,6 +249,7 @@ fn transition(app: &mut App, ui: &mut Ui, transition_index: usize) -> Result<boo
                             Font::get_heigth(ui, &Font::default_medium()) + MARGIN.y * 2.0,
                         );
 
+                        // 2 cases : single tape or more than one tape
                         let transition = app.turing.get_transition_edit_mut(transition_index)?;
                         match &mut transition.info {
                             TransitionsInfo::OneTape(transition) => {
@@ -271,7 +291,7 @@ fn transition(app: &mut App, ui: &mut Ui, transition_index: usize) -> Result<boo
                             TransitionsInfo::OneTape(transition) => {
                                 read_edit(
                                     ui,
-                                    &mut transition.chars_read,
+                                    &mut transition.replace_with,
                                     &mut transition.move_pointer,
                                     WidgetVisuals {
                                         bg_stroke: Stroke::new(1.0, app.theme.error),
@@ -286,7 +306,7 @@ fn transition(app: &mut App, ui: &mut Ui, transition_index: usize) -> Result<boo
                                     ui,
                                     &mut transition.replace_with,
                                     &mut transition.move_pointer,
-                                    0,
+                                    format!("{transition_index}-{}", 0),
                                 );
                             }
                             TransitionsInfo::MultipleTapes(transition) => {
@@ -294,7 +314,7 @@ fn transition(app: &mut App, ui: &mut Ui, transition_index: usize) -> Result<boo
                                     ui,
                                     &mut transition.chars_read[0],
                                     &mut transition.move_read,
-                                    transition.chars_write.len(),
+                                    format!("{transition_index}-{}", transition.chars_write.len()),
                                 );
 
                                 // Again, aesthetic purpose
@@ -316,7 +336,11 @@ fn transition(app: &mut App, ui: &mut Ui, transition_index: usize) -> Result<boo
                                     // Again, aesthetic purpose
                                     ui.add(Label::new(","));
 
-                                    move_write(ui, &mut transition.chars_write[i], i);
+                                    move_write(
+                                        ui,
+                                        &mut transition.chars_write[i],
+                                        format!("{transition_index}-{}", i),
+                                    );
 
                                     // Again, aesthetic purpose
                                     if i != transition.chars_write.len() - 1 {
@@ -330,7 +354,11 @@ fn transition(app: &mut App, ui: &mut Ui, transition_index: usize) -> Result<boo
                     .inner
                 },
             );
-        });
+        })
+        .response;
+    if scroll {
+        frame.scroll_to_me(Some(Align::Max));
+    }
     Ok(marked_to_delete)
 }
 
@@ -347,6 +375,7 @@ fn read_edit(
         if *chars_read == '\0' {
             Theme::set_widget(ui, visual);
         }
+        let before = *chars_read;
         let mut text = chars_read.to_string();
         if ui
             .add(
@@ -362,9 +391,16 @@ fn read_edit(
             .changed()
         {
             if text.char_indices().count() >= 2 {
-                *chars_read = text.chars().nth(1).expect("Char should exist");
+                *chars_read = text
+                    .chars()
+                    .nth(if before == text.chars().next().expect("should exist") {
+                        1
+                    } else {
+                        0
+                    })
+                    .expect("Char should exist");
             } else if text.is_empty() {
-                *chars_read = 'ç';
+                *chars_read = '\0';
             }
 
             match chars_read {
@@ -384,53 +420,13 @@ fn read_edit(
     });
 }
 
-/// Display the read text edit
+/// Display the write text edit (wrapper because borrowing)
 fn write_edit(ui: &mut Ui, chars_write: &mut (char, TuringDirection), visual: WidgetVisuals) {
-    // TextEdit don't accept char, so must use a String
-    ui.scope(|ui| {
-        ui.visuals_mut().selection.stroke = Stroke::NONE;
-        if chars_write.0 == '\0' {
-            Theme::set_widget(ui, visual);
-        }
-        let mut text = chars_write.0.to_string();
-        if ui
-            .add(
-                TextEdit::singleline(&mut text)
-                    .background_color(Color32::LIGHT_GRAY)
-                    .lock_focus(false)
-                    .frame(true)
-                    .font(Font::default_medium())
-                    .margin(MARGIN)
-                    .desired_width(Font::get_width(ui, &Font::default_medium()))
-                    .char_limit(2),
-            )
-            .changed()
-        {
-            if text.char_indices().count() >= 2 {
-                chars_write.0 = text.chars().nth(1).expect("Char should exist");
-            } else if text.is_empty() {
-                chars_write.0 = 'ç';
-            }
-
-            match chars_write.0 {
-                '$' => {
-                    if chars_write.1 == TuringDirection::Right {
-                        chars_write.1 = TuringDirection::None;
-                    }
-                }
-                'ç' => {
-                    if chars_write.1 == TuringDirection::Left {
-                        chars_write.1 = TuringDirection::None;
-                    }
-                }
-                _ => {}
-            }
-        }
-    });
+    read_edit(ui, &mut chars_write.0, &mut chars_write.1, visual);
 }
 
 /// Display combobox
-fn move_read(ui: &mut Ui, chars_read: &mut char, move_read: &mut TuringDirection, i: usize) {
+fn move_read(ui: &mut Ui, chars_read: &mut char, move_read: &mut TuringDirection, i: String) {
     // Reading ribbon moving direction
     ComboBox::from_id_salt(format!("moveread-{}", i))
         .selected_text(
@@ -454,25 +450,6 @@ fn move_read(ui: &mut Ui, chars_read: &mut char, move_read: &mut TuringDirection
 }
 
 /// Display combobox
-fn move_write(ui: &mut Ui, chars_write: &mut (char, TuringDirection), i: usize) {
-    // Reading ribbon moving direction
-    ComboBox::from_id_salt(format!("moveread-{}", i))
-        .selected_text(
-            RichText::new(match chars_write.1 {
-                TuringDirection::Left => "L".to_string(),
-                TuringDirection::Right => "R".to_string(),
-                TuringDirection::None => "N".to_string(),
-            })
-            .font(Font::default_medium()),
-        )
-        .width(20.0) // TODO change and think about this value, I hardcoded it
-        .show_ui(ui, |ui| {
-            if chars_write.0 != '$' {
-                ui.selectable_value(&mut chars_write.1, TuringDirection::Right, "Right");
-            }
-            if chars_write.0 != 'ç' {
-                ui.selectable_value(&mut chars_write.1, TuringDirection::Left, "Left");
-            }
-            ui.selectable_value(&mut chars_write.1, TuringDirection::None, "None");
-        });
+fn move_write(ui: &mut Ui, chars_write: &mut (char, TuringDirection), i: String) {
+    move_read(ui, &mut chars_write.0, &mut chars_write.1, i);
 }

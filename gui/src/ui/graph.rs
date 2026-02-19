@@ -188,7 +188,7 @@ pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
         let time_down = time - ui.input(|r| r.pointer.press_start_time()).unwrap_or(time);
         if time_down
             > ui.ctx()
-                .options(|r| r.input_options.max_click_duration - 0.3)
+                .options(|r| r.input_options.max_click_duration - 0.4)
         {
             app.popup.switch_to(RitmPopupEnum::StateEdit(
                 None,

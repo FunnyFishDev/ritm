@@ -1,6 +1,6 @@
 use egui::{
-    Align, Align2, Frame, Label, Layout, Margin, Rect, Response, RichText, ScrollArea, Sense,
-    Stroke, StrokeKind, Ui, Vec2,
+    Align, Align2, Color32, Frame, Label, Layout, Margin, Rect, Response, RichText, ScrollArea,
+    Sense, Stroke, StrokeKind, Ui, Vec2,
     epaint::PathShape,
     pos2,
     scroll_area::{ScrollBarVisibility, ScrollSource},
@@ -9,7 +9,11 @@ use egui::{
 
 use crate::{
     App,
-    ui::{constant::Constant, tutorial::TutorialBox},
+    ui::{
+        constant::Constant,
+        tutorial::TutorialBox,
+        utils::{self, fade::Fade},
+    },
 };
 
 pub fn show(app: &mut App, ui: &mut Ui) {
@@ -44,83 +48,117 @@ pub fn show(app: &mut App, ui: &mut Ui) {
             let ribbon_width =
                 square_count as f32 * (square_size + horizontal_space) - horizontal_space;
 
-            // Scroll area to center and display the ribbon
-            ScrollArea::horizontal()
-                .scroll_source(ScrollSource::NONE)
-                .scroll_bar_visibility(ScrollBarVisibility::AlwaysHidden)
-                .horizontal_scroll_offset(
-                    3.0 // 3.0 is the margin of the center square
+            // ui.set_height(ui.ctx().screen_rect().height());
+            let content = ScrollArea::vertical()
+                .scroll_bar_visibility(ScrollBarVisibility::AlwaysVisible)
+                .auto_shrink(true)
+                .min_scrolled_height(ui.ctx().screen_rect().height() / 3.0)
+                .max_height(ui.ctx().screen_rect().height() / 3.0)
+                .show(ui, |ui| {
+                    // Scroll area to center and display the ribbon
+                    ScrollArea::horizontal()
+                        .scroll_source(ScrollSource::NONE)
+                        .scroll_bar_visibility(ScrollBarVisibility::AlwaysHidden)
+                        .horizontal_scroll_offset(
+                            3.0 // 3.0 is the margin of the center square
                         + square_size
                         + horizontal_space
                         + (ribbon_width - ui.available_width()) / 2.0,
-                ) // this offset center the symbol
-                .show(ui, |ui| {
-                    let width = ui.available_width();
-                    // Draw each ribbon
-                    let mut write_rect = Rect::ZERO;
-                    let mut center_rect = Rect::ZERO;
-                    for i in 0..tape_count {
-                        // Get the top of the current ribbon to draw the arrow
-                        let top = ui.available_rect_before_wrap().top();
+                        ) // this offset center the symbol
+                        .show(ui, |ui| {
+                            let width = ui.available_width();
+                            // Draw each ribbon
+                            let mut write_rect = Rect::ZERO;
+                            let mut center_rect = Rect::ZERO;
+                            for i in 0..tape_count {
+                                // Get the top of the current ribbon to draw the arrow
+                                let top = ui.available_rect_before_wrap().top();
 
-                        // Draw the ribbon
-                        let res = tape(app, ui, width, i);
+                                // Draw the ribbon
+                                let res = tape(app, ui, width, i);
 
-                        if i == 0 {
+                                if i == 0 {
+                                    app.tutorial.add_boxe(
+                                        "reading_tape",
+                                        TutorialBox::new(res.interact_rect)
+                                            .with_align(Align2::CENTER_BOTTOM),
+                                    );
+                                } else if write_rect == Rect::ZERO {
+                                    write_rect = Rect::from_min_size(
+                                        res.interact_rect.min,
+                                        res.interact_rect.size(),
+                                    )
+                                } else {
+                                    write_rect = Rect::from_min_max(
+                                        write_rect.min,
+                                        write_rect.max + vec2(0.0, res.interact_rect.height()),
+                                    )
+                                }
+
+                                if center_rect == Rect::ZERO {
+                                    center_rect = Rect::from_min_size(
+                                        pos2(
+                                            res.interact_rect.center().x - 3.0 - square_size / 2.0,
+                                            res.interact_rect.min.y,
+                                        ),
+                                        Vec2::splat(square_size + 6.0),
+                                    )
+                                } else {
+                                    center_rect = Rect::from_min_max(
+                                        center_rect.min,
+                                        center_rect.max
+                                            + vec2(
+                                                0.0,
+                                                res.interact_rect.height() + vertical_space,
+                                            ),
+                                    )
+                                }
+
+                                // Draw the arrow on top of the ribbon
+                                ui.painter().add(PathShape::convex_polygon(
+                                    vec![
+                                        (center - 9.0 * scale, top).into(),
+                                        (center + 9.0 * scale, top).into(),
+                                        (center, top + 12.0 * scale).into(),
+                                    ],
+                                    app.theme.border,
+                                    Stroke::NONE,
+                                ));
+                            }
+
                             app.tutorial.add_boxe(
-                                "reading_tape",
-                                TutorialBox::new(res.interact_rect)
-                                    .with_align(Align2::CENTER_BOTTOM),
+                                "writing_tape",
+                                TutorialBox::new(write_rect).with_align(Align2::CENTER_BOTTOM),
                             );
-                        } else if write_rect == Rect::ZERO {
-                            write_rect =
-                                Rect::from_min_size(res.interact_rect.min, res.interact_rect.size())
-                        } else {
-                            write_rect = Rect::from_min_max(
-                                write_rect.min,
-                                write_rect.max + vec2(0.0, res.interact_rect.height()),
-                            )
-                        }
 
-                        if center_rect == Rect::ZERO {
-                            center_rect = Rect::from_min_size(
-                                pos2(
-                                    res.interact_rect.center().x - 3.0 - square_size / 2.0,
-                                    res.interact_rect.min.y,
-                                ),
-                                Vec2::splat(square_size + 6.0),
-                            )
-                        } else {
-                            center_rect = Rect::from_min_max(
-                                center_rect.min,
-                                center_rect.max
-                                    + vec2(0.0, res.interact_rect.height() + vertical_space),
-                            )
-                        }
-
-                        // Draw the arrow on top of the ribbon
-                        ui.painter().add(PathShape::convex_polygon(
-                            vec![
-                                (center - 9.0 * scale, top).into(),
-                                (center + 9.0 * scale, top).into(),
-                                (center, top + 12.0 * scale).into(),
-                            ],
-                            app.theme.border,
-                            Stroke::NONE,
-                        ));
-                    }
-
-                    app.tutorial.add_boxe(
-                        "writing_tape",
-                        TutorialBox::new(write_rect).with_align(Align2::CENTER_BOTTOM),
-                    );
-
-                    app.tutorial.add_boxe(
-                        "current_character",
-                        TutorialBox::new(center_rect).with_align(Align2::CENTER_BOTTOM),
-                    );
+                            app.tutorial.add_boxe(
+                                "current_character",
+                                TutorialBox::new(center_rect).with_align(Align2::CENTER_BOTTOM),
+                            );
+                        });
                 });
+
+            (
+                content.content_size.y,
+                content.state.offset.y >= content.content_size.y - content.inner_rect.height(),
+            )
         });
+
+    if !res.inner.1 && res.inner.0 >= ui.ctx().screen_rect().height() / 3.0 {
+        let fade_rect = Rect::from_min_max(
+            pos2(res.response.rect.min.x, res.response.rect.max.y - 50.0),
+            res.response.rect.max,
+        );
+        utils::fade::fade(
+            ui,
+            fade_rect,
+            egui::Direction::BottomUp,
+            Fade::new()
+                .with_color(app.theme.primary, 0.0)
+                .with_color(Color32::TRANSPARENT, 1.0)
+                .with_step(50),
+        );
+    }
 
     app.tutorial.add_boxe(
         "tape_section",

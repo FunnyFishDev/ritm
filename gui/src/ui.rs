@@ -152,7 +152,7 @@ pub fn show(app: &mut App, ctx: &egui::Context) -> Result<(), RitmError> {
                                 .show_separator_line(false)
                                 .show_inside(ui, |ui| {
                                     ui.allocate_ui_with_layout(
-                                        vec2(ui.available_width(), 0.0),
+                                        vec2(ui.available_width(), ui.ctx().screen_rect().height()),
                                         Layout::top_down(Align::Min),
                                         |ui| {
                                             tape::show(app, ui);

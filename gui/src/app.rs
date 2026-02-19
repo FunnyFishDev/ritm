@@ -86,6 +86,8 @@ pub struct Transient {
     pub temp_code: Option<String>,
 
     pub temp_tutorial: Option<TutorialEnum>,
+
+    pub add_transition: bool,
 }
 
 impl Default for App {
@@ -117,6 +119,7 @@ impl Default for Transient {
             take_screenshot: false,
             temp_code: None,
             temp_tutorial: None,
+            add_transition: false,
         }
     }
 }

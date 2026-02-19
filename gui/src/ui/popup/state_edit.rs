@@ -31,7 +31,12 @@ pub fn show(ui: &mut Ui, app: &mut App) -> Result<(), RitmError> {
                 {
                     Some(StateEdit::from(state))
                 } else {
-                    Some(StateEdit::empty())
+                    let mut edit = StateEdit::empty();
+                    edit.get_edit().name = format!(
+                        "q_{}",
+                        app.turing.tm.graph_ref().get_state_hashmap().iter().count() + 1
+                    );
+                    Some(edit)
                 }
             }
 
@@ -48,22 +53,38 @@ pub fn show(ui: &mut Ui, app: &mut App) -> Result<(), RitmError> {
             ui.add(edit);
         });
 
-        let text = RichText::new("Save")
-            .color(Theme::constrast_color(app.theme.success))
-            .font(Font::default_medium())
-            .atom_grow(true);
+        ui.columns(2, |ui| {
+            let text = RichText::new("Cancel")
+                .color(Theme::constrast_color(app.theme.error))
+                .font(Font::default_medium())
+                .atom_grow(true);
 
-        let Some(state) = &app.turing.state_edit else {
-            app.popup.close();
-            return Ok(());
-        };
+            if ui[1]
+                .add(
+                    Button::new(text)
+                        .stroke(Stroke::new(2.0, app.theme.border))
+                        .fill(app.theme.error)
+                        .corner_radius(10.0),
+                )
+                .clicked()
+            {
+                app.popup.close();
+            }
 
-        let state_name = state.to().name.clone();
+            let text = RichText::new("Save")
+                .color(Theme::constrast_color(app.theme.success))
+                .font(Font::default_medium())
+                .atom_grow(true);
 
-        ui.horizontal(|ui| {
-            if ui
-                .add_sized(
-                    vec2(ui.available_width(), 30.0),
+            let Some(state) = &app.turing.state_edit else {
+                app.popup.close();
+                return Ok(());
+            };
+
+            let state_name = state.to().name.clone();
+
+            if ui[0]
+                .add(
                     Button::new(text)
                         .stroke(Stroke::new(2.0, app.theme.border))
                         .fill(if state_name.is_empty() {
@@ -92,12 +113,12 @@ pub fn show(ui: &mut Ui, app: &mut App) -> Result<(), RitmError> {
                     app.turing.add_state(state_name)
                 };
 
+                app.turing.state_edit = None;
                 app.graph.select_state(state_id);
                 app.popup.close();
             };
             Ok::<(), RitmError>(())
         })
-        .inner
     })
     .inner
 }

@@ -5,9 +5,7 @@ use rand::{random, random_range};
 use ritm_core::{
     turing_graph::{TuringGraph, TuringState, TuringStateType, TuringStateWrapper},
     turing_machine::{Mode, TuringExecutionSteps, TuringMachine},
-    turing_transition::{
-        TuringTransition, TuringTransitionWrapper,
-    },
+    turing_transition::{TuringTransition, TuringTransitionWrapper},
 };
 
 use crate::error::{GuiError, RitmError};

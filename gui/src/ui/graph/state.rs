@@ -113,7 +113,7 @@ pub fn draw_node(app: &mut App, ui: &mut Ui, state_id: usize) -> Result<(), Ritm
         let time_down = time - ui.input(|r| r.pointer.press_start_time()).unwrap_or(time);
         if time_down
             > ui.ctx()
-                .options(|r| r.input_options.max_click_duration - 0.3)
+                .options(|r| r.input_options.max_click_duration - 0.4)
         {
             app.graph.drag_transition = Some((state_id, Some(state_id)));
         }

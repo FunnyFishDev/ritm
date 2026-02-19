@@ -1,7 +1,7 @@
 use std::path::Path;
 
 use egui::{
-    Button, CentralPanel, Checkbox, ComboBox, Context, Grid, Id, RichText, Stroke, TextBuffer, Ui,
+    CentralPanel, Checkbox, ComboBox, Context, Grid, Id, RichText, Stroke, TextBuffer, Ui,
     UserData, ViewportBuilder, ViewportCommand, ViewportId, style::WidgetVisuals, vec2,
 };
 use image::{ExtendedColorType, save_buffer};
@@ -128,45 +128,45 @@ fn load_setting(ui: &mut Ui, app: &mut App) {
     ui.end_row();
 }
 
-fn debug(ui: &mut Ui, app: &mut App) {
-    ui.label(
-        RichText::new("Debug")
-            .font(Font::default_medium())
-            .color(app.theme.surface),
-    );
-    if ui
-        .add(
-            Button::new("")
-                .min_size(vec2(25.0, 15.0))
-                .fill(app.theme.surface)
-                .frame(false),
-        )
-        .clicked()
-    {
-        app.settings.enable_debug ^= true;
-    }
-    ui.end_row();
-}
+// fn debug(ui: &mut Ui, app: &mut App) {
+//     ui.label(
+//         RichText::new("Debug")
+//             .font(Font::default_medium())
+//             .color(app.theme.surface),
+//     );
+//     if ui
+//         .add(
+//             Button::new("")
+//                 .min_size(vec2(25.0, 15.0))
+//                 .fill(app.theme.surface)
+//                 .frame(false),
+//         )
+//         .clicked()
+//     {
+//         app.settings.enable_debug ^= true;
+//     }
+//     ui.end_row();
+// }
 
-fn theme_changer(ui: &mut Ui, app: &mut App) {
-    ui.label(
-        RichText::new("Theme changer")
-            .font(Font::default_medium())
-            .color(app.theme.surface),
-    );
-    if ui
-        .add(
-            Button::new("")
-                .min_size(vec2(25.0, 15.0))
-                .fill(app.theme.surface)
-                .frame(false),
-        )
-        .clicked()
-    {
-        app.settings.theme_changer ^= true;
-    }
-    ui.end_row();
-}
+// fn theme_changer(ui: &mut Ui, app: &mut App) {
+//     ui.label(
+//         RichText::new("Theme changer")
+//             .font(Font::default_medium())
+//             .color(app.theme.surface),
+//     );
+//     if ui
+//         .add(
+//             Button::new("")
+//                 .min_size(vec2(25.0, 15.0))
+//                 .fill(app.theme.surface)
+//                 .frame(false),
+//         )
+//         .clicked()
+//     {
+//         app.settings.theme_changer ^= true;
+//     }
+//     ui.end_row();
+// }
 
 fn theme_choose(ui: &mut Ui, app: &mut App) {
     ui.label(RichText::new("Theme").font(Font::default_medium()));
