@@ -307,9 +307,9 @@ fn step(app: &mut App, ui: &mut Ui) {
             flex.add(
                 item(),
                 Label::new(
-                    RichText::new(format!(
-                        "Steps : {}",
-                        app.turing.current_step.get_nb_iterations()
+                    RichText::new(t!(
+                        "step",
+                        "step" = app.turing.current_step.get_nb_iterations()
                     ))
                     .font(Font::default(Constant::scale(flex.ui(), Font::MEDIUM_SIZE)))
                     .color(app.theme.text_primary),
@@ -331,15 +331,14 @@ fn state(app: &mut App, ui: &mut Ui) {
             let (text, color) = {
                 if let Some(r) = app.turing.accepted {
                     if r {
-                        ("Accepted".to_string(), app.theme.success)
+                        (t!("accepted"), app.theme.success)
                     } else {
-                        ("Rejected".to_string(), app.theme.error)
+                        (t!("rejected"), app.theme.error)
                     }
                 } else {
-                    let is_running = |to: &TuringStateInfo, from: &TuringStateInfo| {
+                    let is_running = |from: &TuringStateInfo, to: &TuringStateInfo| {
                         (
-                            format!("Went from \"{}\" to \"{}\"", to.get_name(), from.get_name())
-                                .to_string(),
+                            t!("info", "to" = to.get_name(), "from" = from.get_name()),
                             app.theme.text_primary,
                         )
                     };
@@ -347,7 +346,7 @@ fn state(app: &mut App, ui: &mut Ui) {
                         TuringExecutionSteps::FirstIteration {
                             init_state: _,
                             init_tapes: _,
-                        } => ("Initiation".to_string(), app.theme.text_primary),
+                        } => (t!("initialization"), app.theme.text_primary),
                         TuringExecutionSteps::TransitionTaken {
                             previous_state,
                             reached_state,
@@ -357,7 +356,7 @@ fn state(app: &mut App, ui: &mut Ui) {
                             backtracked_iteration,
                             ..
                         } => (
-                            format!("Backtracked to step {backtracked_iteration}"),
+                            t!("backtracking", "step" = backtracked_iteration),
                             app.theme.backtracked,
                         ),
                     }
@@ -397,24 +396,3 @@ fn button(flex: &mut FlexInstance, app: &mut App, icon: ImageSource, disabled: b
         }),
     )
 }
-
-// #[cfg(not(target_arch = "wasm32"))]
-// fn interval(is_next: Arc<AtomicBool>, ctx: Context, duration: Duration) {
-//     thread::spawn(move || {
-//         thread::sleep(duration);
-//         is_next.store(true, Ordering::Relaxed);
-//         ctx.request_repaint();
-//     });
-// }
-
-// #[cfg(target_arch = "wasm32")]
-// fn interval(is_next: Arc<AtomicBool>, ctx: Context, duration: Duration) {
-
-//     use wasm_thread as thread;
-
-//     thread::spawn(move || {
-//         thread::sleep(duration);
-//         is_next.store(true, Ordering::Relaxed);
-//         ctx.request_repaint();
-//     });
-// }

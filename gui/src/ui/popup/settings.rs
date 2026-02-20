@@ -1,10 +1,12 @@
 use std::path::Path;
 
 use egui::{
-    CentralPanel, Checkbox, ComboBox, Context, Grid, Id, RichText, Stroke, TextBuffer, Ui,
-    UserData, ViewportBuilder, ViewportCommand, ViewportId, style::WidgetVisuals, vec2,
+    AtomExt, CentralPanel, Checkbox, ComboBox, Context, Grid, Id, Image, ImageSource, RichText,
+    Stroke, TextBuffer, Ui, UserData, ViewportBuilder, ViewportCommand, ViewportId, include_image,
+    style::WidgetVisuals, vec2,
 };
 use image::{ExtendedColorType, save_buffer};
+use include_directory::{Dir, include_directory};
 use ritm_core::turing_machine::Mode;
 
 use crate::{
@@ -56,12 +58,13 @@ pub fn show(ui: &mut Ui, app: &mut App) -> Result<(), RitmError> {
         );
 
         Grid::new("settings")
-            .spacing(vec2(40.0, 10.0))
+            .spacing(vec2(40.0, 20.0))
             .show(ui, |ui| {
                 turing_mode(ui, app);
                 edit_mode(ui, app);
                 load_setting(ui, app);
                 theme_choose(ui, app);
+                localisation_setting(ui, app);
                 // debug(ui, app);
                 // theme_changer(ui, app);
             });
@@ -70,13 +73,13 @@ pub fn show(ui: &mut Ui, app: &mut App) -> Result<(), RitmError> {
 }
 
 fn turing_mode(ui: &mut Ui, app: &mut App) {
-    ui.label(RichText::new("Turing machine mode").font(Font::default_medium()));
+    ui.label(RichText::new(t!("turing_machine_mode")).font(Font::default_medium()));
     ComboBox::from_id_salt("setting_turing_mode")
         .selected_text(
             RichText::new(match app.turing.get_mode() {
-                Mode::SaveAll => "Nondeterministic",
-                Mode::StopAfter(_) => "Maximum 1000 steps",
-                Mode::StopFirstReject => "Deterministic",
+                Mode::SaveAll => t!("nondeterministic"),
+                Mode::StopAfter(_) => t!("limited", "step" = 1000),
+                Mode::StopFirstReject => t!("deterministic"),
             })
             .font(Font::default_medium()),
         )
@@ -86,7 +89,7 @@ fn turing_mode(ui: &mut Ui, app: &mut App) {
                 ui.selectable_value(
                     &mut app.settings.turing_machine_mode,
                     Mode::SaveAll,
-                    "Nondeterministic",
+                    t!("nondeterministic"),
                 );
             }
 
@@ -96,7 +99,7 @@ fn turing_mode(ui: &mut Ui, app: &mut App) {
                 ui.selectable_value(
                     &mut app.settings.turing_machine_mode,
                     Mode::StopAfter(1000),
-                    "Maximum 1000 steps",
+                    t!("limited", "step" = 1000),
                 );
             };
 
@@ -104,7 +107,7 @@ fn turing_mode(ui: &mut Ui, app: &mut App) {
                 ui.selectable_value(
                     &mut app.settings.turing_machine_mode,
                     Mode::StopFirstReject,
-                    "Deterministic",
+                    t!("deterministic"),
                 );
             }
         });
@@ -115,16 +118,96 @@ fn turing_mode(ui: &mut Ui, app: &mut App) {
 }
 
 fn edit_mode(ui: &mut Ui, app: &mut App) {
-    ui.label(RichText::new("Reset after action").font(Font::default_medium()));
+    ui.label(RichText::new(t!("reset_after_action")).font(Font::default_medium()));
     ui.add(Checkbox::without_text(&mut app.settings.reset_after_action));
     ui.end_row();
 }
 
 fn load_setting(ui: &mut Ui, app: &mut App) {
-    ui.label(RichText::new("Convert to graph on load").font(Font::default_medium()));
+    ui.label(RichText::new(t!("convert_on_load")).font(Font::default_medium()));
     ui.add(Checkbox::without_text(
         &mut app.settings.convert_to_graph_on_load,
     ));
+    ui.end_row();
+}
+
+static EXAMPLES: Dir = include_directory!("gui/locales");
+
+fn get_file(name: &str) -> ImageSource<'_> {
+    let bytes = EXAMPLES.get_file(name).unwrap().contents();
+    ImageSource::Bytes {
+        uri: format!("byte://../locales/{name}").into(),
+        bytes: egui::load::Bytes::Static(bytes),
+    }
+}
+
+fn localisation_setting(ui: &mut Ui, app: &mut App) {
+    ui.label(RichText::new(t!("language")).font(Font::default_medium()));
+
+    let locale = rust_i18n::locale().to_string();
+    ui.menu_button(
+        (
+            Image::new(get_file(&format!("{locale}.svg"))).shrink_to_fit(),
+            locale.clone(),
+            Image::new(include_image!("../../../assets/icon/down.svg"))
+                .tint(app.theme.overlay)
+                .shrink_to_fit(),
+        ),
+        |ui| {
+            for locale in rust_i18n::available_locales!() {
+                if ui
+                    .button((
+                        Image::new(get_file(&format!("{locale}.svg")))
+                            .atom_max_height_font_size(ui),
+                        locale.clone(),
+                    ))
+                    .clicked()
+                {
+                    rust_i18n::set_locale(&locale);
+                }
+            }
+        },
+    );
+    // <ComboBox::from_id_salt("language")
+    //     .selected_text(
+    //         RichText::new(match app.turing.get_mode() {
+    //             Mode::SaveAll => t!("nondeterministic"),
+    //             Mode::StopAfter(_) => t!("limited", "step" = 1000),
+    //             Mode::StopFirstReject => t!("deterministic"),
+    //         })
+    //         .font(Font::default_medium()),
+    //     )
+    //     .width(20.0) // TODO change and think about this value, I hardcoded it
+    //     .show_ui(ui, |ui| {
+    //         if app.settings.turing_machine_mode != Mode::SaveAll {
+    //             ui.selectable_value(
+    //                 &mut app.settings.turing_machine_mode,
+    //                 Mode::SaveAll,
+    //                 t!("nondeterministic"),
+    //             );
+    //         }
+
+    //         if let Mode::StopAfter(_) = app.settings.turing_machine_mode {
+    //             // We do that because of the content of the enum
+    //         } else {
+    //             ui.selectable_value(
+    //                 &mut app.settings.turing_machine_mode,
+    //                 Mode::StopAfter(1000),
+    //                 t!("limited", "step" = 1000),
+    //             );
+    //         };
+
+    //         if app.settings.turing_machine_mode != Mode::StopFirstReject {
+    //             ui.selectable_value(
+    //                 &mut app.settings.turing_machine_mode,
+    //                 Mode::StopFirstReject,
+    //                 t!("deterministic"),
+    //             );
+    //         }
+    //     });
+    // if *app.turing.get_mode() != app.settings.turing_machine_mode {
+    //     app.turing.set_mode(&app.settings.turing_machine_mode);
+    // }>
     ui.end_row();
 }
 
@@ -169,17 +252,17 @@ fn load_setting(ui: &mut Ui, app: &mut App) {
 // }
 
 fn theme_choose(ui: &mut Ui, app: &mut App) {
-    ui.label(RichText::new("Theme").font(Font::default_medium()));
+    ui.label(RichText::new(t!("theme")).font(Font::default_medium()));
     ComboBox::from_id_salt("Themes")
         .selected_text(
             RichText::new(if app.theme == Theme::default() {
-                "Default"
+                t!("default")
             } else if app.theme == Theme::retro() {
-                "Retro"
+                t!("retro")
             } else if app.theme == Theme::monochrome() {
-                "Monochrome"
+                t!("monochrome")
             } else {
-                "ERROR"
+                t!("default")
             })
             .font(Font::default_medium()),
         )

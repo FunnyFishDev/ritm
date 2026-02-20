@@ -1,13 +1,12 @@
 use std::{
     collections::HashMap,
     fmt::{self, Display},
-    ops::RangeInclusive,
 };
 
 use egui::{
     Align2, Area, Color32, Context, CornerRadius, Frame, Id, Image, ImageButton, Label, Layout,
-    Margin, Mesh, Pos2, Rect, Sense, Ui, UiBuilder, Vec2, include_image, pos2, text::LayoutJob,
-    vec2,
+    Margin, Mesh, Pos2, Rect, Sense, TextBuffer, Ui, UiBuilder, Vec2, include_image, pos2,
+    text::LayoutJob, vec2,
 };
 use i_overlay::{
     core::{fill_rule::FillRule, overlay_rule::OverlayRule},
@@ -15,65 +14,9 @@ use i_overlay::{
     i_float::float::compatible::FloatPointCompatible,
 };
 use i_triangle::float::triangulatable::Triangulatable;
-use phf_macros::phf_map;
 
 use crate::{App, ui::font::Font};
 
-static TUTORIALS: phf::Map<&'static str, (TutorialEnum, RangeInclusive<usize>, &'static str)> = phf_map! {
-    "default" => (TutorialEnum::Code, 0..=0, "/!\\ Text not found. Please contact administrator. /!\\"),
-
-    "graph_section" => (TutorialEnum::Graph, 0..=0, "The graph section allow you to \"draw\" the turing machine without writing a single line of code."),
-    "initial_state" => (TutorialEnum::Graph, 1..=2, "This is the initial state..."),
-    "accept_state" => (TutorialEnum::Graph, 2..=2, "...and this is the accept state"),
-    "to_code" => (TutorialEnum::Graph, 3..=3, "Click on this button to convert the current graph into code\nMany operations can delete the graph, save it often to avoid losing it !"),
-    "erase" => (TutorialEnum::Graph, 4..=4, "This button reset the graph, keeping only the initial and accept state"),
-    "new_element_creation" => (TutorialEnum::Graph, 5..=5, "You can create new state and transition in 2 different ways :"),
-    "by_edit" => (TutorialEnum::Graph, 6..=6, "You can use the edit menu..."),
-    "by_touch" => (TutorialEnum::Graph, 7..=7, "...Or you can press a long time on the background for a new state and on a state for a new transition."),
-
-    "code_section" => (TutorialEnum::Code, 0..=0, "The code section allow you to define turing machine with code."),
-    "tabs" => (TutorialEnum::Code, 1..=1, "Tabs allow you to create new turing machine without erasing the previous ones."),
-    "tab_rename" => (TutorialEnum::Code, 2..=2, "To rename a tab simply double-click on it."),
-    "tab_add" => (TutorialEnum::Code, 3..=3, "You can add new tab by clicking on the \"+\""),
-    "tab_close" => (TutorialEnum::Code, 4..=4, "You can close tab you don't need anymore by clicking on the cross.\n\nBe aware that if only one tab remain you will not be able to remove it unless you create another one."),
-    "code_syntax" => (TutorialEnum::Code, 5..=5, "The syntax is the following :\n\nq_start {ç -> R} q_end; for 0..=0 writing tape\n\nq_start {ç, ç -> R, ç, R} q_end; for 1 writing tape\n\nq_start {ç, ç, ç -> R, ç, R, ç, R} q_end; for 2 writing tape\n\netc..."),
-    "code_comment" => (TutorialEnum::Code, 6..=6, "You can also add comment to improve the readability by using \"//\" before the comment"),
-
-    "menu_section" => (TutorialEnum::Menu, 0..=0, "The menu hold different button"),
-    "setting" => (TutorialEnum::Menu, 1..=1, "This button open the settings of the application"),
-    "save" => (TutorialEnum::Menu, 2..=2, "This button save the code of the current tab in a file with the .tm extension"),
-    "machine_folder" => (TutorialEnum::Menu, 3..=3, "This button open a sub-menu containing premade turing machine.\nIt also allow you to load a file with the .tm extension, defining a turing machine."),
-    "help" => (TutorialEnum::Menu, 4..=4, "This button display the current tutorial"),
-    "to_graph" => (TutorialEnum::Menu, 5..=5, "Click on this button to convert the code of the current tab into a graph\n\n/!\\ Be aware that doing so will overwrite any graph present."),
-    "close" => (TutorialEnum::Menu, 6..=6, "This button collapse the code section to grant more space to the graph section"),
-
-    "tape_section" => (TutorialEnum::Tape, 0..=0, "These are the tape used by the turing machine."),
-    "reading_tape" => (TutorialEnum::Tape, 1..=1, "For 1 tape machine this is a reading and writing tape.\n for 2 or more tapes machine this is only a reading tape."),
-    "writing_tape" => (TutorialEnum::Tape, 2..=2, "These tapes are always reading and writing tapes"),
-    "current_character" => (TutorialEnum::Tape, 3..=3, "These are the current character being read on the tapes. The next transition followed depend on those."),
-    "special_character" => (TutorialEnum::Tape, 4..=4, "Some character are special and cannot be used as input :\nç represent the start of the tapes\n$ represent the end of the reading tape\n_ represent the end of the writing tapes"),
-
-    "control_section" => (TutorialEnum::Control, 0..=0, "This is the controls section.\nIn this section you can interact with the machine execution."),
-    "input" => (TutorialEnum::Control, 1..=1, "The input can be submitted here.\n'ç', '$' and '_' are special characters and therefore cannot be used !"),
-    "autoplay" => (TutorialEnum::Control, 2..=2, "You can run the machine here by pressing the play button.\n"),
-    "play" => (TutorialEnum::Control, 3..=3, "You can let the machine run itself by pressing this button"),
-    "next" => (TutorialEnum::Control, 4..=4, "You can use this button to go to the next step"),
-    "reset" => (TutorialEnum::Control, 5..=5, "You can reset the machine and the tapes by clicking on this button"),
-    "speed" => (TutorialEnum::Control, 6..=6, "You can change the speed here"),
-    "step" => (TutorialEnum::Control, 7..=7, "The current step is diplayed here"),
-    "result" => (TutorialEnum::Control, 8..=8, "The current state of the machine. It can be 'idle', 'running', 'accepted' or 'rejected'"),
-
-    "edit_section" => (TutorialEnum::Edit, 0..=0, "Here you can interact with the graph and its elements"),
-    "tape_counter" => (TutorialEnum::Edit, 1..=1, "You can change the number of tape here\n\n/!\\ ANY CHANGE WILL ERASE THE CURRENT MACHINE /!\\"),
-    "unpin" => (TutorialEnum::Edit, 2..=2, "Unpin the state so the natural force apply"),
-    "recenter" => (TutorialEnum::Edit, 3..=3, "Recenter the graph"),
-    "add_state" => (TutorialEnum::Edit, 4..=4, "Once toggled, the next click on the background of the graph will add a new state"),
-    "edit" => (TutorialEnum::Edit, 5..=5, "Edit the selected state or transitions"),
-    "delete" => (TutorialEnum::Edit, 6..=6, "Delete the selected state or transitions"),
-    "add_transition" => (TutorialEnum::Edit, 7..=7, "Once toggled, the next click on a state will create a transition."),
-
-    // "keybind" => (TutorialEnum::Misc, 0..=0, ""),
-};
 #[derive(
     serde::Deserialize, serde::Serialize, Eq, Hash, PartialEq, PartialOrd, Ord, Debug, Clone, Copy,
 )]
@@ -89,15 +32,18 @@ pub enum TutorialEnum {
 
 impl Display for TutorialEnum {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(match self {
-            Self::Graph => "Graph tutorial",
-            Self::Control => "Control tutorial",
-            Self::Code => "Code tutorial",
-            Self::Edit => "Edit tutorial",
-            Self::Menu => "Menu tutorial",
-            Self::Tape => "Tape tutorial",
-            Self::Misc => "Misc tutorial",
-        })
+        f.write_str(
+            match self {
+                Self::Graph => t!("graph_tutorial"),
+                Self::Control => t!("control_tutorial"),
+                Self::Code => t!("code_tutorial"),
+                Self::Edit => t!("edit_tutorial"),
+                Self::Menu => t!("menu_tutorial"),
+                Self::Tape => t!("tape_tutorial"),
+                Self::Misc => t!("misc_tutorial"),
+            }
+            .as_str(),
+        )
     }
 }
 
@@ -131,8 +77,8 @@ impl Default for Tutorials {
 
 impl Tutorials {
     pub fn add_boxe(&mut self, tutorial: &str, mut boxe: TutorialBox) {
+        let data = self.tutorial(tutorial);
         if let Some(current) = &self.current_tutorial
-            && let Some(data) = TUTORIALS.get(tutorial)
             && boxe.rect.is_finite()
             && *current == data.0
             && data.1.contains(&self.current_step)
@@ -166,6 +112,73 @@ impl Tutorials {
 
     pub fn current_step(&self) -> usize {
         self.current_step
+    }
+
+    fn tutorial(
+        &self,
+        name: &str,
+    ) -> (
+        TutorialEnum,
+        std::ops::RangeInclusive<usize>,
+        std::borrow::Cow<'_, str>,
+    ) {
+        match name {
+            "graph_section" => (TutorialEnum::Graph, 0..=0, t!("tutorial.graph_section")),
+            "initial_state" => (TutorialEnum::Graph, 1..=2, t!("tutorial.initial_state")),
+            "accept_state" => (TutorialEnum::Graph, 2..=2, t!("tutorial.accept_state")),
+            "to_code" => (TutorialEnum::Graph, 3..=3, t!("tutorial.to_code")),
+            "erase" => (TutorialEnum::Graph, 4..=4, t!("tutorial.erase")),
+            "new_element_creation" => (
+                TutorialEnum::Graph,
+                5..=5,
+                t!("tutorial.new_element_creation"),
+            ),
+            "by_edit" => (TutorialEnum::Graph, 6..=6, t!("tutorial.by_edit")),
+            "by_touch" => (TutorialEnum::Graph, 7..=7, t!("tutorial.by_touch")),
+
+            "code_section" => (TutorialEnum::Code, 0..=0, t!("tutorial.code_section")),
+            "tabs" => (TutorialEnum::Code, 1..=1, t!("tutorial.tabs")),
+            "tab_rename" => (TutorialEnum::Code, 2..=2, t!("tutorial.tab_rename")),
+            "tab_add" => (TutorialEnum::Code, 3..=3, t!("tutorial.tab_add")),
+            "tab_close" => (TutorialEnum::Code, 4..=4, t!("tutorial.tab_close")),
+            "code_syntax" => (TutorialEnum::Code, 5..=5, t!("tutorial.code_syntax")),
+            "code_comment" => (TutorialEnum::Code, 6..=6, t!("tutorial.code_comment")),
+
+            "menu_section" => (TutorialEnum::Menu, 0..=0, t!("tutorial.menu_section")),
+            "setting" => (TutorialEnum::Menu, 1..=1, t!("tutorial.setting")),
+            "save" => (TutorialEnum::Menu, 2..=2, t!("tutorial.save")),
+            "machine_folder" => (TutorialEnum::Menu, 3..=3, t!("tutorial.machine_folder")),
+            "help" => (TutorialEnum::Menu, 4..=4, t!("tutorial.help")),
+            "to_graph" => (TutorialEnum::Menu, 5..=5, t!("tutorial.to_graph")),
+            "close" => (TutorialEnum::Menu, 6..=6, t!("tutorial.close")),
+
+            "tape_section" => (TutorialEnum::Tape, 0..=0, t!("tutorial.tape_section")),
+            "reading_tape" => (TutorialEnum::Tape, 1..=1, t!("tutorial.reading_tape")),
+            "writing_tape" => (TutorialEnum::Tape, 2..=2, t!("tutorial.writing_tape")),
+            "current_character" => (TutorialEnum::Tape, 3..=3, t!("tutorial.current_character")),
+            "special_character" => (TutorialEnum::Tape, 4..=4, t!("tutorial.special_character")),
+
+            "control_section" => (TutorialEnum::Control, 0..=0, t!("tutorial.control_section")),
+            "input" => (TutorialEnum::Control, 1..=1, t!("tutorial.input")),
+            "autoplay" => (TutorialEnum::Control, 2..=2, t!("tutorial.autoplay")),
+            "play" => (TutorialEnum::Control, 3..=3, t!("tutorial.play")),
+            "next" => (TutorialEnum::Control, 4..=4, t!("tutorial.next")),
+            "reset" => (TutorialEnum::Control, 5..=5, t!("tutorial.reset")),
+            "speed" => (TutorialEnum::Control, 6..=6, t!("tutorial.speed")),
+            "step" => (TutorialEnum::Control, 7..=7, t!("tutorial.step")),
+            "result" => (TutorialEnum::Control, 8..=8, t!("tutorial.result")),
+
+            "edit_section" => (TutorialEnum::Edit, 0..=0, t!("tutorial.edit_section")),
+            "tape_counter" => (TutorialEnum::Edit, 1..=1, t!("tutorial.tape_counter")),
+            "unpin" => (TutorialEnum::Edit, 2..=2, t!("tutorial.unpin")),
+            "recenter" => (TutorialEnum::Edit, 3..=3, t!("tutorial.recenter")),
+            "add_state" => (TutorialEnum::Edit, 4..=4, t!("tutorial.add_state")),
+            "edit" => (TutorialEnum::Edit, 5..=5, t!("tutorial.edit")),
+            "delete" => (TutorialEnum::Edit, 6..=6, t!("tutorial.delete")),
+            "add_transition" => (TutorialEnum::Edit, 7..=7, t!("tutorial.add_transition")),
+            // "keybind" => (TutorialEnum::Misc, 0..=0, ""),
+            _ => (TutorialEnum::Code, 0..=0, t!("tutorial.default")),
+        }
     }
 }
 
