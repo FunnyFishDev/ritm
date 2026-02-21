@@ -3,7 +3,8 @@ use egui::{Align, Label, Rect, RichText, Sense, Stroke, Ui, vec2};
 use crate::{
     App,
     error::RitmError,
-    ui::{constant::Constant, font::Font, theme::Theme},
+    turing::StateEdit,
+    ui::{constant::Constant, font::Font, popup::RitmPopupEnum, theme::Theme},
 };
 
 /// Display every state of the turing machine
@@ -77,9 +78,15 @@ pub fn draw_node(app: &mut App, ui: &mut Ui, state_id: usize) -> Result<(), Ritm
         },
     );
 
+    if response.double_clicked() {
+        app.popup
+            .switch_to(RitmPopupEnum::StateEdit(Some(state_id), None));
+        app.turing.state_edit = Some(StateEdit::from(state))
+    }
+
     if response.clicked() {
         if app.edit.is_adding_transition {
-            app.turing.add_transition(
+            app.turing.add_default_transition(
                 app.graph.selected_state().expect("state selected"),
                 state_id,
             )?;

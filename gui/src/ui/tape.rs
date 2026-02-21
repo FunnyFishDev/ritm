@@ -50,7 +50,7 @@ pub fn show(app: &mut App, ui: &mut Ui) {
 
             // ui.set_height(ui.ctx().screen_rect().height());
             let content = ScrollArea::vertical()
-                .scroll_bar_visibility(ScrollBarVisibility::AlwaysVisible)
+                .scroll_bar_visibility(ScrollBarVisibility::VisibleWhenNeeded)
                 .auto_shrink(true)
                 .min_scrolled_height(ui.ctx().screen_rect().height() / 3.0)
                 .max_height(ui.ctx().screen_rect().height() / 3.0)

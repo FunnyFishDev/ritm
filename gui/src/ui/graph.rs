@@ -219,9 +219,7 @@ pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
     // If the graph scene is clicked
     // TODO: need to rework state adding flow
     if scene_response.clicked() {
-        if app.graph.selected_state.is_some() {
-            app.graph.unselect();
-        } else if app.edit.is_adding_state {
+        if app.edit.is_adding_state {
             let click_pos = scene_response
                 .interact_pointer_pos()
                 .expect("no click position found");
@@ -233,6 +231,7 @@ pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
         // CLick on the scene reset selection and editing
         app.edit.is_adding_state &= !app.settings.reset_after_action;
         app.edit.is_adding_transition = false;
+        app.graph.unselect();
     }
 
     edit::show(app, ui)?;
@@ -387,7 +386,7 @@ fn transition_dragging(ui: &mut Ui, app: &mut App, graph_rect: Rect) -> Result<(
         // If the mouse/pen is released then we check if a transition can be added
         if !ui.input(|r| r.pointer.any_down()) {
             if let Some(target_id) = target_id
-                && app.turing.add_transition(source_id, target_id).is_ok()
+                && app.turing.add_default_transition(source_id, target_id).is_ok()
             {
                 app.turing.prepare_transition_edit(source_id, target_id)?;
                 app.popup

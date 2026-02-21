@@ -21,6 +21,7 @@ use egui::{
     text::LayoutJob,
     vec2,
 };
+use i_overlay::string::rule;
 use ritm_core::turing_machine::TuringExecutionSteps;
 
 /// Draw every transition of the turing machine
@@ -293,7 +294,7 @@ fn draw_labels(
         .selected_transitions
         .is_some_and(|transitions| transitions == *sample_transition_id);
 
-    let mut clicked = false;
+    let mut clicked = (false, false);
 
     // place each rules
     for (i, (transition_id, is_previous)) in transitions.iter().enumerate() {
@@ -380,16 +381,28 @@ fn draw_labels(
         for i in 0..sub_count + 1 {
             let vec = (max - min) / sub_count as f32;
             let rect = Rect::from_center_size(min + vec * i as f32, size);
-            ui.allocate_rect(rect, Sense::click())
-                .clicked()
-                .then(|| clicked = true);
+            let rule_res = ui.allocate_rect(rect, Sense::click());
+            rule_res.clicked().then(|| clicked.0 = true);
+            rule_res.double_clicked().then(|| clicked.1 = true);
         }
     }
 
-    if clicked {
+    if clicked.0 {
         app.graph.select_transitions(*sample_transition_id);
         app.edit.is_adding_transition = false;
         app.edit.is_adding_state = false;
+    }
+
+    if clicked.1 {
+        app.popup
+            .switch_to(crate::ui::popup::RitmPopupEnum::TransitionEdit((
+                sample_transition_id.source_id,
+                sample_transition_id.target_id,
+            )));
+        app.turing.prepare_transition_edit(
+            sample_transition_id.source_id,
+            sample_transition_id.target_id,
+        )?;
     }
     Ok(())
 }

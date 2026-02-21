@@ -9,6 +9,7 @@ accepted: "Accepté"
 rejected: "Rejeté"
 
 settings : "Paramètres"
+back: "Retour"
 turing_machine_mode : "Mode de la machine de Turing"
 reset_after_action : "Réinitiliser après l'action"
 convert_on_load : "Convertir en graphe au chargement"

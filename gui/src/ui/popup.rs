@@ -72,7 +72,7 @@ pub fn show(ctx: &Context, app: &mut App) -> Result<(), RitmError> {
                 let title = if let Some(state_id) = state_id {
                     app.turing.get_state(state_id)?.get_name().to_string()
                 } else {
-                    t!("new_state").to_string()
+                    "New State".to_string()
                 };
                 let max_size = vec2(300.0, ctx.available_rect().height());
                 modal(ctx, app, title, false, |ui, app| {
@@ -81,13 +81,11 @@ pub fn show(ctx: &Context, app: &mut App) -> Result<(), RitmError> {
                     state_edit::show(ui, app)
                 })?
             }
-            RitmPopupEnum::Settings => {
-                modal(ctx, app, t!("settings").to_string(), true, |ui, app| {
-                    ui.set_max_size(ui.ctx().screen_rect().size() * 0.8);
-                    ui.set_min_size(ui.ctx().screen_rect().size() * 0.8);
-                    settings::show(ui, app)
-                })?
-            }
+            RitmPopupEnum::Settings => modal(ctx, app, t!("settings").to_string(), true, |ui, app| {
+                ui.set_max_size(ui.ctx().screen_rect().size() * 0.8);
+                ui.set_min_size(ui.ctx().screen_rect().size() * 0.8);
+                settings::show(ui, app)
+            })?,
         }
     }
     Ok(())
@@ -151,7 +149,7 @@ fn header<R>(
 
                         if ui
                             .add(
-                                Button::new((img, RichText::new("Back").font(Font::default_big())))
+                                Button::new((img, RichText::new(t!("back")).font(Font::default_big())))
                                     .frame(false),
                             )
                             .clicked()

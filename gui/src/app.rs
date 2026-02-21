@@ -147,10 +147,8 @@ impl App {
     }
 
     /// Reset the machine execution with the new input
-    /// TODO: stop ignoring result to avoid cloudflare global shutdown
-    pub fn set_input(&mut self) {
-        let _ = self.turing.tm.reset_word(self.control.input());
-        self.turing.reset();
+    pub fn set_input(&mut self) -> Result<(), RitmError> {
+        self.turing.set_word(self.control.input())
     }
 
     pub fn graph_to_code(&mut self) {

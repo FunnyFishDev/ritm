@@ -97,7 +97,7 @@ pub fn show(ui: &mut Ui, app: &mut App) -> Result<(), RitmError> {
                 .clicked()
                 && !state_name.is_empty()
             {
-                let state_id = if let Some(RitmPopupEnum::StateEdit(selected, Some(pos))) =
+                let state_id = if let Some(RitmPopupEnum::StateEdit(selected, pos)) =
                     app.popup.current()
                 {
                     // if there is a selected state then we modify it
@@ -106,7 +106,7 @@ pub fn show(ui: &mut Ui, app: &mut App) -> Result<(), RitmError> {
                         app.turing.rename_state(*selected, state_name)?;
                         *selected
                     } else {
-                        app.turing.add_state_with_pos(state_name, *pos)?
+                        app.turing.add_state_with_pos(state_name, pos.expect("should have a pos"))?
                     }
                 // if there is no position passed or state selected
                 } else {

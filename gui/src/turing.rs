@@ -42,6 +42,7 @@ impl Default for Turing {
     }
 }
 
+/// Dedicated method
 impl Turing {
     /// Return a turing machine using the graph passed
     pub fn new_graph(graph: TuringGraph<State, Transition>) -> Self {
@@ -88,6 +89,30 @@ impl Turing {
         self.next_step();
     }
 
+    /// Insert the word as the new input and reset the turing machine
+    pub fn set_word(&mut self, word: &String) -> Result<(), RitmError> {
+        self.tm
+            .reset_word(word)
+            .map_err(|e| RitmError::CoreError(e.to_string()))?;
+        self.reset();
+        Ok(())
+    }
+
+    /// The mode currently used
+    pub fn get_mode(&self) -> &Mode {
+        self.tm.get_mode()
+    }
+
+    /// TODO: changing the mode should reset the machine ?
+    pub fn set_mode(&mut self, mode: &Mode) {
+        self.tm.set_mode(mode);
+        self.reset();
+    }
+
+}
+
+/// Access method
+impl Turing {
     /// The state is saved with the core assigned id
     pub fn add_state(&mut self, name: String) -> usize {
         self.tm.graph_mut().add_state(name, TuringStateType::Normal)
@@ -110,13 +135,7 @@ impl Turing {
         Ok(state_id)
     }
 
-    pub fn add_transition(&mut self, source_id: usize, target_id: usize) -> Result<(), RitmError> {
-        self.tm
-            .graph_mut()
-            .append_default_transition(source_id, None, target_id)
-            .map_err(|e| RitmError::CoreError(e.to_string()))
-    }
-
+    /// Fetch a state by its id
     pub fn get_state(&self, id: usize) -> Result<&StateWrapper, RitmError> {
         self.tm
             .graph_ref()
@@ -124,6 +143,7 @@ impl Turing {
             .ok_or(RitmError::CoreError("State not found".to_string()))
     }
 
+    /// Fetch a state by id, but mutable
     pub fn get_state_mut(&mut self, id: usize) -> Result<&mut StateWrapper, RitmError> {
         self.tm
             .graph_mut()
@@ -131,8 +151,7 @@ impl Turing {
             .map_err(|e| RitmError::CoreError(e.to_string()))
     }
 
-    /// Remove the state if it exist. If not an error [`RitmError::CoreError`]
-    /// is returned
+    /// Remove the state if it exist. If not return [`RitmError::CoreError`]
     pub fn remove_state(&mut self, state_id: usize) -> Result<(), RitmError> {
         self.tm
             .graph_mut()
@@ -140,36 +159,27 @@ impl Turing {
             .map_err(|e| RitmError::CoreError(e.to_string()))
     }
 
-    /// Remove the transition if it exist. If not an error [`RitmError::CoreError`]
-    /// is returned
-    pub fn remove_transition(&mut self, transition_id: TransitionId) -> Result<(), RitmError> {
-        let TransitionId {
-            source_id,
-            id,
-            target_id,
-        } = transition_id;
 
+    pub fn rename_state(&mut self, selected: usize, state_name: String) -> Result<(), RitmError> {
         self.tm
             .graph_mut()
-            .remove_transition((source_id, id, target_id))
+            .rename_state(selected, state_name)
             .map_err(|e| RitmError::CoreError(e.to_string()))
     }
 
-    /// Remove the transition if it exist. If not an error [`RitmError::CoreError`]
-    /// is returned
-    pub fn remove_transitions(
+    /// Add a new transition between the source and the target
+    pub fn add_default_transition(
         &mut self,
         source_id: usize,
         target_id: usize,
     ) -> Result<(), RitmError> {
         self.tm
             .graph_mut()
-            .remove_transitions(source_id, target_id)
+            .append_default_transition(source_id, None, target_id)
             .map_err(|e| RitmError::CoreError(e.to_string()))
     }
 
-    /// Fetch the transition wrapper if it exist. If not an error [`RitmError::CoreError`]
-    /// is returned
+    /// Fetch the transition wrapper if it exist. If not return [`RitmError::CoreError`]
     pub fn get_transition(
         &self,
         transition_id: impl Into<TransitionId>,
@@ -204,6 +214,32 @@ impl Turing {
         }
     }
 
+    /// Remove the transition if it exist. If not return [`RitmError::CoreError`]
+    pub fn remove_transition(&mut self, transition_id: TransitionId) -> Result<(), RitmError> {
+        let TransitionId {
+            source_id,
+            id,
+            target_id,
+        } = transition_id;
+
+        self.tm
+            .graph_mut()
+            .remove_transition((source_id, id, target_id))
+            .map_err(|e| RitmError::CoreError(e.to_string()))
+    }
+
+    /// Remove all transitions between the source and target if they exist. If not return [`RitmError::CoreError`]
+    pub fn remove_transitions(
+        &mut self,
+        source_id: usize,
+        target_id: usize,
+    ) -> Result<(), RitmError> {
+        self.tm
+            .graph_mut()
+            .remove_transitions(source_id, target_id)
+            .map_err(|e| RitmError::CoreError(e.to_string()))
+    }
+
     pub fn get_transitions(
         &self,
         source_id: usize,
@@ -221,16 +257,29 @@ impl Turing {
             })
             .map_err(|e| RitmError::CoreError(e.to_string()))?
     }
+}
 
-    /// The mode currently used
-    pub fn get_mode(&self) -> &Mode {
-        self.tm.get_mode()
-    }
+/// Transition editing
+impl Turing {
 
-    /// TODO: changing the mode should reset the machine ?
-    pub fn set_mode(&mut self, mode: &Mode) {
-        self.tm.set_mode(mode);
-        self.reset();
+    /// Setup transition edit
+    pub fn prepare_transition_edit(
+        &mut self,
+        source: usize,
+        target: usize,
+    ) -> Result<(), RitmError> {
+        let transitions_edit: Vec<(TransitionEdit, Option<String>)> = self
+            .tm
+            .graph_mut()
+            .get_transitions(source, target)
+            .map_err(|e| RitmError::CoreError(e.to_string()))?
+            .ok_or(RitmError::CoreError("No transitions found".to_string()))?
+            .iter()
+            .map(|e| (TransitionEdit::from(e), None))
+            .collect();
+
+        self.transition_edit = Some(((source, target), transitions_edit));
+        Ok(())
     }
 
     /// Apply transition changes if correct
@@ -273,6 +322,34 @@ impl Turing {
                 .map_err(|e| RitmError::CoreError(e.to_string()))?;
         }
         Ok(())
+    }
+
+    pub fn cancel_transition_change(&mut self) {
+        self.transition_edit = None;
+    }
+
+    pub fn get_transitions_edit(&self) -> Result<&TransitionsEdit, RitmError> {
+        self.transition_edit
+            .as_ref()
+            .ok_or(RitmError::GuiError(GuiError::NoTransitionEditing))
+    }
+
+    /// Return an error if the transition edit has not been set
+    pub fn get_transitions_edit_mut(&mut self) -> Result<&mut TransitionsEdit, RitmError> {
+        self.transition_edit
+            .as_mut()
+            .ok_or(RitmError::GuiError(GuiError::NoTransitionEditing))
+    }
+
+    /// Return an error if the transition edit has not been set
+    pub fn get_transition_edit_mut(
+        &mut self,
+        id: usize,
+    ) -> Result<&mut TransitionWrapper, RitmError> {
+        self.transition_edit
+            .as_mut()
+            .map(|(_, s)| s[id].0.get_edit())
+            .ok_or(RitmError::GuiError(GuiError::NoTransitionEditing))
     }
 
     /// Update the position of each state so the graph
@@ -361,63 +438,6 @@ impl Turing {
             .for_each(|s| s.inner_state.is_pinned = true);
     }
 
-    /// Setup transition edit
-    pub fn prepare_transition_edit(
-        &mut self,
-        source: usize,
-        target: usize,
-    ) -> Result<(), RitmError> {
-        let transitions_edit: Vec<(TransitionEdit, Option<String>)> = self
-            .tm
-            .graph_mut()
-            .get_transitions(source, target)
-            .map_err(|e| RitmError::CoreError(e.to_string()))?
-            .ok_or(RitmError::CoreError("No transitions found".to_string()))?
-            .iter()
-            .map(|e| (TransitionEdit::from(e), None))
-            .collect();
-
-        self.transition_edit = Some(((source, target), transitions_edit));
-        Ok(())
-    }
-
-    /// TODO: add error management
-    pub fn set_word(&mut self, word: &String) -> Result<(), RitmError> {
-        self.tm
-            .reset_word(word)
-            .map_err(|e| RitmError::CoreError(e.to_string()))?;
-        self.reset();
-        Ok(())
-    }
-
-    pub fn cancel_transition_change(&mut self) {
-        self.transition_edit = None;
-    }
-
-    pub fn get_transitions_edit(&self) -> Result<&TransitionsEdit, RitmError> {
-        self.transition_edit
-            .as_ref()
-            .ok_or(RitmError::GuiError(GuiError::NoTransitionEditing))
-    }
-
-    /// Return an error if the transition edit has not been set
-    pub fn get_transitions_edit_mut(&mut self) -> Result<&mut TransitionsEdit, RitmError> {
-        self.transition_edit
-            .as_mut()
-            .ok_or(RitmError::GuiError(GuiError::NoTransitionEditing))
-    }
-
-    /// Return an error if the transition edit has not been set
-    pub fn get_transition_edit_mut(
-        &mut self,
-        id: usize,
-    ) -> Result<&mut TransitionWrapper, RitmError> {
-        self.transition_edit
-            .as_mut()
-            .map(|(_, s)| s[id].0.get_edit())
-            .ok_or(RitmError::GuiError(GuiError::NoTransitionEditing))
-    }
-
     pub fn graph_center(&self) -> Pos2 {
         self.tm
             .graph_ref()
@@ -461,12 +481,6 @@ impl Turing {
         Ok(transition_vector)
     }
 
-    pub fn rename_state(&mut self, selected: usize, state_name: String) -> Result<(), RitmError> {
-        self.tm
-            .graph_mut()
-            .rename_state(selected, state_name)
-            .map_err(|e| RitmError::CoreError(e.to_string()))
-    }
 }
 
 /// State visual representation
