@@ -295,37 +295,6 @@ where
         self.data.state_pointer = new_val;
     }
 
-    // /// Gets mutable ref to the reading tape stored inside this struct.
-    // fn get_reading_tape_mut(&mut self) -> &mut TuringReadingTape {
-    //     &mut self.data.reading_tape
-    // }
-
-    // /// Gets ref to the reading tape stored inside this struct.
-    // pub fn get_reading_tape(&self) -> &TuringReadingTape {
-    //     &self.data.reading_tape
-    // }
-
-    // /// Sets the reading tapes stored inside this struct.
-    // /// Does not do any check to make sure it is compatible.
-    // fn set_reading_tape(&mut self, tape: TuringReadingTape) {
-    //     self.data.reading_tape = tape;
-    // }
-
-    // /// Gets the mut ref writtings tapes stored inside this struct.
-    // fn get_writting_tapes_mut(&mut self) -> &mut Vec<TuringWritingTape> {
-    //     &mut self.data.writing_tapes
-    // }
-
-    // /// Gets the reference to the writtings tapes stored inside this struct.
-    // pub fn get_writting_tapes(&self) -> &Vec<TuringWritingTape> {
-    //     &self.data.writing_tapes
-    // }
-
-    // /// Sets the writting tapes stored inside this struct.
-    // fn set_writting_tapes(&mut self, tapes: Vec<TuringWritingTape>) {
-    //     self.data.writing_tapes = tapes;
-    // }
-
     /// Gets the word that was feed to this machine.
     pub fn get_word(&self) -> &String {
         &self.data.word
