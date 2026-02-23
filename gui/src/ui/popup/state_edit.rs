@@ -24,7 +24,7 @@ pub fn show(ui: &mut Ui, app: &mut App) -> Result<(), RitmError> {
             );
 
             if app.turing.state_edit.is_none()
-                && let Some(RitmPopupEnum::StateEdit(selected, _)) = app.popup.current()
+                && let Some(RitmPopupEnum::StateEdit(selected)) = app.popup.current()
             {
                 app.turing.state_edit = if let Some(state) = *selected
                     && let Some(state) = app.turing.get_state(state).ok()
@@ -71,11 +71,6 @@ pub fn show(ui: &mut Ui, app: &mut App) -> Result<(), RitmError> {
                 app.popup.close();
             }
 
-            let text = RichText::new("Save")
-                .color(Theme::constrast_color(app.theme.success))
-                .font(Font::default_medium())
-                .atom_grow(true);
-
             let Some(state) = &app.turing.state_edit else {
                 app.popup.close();
                 return Ok(());
@@ -85,33 +80,24 @@ pub fn show(ui: &mut Ui, app: &mut App) -> Result<(), RitmError> {
 
             if ui[0]
                 .add(
-                    Button::new(text)
-                        .stroke(Stroke::new(2.0, app.theme.border))
-                        .fill(if state_name.is_empty() {
-                            app.theme.disabled
-                        } else {
-                            app.theme.success
-                        })
-                        .corner_radius(10.0),
+                    Button::new(
+                        RichText::new("Save")
+                            .color(Theme::constrast_color(app.theme.success))
+                            .font(Font::default_medium())
+                            .atom_grow(true),
+                    )
+                    .stroke(Stroke::new(2.0, app.theme.border))
+                    .fill(if state_name.is_empty() {
+                        app.theme.disabled
+                    } else {
+                        app.theme.success
+                    })
+                    .corner_radius(10.0),
                 )
                 .clicked()
                 && !state_name.is_empty()
             {
-                let state_id = if let Some(RitmPopupEnum::StateEdit(selected, pos)) =
-                    app.popup.current()
-                {
-                    // if there is a selected state then we modify it
-                    if let Some(selected) = selected {
-                        // TODO: add a popup to warn that the name already exist
-                        app.turing.rename_state(*selected, state_name)?;
-                        *selected
-                    } else {
-                        app.turing.add_state_with_pos(state_name, pos.expect("should have a pos"))?
-                    }
-                // if there is no position passed or state selected
-                } else {
-                    app.turing.add_state(state_name)
-                };
+                let state_id = app.turing.apply_state_change()?;
 
                 app.turing.state_edit = None;
                 app.graph.select_state(state_id);

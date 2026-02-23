@@ -21,7 +21,6 @@ use egui::{
     text::LayoutJob,
     vec2,
 };
-use i_overlay::string::rule;
 use ritm_core::turing_machine::TuringExecutionSteps;
 
 /// Draw every transition of the turing machine

@@ -1,6 +1,6 @@
 use egui::{
-    Align, AtomExt, Button, Color32, Frame, Image, ImageButton, Label, Layout, Margin, RichText,
-    ScrollArea, Shadow, Stroke, TextEdit, Ui, Vec2, Vec2b, include_image,
+    Align, AtomExt, Button, Color32, Frame, Image, ImageButton, Key, Label, Layout, Margin,
+    RichText, ScrollArea, Shadow, Stroke, TextEdit, Ui, Vec2, Vec2b, include_image,
     scroll_area::ScrollBarVisibility, style::WidgetVisuals, vec2,
 };
 use ritm_core::turing_transition::{
@@ -129,6 +129,7 @@ pub fn show(ui: &mut Ui, app: &mut App) -> Result<(), RitmError> {
                         .corner_radius(10.0),
                 )
                 .clicked()
+                || columns[0].ctx().input(|r| r.key_pressed(Key::Escape))
             {
                 app.popup.close();
                 app.turing.cancel_transition_change();
@@ -138,6 +139,7 @@ pub fn show(ui: &mut Ui, app: &mut App) -> Result<(), RitmError> {
                 .color(Theme::constrast_color(app.theme.success))
                 .font(Font::default_medium())
                 .atom_grow(true);
+
             if columns[0]
                 .add(
                     Button::new(text)
@@ -146,6 +148,7 @@ pub fn show(ui: &mut Ui, app: &mut App) -> Result<(), RitmError> {
                         .corner_radius(10.0),
                 )
                 .clicked()
+                || columns[0].ctx().input(|r| r.key_pressed(Key::Enter))
             {
                 if let Err(reason) = app.turing.apply_transition_change() {
                     return Err(RitmError::GuiError(GuiError::InvalidTransition {

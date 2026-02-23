@@ -47,11 +47,15 @@ impl Control {
     }
 
     pub fn speed_up(&mut self) {
-        self.interval_power += 1
+        if self.interval_power < 3 {
+            self.interval_power += 1
+        }
     }
 
     pub fn speed_down(&mut self) {
-        self.interval_power -= 1
+        if self.interval_power > -5 {
+            self.interval_power -= 1
+        }
     }
 
     pub fn input(&self) -> &String {
@@ -67,14 +71,14 @@ pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
         let input = grid.place(ui, 1, 1, |ui| input(app, ui));
         app.tutorial.add_boxe(
             "input",
-            TutorialBox::new(input.response.rect).with_align(Align2::LEFT_CENTER),
+            TutorialBox::new(input.response.rect).with_align(Align2::RIGHT_CENTER),
         );
         input.inner?;
 
         let control = grid.place(ui, 1, 2, |ui| control(app, ui));
         app.tutorial.add_boxe(
             "autoplay",
-            TutorialBox::new(control.response.rect).with_align(Align2::CENTER_TOP),
+            TutorialBox::new(control.response.rect).with_align(Align2::CENTER_BOTTOM),
         );
         let speed = grid.place(ui, 2, 2, |ui| speed_control(app, ui));
         app.tutorial.add_boxe(
@@ -230,6 +234,7 @@ fn control(app: &mut App, ui: &mut Ui) {
 }
 
 /// Control the speed of the automatic iteration
+/// TODO: make the speed width fixed so the button does not move
 fn speed_control(app: &mut App, ui: &mut Ui) {
     let min = app.control.interval_power >= 3;
     let max = app.control.interval_power <= -5;
@@ -257,7 +262,6 @@ fn speed_control(app: &mut App, ui: &mut Ui) {
                     .frame(false),
                 )
                 .clicked()
-                && app.control.interval_power < 3
             {
                 app.control.speed_up();
             }
@@ -286,7 +290,6 @@ fn speed_control(app: &mut App, ui: &mut Ui) {
                     .frame(false),
                 )
                 .clicked()
-                && app.control.interval_power > -5
             {
                 app.control.speed_down();
             }

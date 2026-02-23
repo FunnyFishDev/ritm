@@ -7,7 +7,7 @@ use ritm_core::turing_graph::TuringGraph;
 use crate::{
     App,
     error::RitmError,
-    turing::{StateEdit, Turing},
+    turing::Turing,
     ui::{
         constant::Constant,
         popup::RitmPopupEnum,
@@ -118,7 +118,7 @@ pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
 
                         // Delete
                         // If a state or transition is selected, then display the delete button
-                        if either_selected {
+                        if either_selected && app.graph.selected_state().is_some_and(|s| s > 1) {
                             let delete = button(
                                 ui,
                                 app,
@@ -155,14 +155,7 @@ pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
                             );
                             if edit.clicked() {
                                 if let Some(state_selected) = app.graph.selected_state() {
-                                    app.popup.switch_to(RitmPopupEnum::StateEdit(
-                                        Some(state_selected),
-                                        None,
-                                    ));
-
-                                    app.turing.state_edit = Some(StateEdit::from(
-                                        app.turing.get_state(state_selected)?,
-                                    ));
+                                    app.edit_state(state_selected)?
                                 }
 
                                 if let Some(transition_selected) = app.graph.selected_transitions()

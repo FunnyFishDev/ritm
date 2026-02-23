@@ -1,6 +1,6 @@
 use egui::{
-    Align2, AtomExt, Button, Context, Frame, Id, Image, Label, Margin, Modal, Pos2, RichText,
-    Separator, Stroke, Ui, Vec2, include_image, style::WidgetVisuals, vec2,
+    Align2, AtomExt, Button, Context, Frame, Id, Image, Label, Margin, Modal, RichText, Separator,
+    Stroke, Ui, Vec2, include_image, style::WidgetVisuals, vec2,
 };
 use egui_flex::{Flex, FlexAlignContent, item};
 
@@ -17,7 +17,7 @@ pub mod transition_edit;
 #[derive(PartialEq, Clone, Debug)]
 pub enum RitmPopupEnum {
     TransitionEdit((usize, usize)),
-    StateEdit(Option<usize>, Option<Pos2>),
+    StateEdit(Option<usize>),
     Settings,
 }
 
@@ -68,7 +68,7 @@ pub fn show(ctx: &Context, app: &mut App) -> Result<(), RitmError> {
                     },
                 )?
             }
-            RitmPopupEnum::StateEdit(state_id, _) => {
+            RitmPopupEnum::StateEdit(state_id) => {
                 let title = if let Some(state_id) = state_id {
                     app.turing.get_state(state_id)?.get_name().to_string()
                 } else {
@@ -81,11 +81,13 @@ pub fn show(ctx: &Context, app: &mut App) -> Result<(), RitmError> {
                     state_edit::show(ui, app)
                 })?
             }
-            RitmPopupEnum::Settings => modal(ctx, app, t!("settings").to_string(), true, |ui, app| {
-                ui.set_max_size(ui.ctx().screen_rect().size() * 0.8);
-                ui.set_min_size(ui.ctx().screen_rect().size() * 0.8);
-                settings::show(ui, app)
-            })?,
+            RitmPopupEnum::Settings => {
+                modal(ctx, app, t!("settings").to_string(), true, |ui, app| {
+                    ui.set_max_size(ui.ctx().screen_rect().size() * 0.8);
+                    ui.set_min_size(ui.ctx().screen_rect().size() * 0.8);
+                    settings::show(ui, app)
+                })?
+            }
         }
     }
     Ok(())
@@ -149,8 +151,11 @@ fn header<R>(
 
                         if ui
                             .add(
-                                Button::new((img, RichText::new(t!("back")).font(Font::default_big())))
-                                    .frame(false),
+                                Button::new((
+                                    img,
+                                    RichText::new(t!("back")).font(Font::default_big()),
+                                ))
+                                .frame(false),
                             )
                             .clicked()
                         {

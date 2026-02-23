@@ -1,7 +1,5 @@
 use egui::{
-    Align, Align2, Atom, Button, Color32, Frame, Id, Image, ImageButton, Label, Layout, Margin,
-    RichText, ScrollArea, TextEdit, TextFormat, Ui, Vec2, include_image,
-    scroll_area::ScrollBarVisibility, text::LayoutJob, vec2,
+    Align, Align2, Atom, Button, Color32, Frame, Id, Image, ImageButton, Label, Layout, Margin, RichText, ScrollArea, Stroke, TextEdit, TextFormat, Ui, Vec2, include_image, scroll_area::ScrollBarVisibility, text::LayoutJob, vec2
 };
 
 use crate::{
@@ -157,6 +155,8 @@ pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
                     ui.horizontal(|ui| {
                         ui.spacing_mut().item_spacing = vec2(4.0, 0.0);
                         let mut marked_to_delete: Vec<usize> = vec![];
+
+                        // Iterate over the tabs
                         for i in 0..app.code.tabs.len() {
                             let is_current_tab = app.code.current_tab == i;
                             let frame = Frame::new()
@@ -228,7 +228,14 @@ pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
                                         app.code.switch_to(i);
                                     }
 
-                                    if !(app.code.editing_name && is_current_tab)
+                                    ui.visuals_mut().widgets.hovered.weak_bg_fill = Color32::from_gray(128)
+                                        .blend(app.theme.code_background.gamma_multiply_u8(210));
+                                    ui.visuals_mut().widgets.inactive.bg_stroke = Stroke::NONE;
+                                    ui.visuals_mut().widgets.hovered.bg_stroke = Stroke::NONE;
+                                    ui.visuals_mut().widgets.active.bg_stroke = Stroke::NONE;
+                                    ui.spacing_mut().button_padding.x = 0.0;
+
+                                    if !(app.code.editing_name)
                                         && app.code.tabs.len() > 1
                                         && ui.rect_contains_pointer(button.response.rect)
                                         && let Some(rect) = button.rect(delete_button_id)
@@ -242,7 +249,7 @@ pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
                                                     .shrink_to_fit()
                                                     .tint(app.theme.code),
                                                 )
-                                                .frame(false),
+                                                // .frame(false),
                                             )
                                             .clicked()
                                     {

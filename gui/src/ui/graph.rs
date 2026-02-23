@@ -190,10 +190,10 @@ pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
             > ui.ctx()
                 .options(|r| r.input_options.max_click_duration - 0.4)
         {
-            app.popup.switch_to(RitmPopupEnum::StateEdit(
-                None,
-                scene_response.interact_pointer_pos(),
-            ));
+            let pointer_pos = scene_response
+                .interact_pointer_pos()
+                .expect("Pointer should exist");
+            app.new_state_at_pos(pointer_pos);
         }
         ui.ctx().request_repaint();
     }
@@ -206,7 +206,7 @@ pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
 
     // Save scene border and recenter if asked
     // TODO better way to recenter, avoid sticking to top
-    app.graph.graph_rect = if app.graph.recenter {
+    app.graph.graph_rect = if app.graph.recenter || app.tutorial.in_tutorial() {
         app.graph.recenter = false;
         inner_rect
     } else {
@@ -223,9 +223,7 @@ pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
             let click_pos = scene_response
                 .interact_pointer_pos()
                 .expect("no click position found");
-            app.popup
-                .switch_to(RitmPopupEnum::StateEdit(None, Some(click_pos)));
-            app.turing.state_edit = None
+            app.new_state_at_pos(click_pos);
         }
 
         // CLick on the scene reset selection and editing
@@ -385,9 +383,10 @@ fn transition_dragging(ui: &mut Ui, app: &mut App, graph_rect: Rect) -> Result<(
     if let Some((source_id, target_id)) = app.graph.drag_transition {
         // If the mouse/pen is released then we check if a transition can be added
         if !ui.input(|r| r.pointer.any_down()) {
-            if let Some(target_id) = target_id
-                && app.turing.add_default_transition(source_id, target_id).is_ok()
-            {
+            if let Some(target_id) = target_id {
+                if app.turing.get_transitions(source_id, target_id).is_err() {
+                    app.turing.add_default_transition(source_id, target_id)?;
+                }
                 app.turing.prepare_transition_edit(source_id, target_id)?;
                 app.popup
                     .switch_to(RitmPopupEnum::TransitionEdit((source_id, target_id)));

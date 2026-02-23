@@ -108,7 +108,6 @@ impl Turing {
         self.tm.set_mode(mode);
         self.reset();
     }
-
 }
 
 /// Access method
@@ -158,7 +157,6 @@ impl Turing {
             .remove_state(state_id)
             .map_err(|e| RitmError::CoreError(e.to_string()))
     }
-
 
     pub fn rename_state(&mut self, selected: usize, state_name: String) -> Result<(), RitmError> {
         self.tm
@@ -240,6 +238,7 @@ impl Turing {
             .map_err(|e| RitmError::CoreError(e.to_string()))
     }
 
+    /// Return an error if no transition exist
     pub fn get_transitions(
         &self,
         source_id: usize,
@@ -252,7 +251,7 @@ impl Turing {
                 if let Some(transitions) = v {
                     Ok(transitions)
                 } else {
-                    Err(RitmError::CoreError("no".to_string()))
+                    Err(RitmError::CoreError("No transition found".to_string()))
                 }
             })
             .map_err(|e| RitmError::CoreError(e.to_string()))?
@@ -261,7 +260,6 @@ impl Turing {
 
 /// Transition editing
 impl Turing {
-
     /// Setup transition edit
     pub fn prepare_transition_edit(
         &mut self,
@@ -352,6 +350,40 @@ impl Turing {
             .ok_or(RitmError::GuiError(GuiError::NoTransitionEditing))
     }
 
+    /// Prepare a state to be edited
+    pub fn prepare_state_edit(&mut self, state_id: usize) -> Result<(), RitmError> {
+        let state = self.get_state(state_id)?;
+        self.state_edit = Some(StateEdit::from(state));
+        Ok(())
+    }
+
+    /// Apply the current change to the state being edited
+    pub fn apply_state_change(&mut self) -> Result<usize, RitmError> {
+        let state_edit = self
+            .state_edit
+            .as_ref()
+            .ok_or(RitmError::GuiError(GuiError::NoStateEditing))?;
+
+        match state_edit.id {
+            Some(state_id) => {
+                let x = state_edit.to();
+                self.rename_state(state_id, x.name.clone())?;
+                Ok(state_id)
+            }
+            None => {
+                let name = state_edit.to().name.clone();
+                let state_copy = state_edit.edit.state.clone();
+                let state_id = self.add_state(name);
+                let state = self.get_state_mut(state_id).expect("should exist");
+                state.inner_state = state_copy;
+                Ok(state_id)
+            }
+        }
+    }
+
+    pub fn cancel_state_change(&mut self) {
+        self.state_edit = None;
+    }
     /// Update the position of each state so the graph
     /// is displayed as a layered graph
     pub fn layer_graph(&mut self) {
@@ -448,12 +480,15 @@ impl Turing {
     }
 
     pub fn neighbors(&self, state_id: usize) -> Vec<usize> {
-        self.tm
+        let mut res = self
+            .tm
             .graph_ref()
             .get_transitions_hashmap()
             .iter()
             .filter_map(|(k, _v)| {
-                if k.0 == state_id {
+                if k.0 == k.1 {
+                    None
+                } else if k.0 == state_id {
                     Some(k.1)
                 } else if k.1 == state_id {
                     Some(k.0)
@@ -461,7 +496,10 @@ impl Turing {
                     None
                 }
             })
-            .collect()
+            .collect::<Vec<usize>>();
+        res.sort();
+        res.dedup();
+        res
     }
 
     pub fn best_vector(&self, state_id: usize) -> Result<Vec2, RitmError> {
@@ -480,7 +518,6 @@ impl Turing {
         }
         Ok(transition_vector)
     }
-
 }
 
 /// State visual representation
@@ -583,6 +620,7 @@ pub struct StateWrapperCopy {
 
 #[derive(Debug)]
 pub struct StateEdit {
+    id: Option<usize>,
     base: StateWrapperCopy,
     edit: StateWrapperCopy,
     has_changed: bool,
@@ -596,6 +634,7 @@ impl StateEdit {
             state: ttmr.inner_state.clone(),
         };
         Self {
+            id: Some(ttmr.get_id()),
             base: state_wrapper.clone(),
             edit: state_wrapper,
             has_changed: false,
@@ -613,6 +652,7 @@ impl StateEdit {
             },
         };
         Self {
+            id: None,
             base: state_wrapper.clone(),
             edit: state_wrapper,
             has_changed: false,

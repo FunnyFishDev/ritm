@@ -21,12 +21,12 @@ use crate::{App, ui::font::Font};
     serde::Deserialize, serde::Serialize, Eq, Hash, PartialEq, PartialOrd, Ord, Debug, Clone, Copy,
 )]
 pub enum TutorialEnum {
+    Menu,
     Graph,
+    Edit,
+    Tape,
     Control,
     Code,
-    Edit,
-    Menu,
-    Tape,
     Misc,
 }
 
@@ -35,7 +35,7 @@ impl Display for TutorialEnum {
         f.write_str(
             match self {
                 Self::Graph => t!("graph_tutorial"),
-                Self::Control => t!("control_tutorial"),
+                Self::Control => t!("controls_tutorial"),
                 Self::Code => t!("code_tutorial"),
                 Self::Edit => t!("edit_tutorial"),
                 Self::Menu => t!("menu_tutorial"),

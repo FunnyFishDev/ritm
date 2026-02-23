@@ -1,12 +1,12 @@
 use std::time::Duration;
 
-use egui::Key;
+use egui::{Context, Key, Pos2};
 use egui_extras::install_image_loaders;
 use ritm_core::turing_parser::{graph_to_string, parse_turing_graph_string};
 
 use crate::{
     error::{self, RitmError},
-    turing::Turing,
+    turing::{StateEdit, Turing},
     ui::{
         self,
         code::Code,
@@ -131,6 +131,7 @@ impl App {
         // Load the fonts used in the application
         load_font(cc);
 
+        // Load the saved state from a previous session
         let app: App = if let Some(storage) = cc.storage {
             eframe::get_value(storage, "ritm").unwrap_or_default()
         } else {
@@ -151,11 +152,13 @@ impl App {
         self.turing.set_word(self.control.input())
     }
 
+    /// Convert the graph to code
     pub fn graph_to_code(&mut self) {
         let code = graph_to_string(self.turing.tm.graph_ref());
         self.code.new_tab(self.code.tab_name(), code);
     }
 
+    /// Convert the current tab code into a graph
     /// TODO: handle in case the code is invalid
     pub fn code_to_graph(&mut self) -> Result<(), RitmError> {
         match parse_turing_graph_string(self.code.current_code()?) {
@@ -169,6 +172,38 @@ impl App {
         }
         self.graph.recenter();
         Ok(())
+    }
+
+    /// Prepare the edition of a state and open the popup
+    pub fn edit_state(&mut self, state_id: usize) -> Result<(), RitmError> {
+        self.turing.prepare_state_edit(state_id)?;
+        self.popup
+            .switch_to(ui::popup::RitmPopupEnum::StateEdit(Some(state_id)));
+        Ok(())
+    }
+
+    /// Prepare the edition of a state and open the popup
+    pub fn edit_transition(&mut self, source_id: usize, target_id: usize) -> Result<(), RitmError> {
+        self.turing.prepare_transition_edit(source_id, target_id)?;
+        self.popup
+            .switch_to(ui::popup::RitmPopupEnum::TransitionEdit((
+                source_id, target_id,
+            )));
+        Ok(())
+    }
+
+    pub fn new_state_at_pos(&mut self, pos: Pos2) {
+        let mut state_edit = StateEdit::empty();
+
+        state_edit.get_edit().state.position = pos;
+        state_edit.get_edit().name = format!(
+            "q_{}",
+            self.turing.tm.graph_ref().get_state_hashmap().len() + 1
+        );
+
+        self.turing.state_edit = Some(state_edit);
+        self.popup
+            .switch_to(ui::popup::RitmPopupEnum::StateEdit(None));
     }
 }
 
@@ -230,62 +265,7 @@ impl eframe::App for App {
             }
         });
 
-        if self.transient.listen_to_keybind && self.popup.current().is_none() {
-            ctx.input(|r| {
-                if self.tutorial.in_tutorial() {
-                    if r.key_pressed(Key::Enter) {
-                        self.tutorial.next();
-                    }
-                    return;
-                }
-
-                // Press A to create a state
-                if r.key_pressed(Key::A) {
-                    self.edit.is_adding_state ^= true;
-                }
-
-                // Press T to create a transition
-                if self.graph.selected_state().is_some() && r.key_pressed(Key::T) {
-                    self.edit.is_adding_transition ^= true;
-                }
-
-                // Press U to unpin all state
-                if r.key_pressed(Key::U) {
-                    self.turing.unpin_all();
-                }
-
-                // Press C to open and close code section
-                if r.key_pressed(Key::C) {
-                    self.code.toggle();
-                }
-
-                // Press R to recenter
-                if r.key_pressed(Key::R) {
-                    self.graph.recenter();
-                }
-
-                // Press Space to make 1 iteration
-                if self.turing.accepted.is_none() && r.key_pressed(Key::Space) {
-                    self.turing.next_step();
-                }
-
-                // Press P to autoplay the machine
-                if r.key_pressed(Key::P) {
-                    self.control.run();
-                }
-
-                // Press Backspace to reset the machine
-                if r.key_pressed(Key::Backspace) {
-                    self.reset();
-                }
-
-                if r.key_pressed(Key::S) {
-                    self.transient.take_screenshot = true;
-                }
-            });
-        } else {
-            self.transient.listen_to_keybind = true;
-        }
+        keybind(ctx, self);
 
         if self.settings.theme_changer {
             theme_changer(ctx, self);
@@ -294,5 +274,87 @@ impl eframe::App for App {
         if self.settings.enable_debug {
             debug_show(ctx, self);
         }
+    }
+}
+
+fn keybind(ctx: &Context, app: &mut App) {
+    if app.transient.listen_to_keybind && app.popup.current().is_none() {
+        ctx.input(|r| {
+            if app.tutorial.in_tutorial() {
+                if r.key_pressed(Key::Enter) {
+                    app.tutorial.next();
+                }
+                return;
+            }
+
+            // Press A to create a state
+            if r.key_pressed(Key::S) {
+                app.edit.is_adding_state ^= true;
+            }
+
+            // Press T to create a transition
+            if app.graph.selected_state().is_some() && r.key_pressed(Key::T) {
+                app.edit.is_adding_transition ^= true;
+            }
+
+            // Press U to unpin all state
+            if r.key_pressed(Key::U) {
+                app.turing.unpin_all();
+            }
+
+            // Press C to open and close code section
+            if r.key_pressed(Key::C) {
+                app.code.toggle();
+            }
+
+            // Press R to recenter
+            if r.key_pressed(Key::R) {
+                app.graph.recenter();
+            }
+
+            // Press Space to make 1 iteration
+            if app.turing.accepted.is_none() && r.key_pressed(Key::Space) {
+                app.turing.next_step();
+            }
+
+            // Press P to autoplay the machine
+            if r.key_pressed(Key::P) {
+                if app.control.is_running() {
+                    app.control.run();
+                } else {
+                    app.control.pause();
+                }
+            }
+
+            if r.key_pressed(Key::Plus) {
+                app.control.speed_down();
+            }
+
+            if r.key_pressed(Key::Minus) {
+                app.control.speed_up();
+            }
+
+            // Press Backspace to reset the machine
+            if r.key_pressed(Key::Backspace) {
+                app.reset();
+            }
+
+            // Press Backspace to reset the machine
+            if r.key_pressed(Key::Delete) {
+                if let Some(state_id) = app.graph.selected_state()
+                    && state_id > 1
+                {
+                    let _ = app.turing.remove_state(state_id);
+                }
+
+                if let Some(transition_id) = app.graph.selected_transitions() {
+                    let _ = app
+                        .turing
+                        .remove_transitions(transition_id.source_id, transition_id.target_id);
+                }
+            }
+        });
+    } else {
+        app.transient.listen_to_keybind = true;
     }
 }
