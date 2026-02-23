@@ -1,5 +1,7 @@
 use egui::{
-    Align, Align2, Atom, Button, Color32, Frame, Id, Image, ImageButton, Label, Layout, Margin, RichText, ScrollArea, Stroke, TextEdit, TextFormat, Ui, Vec2, include_image, scroll_area::ScrollBarVisibility, text::LayoutJob, vec2
+    Align, Align2, Atom, Button, Color32, Frame, Id, Image, ImageButton, Label, Layout, Margin,
+    RichText, ScrollArea, Stroke, TextEdit, TextFormat, Ui, Vec2, include_image,
+    scroll_area::ScrollBarVisibility, text::LayoutJob, vec2,
 };
 
 use crate::{
@@ -228,8 +230,24 @@ pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
                                         app.code.switch_to(i);
                                     }
 
-                                    ui.visuals_mut().widgets.hovered.weak_bg_fill = Color32::from_gray(128)
-                                        .blend(app.theme.code_background.gamma_multiply_u8(210));
+                                    ui.visuals_mut().widgets.hovered.weak_bg_fill =
+                                        if !is_current_tab {
+                                            Color32::from_gray(128).blend(
+                                                app.theme.code_background.gamma_multiply_u8(180),
+                                            )
+                                        } else {
+                                            Color32::from_gray(128).blend(
+                                                app.theme.code_background.gamma_multiply_u8(210),
+                                            )
+                                        };
+                                    ui.visuals_mut().widgets.inactive.weak_bg_fill =
+                                        if !is_current_tab {
+                                            Color32::from_gray(128).blend(
+                                                app.theme.code_background.gamma_multiply_u8(210),
+                                            )
+                                        } else {
+                                            app.theme.code_background
+                                        };
                                     ui.visuals_mut().widgets.inactive.bg_stroke = Stroke::NONE;
                                     ui.visuals_mut().widgets.hovered.bg_stroke = Stroke::NONE;
                                     ui.visuals_mut().widgets.active.bg_stroke = Stroke::NONE;
@@ -248,8 +266,7 @@ pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
                                                     ))
                                                     .shrink_to_fit()
                                                     .tint(app.theme.code),
-                                                )
-                                                // .frame(false),
+                                                ),
                                             )
                                             .clicked()
                                     {

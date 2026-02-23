@@ -151,37 +151,41 @@ pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
         })
         .response;
 
-    app.tutorial.add_boxe(
-        "initial_state",
-        TutorialBox::new(Rect::from_center_size(
-            relative_to_absolute(
-                graph_rect,
-                scene_response.rect,
-                app.turing.get_state(0)?.get_inner().position,
-            ),
-            Vec2::splat(
-                (Constant::STATE_RADIUS + 4.0) * 2.0 * graph_rect.width()
-                    / scene_response.rect.width(),
-            ),
-        ))
-        .with_align(Align2::LEFT_CENTER),
-    );
+    if let Some(initial_state) = app.turing.tm.graph_ref().get_state(0) {
+        app.tutorial.add_boxe(
+            "initial_state",
+            TutorialBox::new(Rect::from_center_size(
+                relative_to_absolute(
+                    graph_rect,
+                    scene_response.rect,
+                    initial_state.get_inner().position,
+                ),
+                Vec2::splat(
+                    (Constant::STATE_RADIUS + 4.0) * 2.0 * graph_rect.width()
+                        / scene_response.rect.width(),
+                ),
+            ))
+            .with_align(Align2::LEFT_CENTER),
+        );
+    }
 
-    app.tutorial.add_boxe(
-        "accept_state",
-        TutorialBox::new(Rect::from_center_size(
-            relative_to_absolute(
-                graph_rect,
-                scene_response.rect,
-                app.turing.get_state(1)?.get_inner().position,
-            ),
-            Vec2::splat(
-                (Constant::STATE_RADIUS + 4.0) * 2.0 * graph_rect.width()
-                    / scene_response.rect.width(),
-            ),
-        ))
-        .with_align(Align2::RIGHT_CENTER),
-    );
+    if let Some(accept_state) = app.turing.tm.graph_ref().get_state(1) {
+        app.tutorial.add_boxe(
+            "accept_state",
+            TutorialBox::new(Rect::from_center_size(
+                relative_to_absolute(
+                    graph_rect,
+                    scene_response.rect,
+                    accept_state.get_inner().position,
+                ),
+                Vec2::splat(
+                    (Constant::STATE_RADIUS + 4.0) * 2.0 * graph_rect.width()
+                        / scene_response.rect.width(),
+                ),
+            ))
+            .with_align(Align2::RIGHT_CENTER),
+        );
+    }
 
     if scene_response.is_pointer_button_down_on() && !scene_response.dragged() {
         let time = ui.input(|r| r.time);
