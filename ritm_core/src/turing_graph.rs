@@ -10,7 +10,7 @@ use crate::{
     },
 };
 use std::{
-    collections::VecDeque,
+    collections::{HashMap, VecDeque},
     fmt::{Debug, Display},
 };
 
@@ -61,8 +61,6 @@ pub enum TuringStateType {
     Normal,
     /// Accepts the given input.
     Accepting,
-    /// Immediatly rejects the given input.
-    Rejecting,
 }
 
 impl Display for TuringStateType {
@@ -73,7 +71,6 @@ impl Display for TuringStateType {
             match self {
                 TuringStateType::Normal => "Normal",
                 TuringStateType::Accepting => "Accepting",
-                TuringStateType::Rejecting => "Rejecting",
             }
         )
     }
@@ -748,6 +745,25 @@ where
             }
         }
         Ok(is_end)
+    }
+
+    /// Checks wether the current graph is deterministic or not
+    /// by comparing all transitions of each states.
+    pub fn is_deterministic(&self) -> bool {
+        let mut char_read = HashMap::new();
+
+        for ((from, _), transitions) in &self.transition_hasmap {
+            let transition_from = char_read.entry(*from).or_insert(Vec::new());
+
+            for transition in transitions {
+                let chars_read = transition.info.get_chars_read().clone();
+                if transition_from.contains(&chars_read) {
+                    return false;
+                }
+                transition_from.push(chars_read);
+            }
+        }
+        true
     }
 
     /// Checks that the given state has some ingoing transitions.

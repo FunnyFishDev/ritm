@@ -621,3 +621,62 @@ fn get_valid_transitions() {
         )
     );
 }
+
+#[test]
+fn is_deterministic_test_mult_rib() {
+    // Deterministic graph :
+    let mut deter_g = SimpleTuringGraph::new(1, false).expect("correct");
+    deter_g.add_state("1", TuringStateType::Normal);
+
+    deter_g
+        .append_default_transition(0, None, 0)
+        .expect("correct");
+
+    assert!(deter_g.is_deterministic());
+
+    deter_g
+        .append_transition(
+            0,
+            TransitionMultRibbonInfo::new(
+                vec!['ç', 'ç'],
+                TuringDirection::Right,
+                vec![('ç', TuringDirection::Right)],
+            )
+            .expect("correct"),
+            1,
+        )
+        .expect("correct");
+
+    assert!(!deter_g.is_deterministic());
+    // Remove one of the problematic transitions
+    deter_g.remove_transition((0, 0, 1)).expect("ok");
+
+    assert!(deter_g.is_deterministic());
+}
+
+#[test]
+fn is_deterministic_test_one_rib() {
+    // Deterministic graph :
+    let mut deter_g = SimpleTuringGraph::new(0, false).expect("correct");
+    deter_g.add_state("1", TuringStateType::Normal);
+
+    deter_g
+        .append_default_transition(0, None, 0)
+        .expect("correct");
+
+    assert!(deter_g.is_deterministic());
+
+    deter_g
+        .append_transition(
+            0,
+            TransitionOneRibbonInfo::new('ç', TuringDirection::Right, 'ç'),
+            "1",
+        )
+        .expect("correct");
+
+    assert!(!deter_g.is_deterministic());
+    // Remove one of the problematic transitions
+    deter_g.remove_transition((0, 0, 1)).expect("ok");
+
+    assert!(deter_g.is_deterministic());
+}

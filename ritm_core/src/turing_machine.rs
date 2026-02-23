@@ -495,7 +495,7 @@ where
 
         // If no transitions can be provided or the current state is rejecting,
         // we reached a *dead end*, go back in the exploration if possible (i.e. backtrack)
-        if next_transitions.is_empty() || curr_state.get_type() == TuringStateType::Rejecting {
+        if next_transitions.is_empty() {
             if let Mode::StopFirstReject = tm.get_mode() {
                 return None;
             }
