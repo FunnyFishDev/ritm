@@ -356,13 +356,28 @@ where
                 name,
                 state: self.get_state(index).expect("is present").info.clone(),
             }),
-            None => Ok(self.add_state(name, state_type)),
+            None => Ok(self.add_state(Some(name), state_type)),
+        }
+    }
+
+    /// Adds a state and gives it the name of the next available state index which is also returned.
+    /// This method can never fail.
+    pub fn add_next_state(&mut self, state_type: TuringStateType) -> usize {
+        self.add_state(None, state_type)
+    }
+
+    /// Gets the id that will be given to the next state.
+    pub fn get_next_id(&self) -> usize {
+        match self.available_state_id.front() {
+            Some(id) => *id,
+            None => self.next_state_id,
         }
     }
 
     /// Adds a new state to the turing machine graph and returns its index. And if the state was already present then its index nor is type will be affected.
-    fn add_state(&mut self, name: impl ToString, state_type: TuringStateType) -> usize {
-        let name = name.to_string();
+    fn add_state(&mut self, name: Option<String>, state_type: TuringStateType) -> usize {
+        let name = name.unwrap_or(self.get_next_id().to_string());
+
         match self.get_state_index(&name) {
             Some(index) => index,
             None => {

@@ -3,11 +3,11 @@ use std::collections::BTreeSet;
 use egui::{Color32, Pos2, Vec2, vec2};
 use rand::{random, random_range};
 use ritm_core::{
-    turing_graph::{TuringGraph, TuringState, TuringStateType, TuringStateWrapper},
-    turing_machine::{Mode, TuringExecutionSteps, TuringMachine},
-    turing_transition::{
-        TuringTransition, TuringTransitionWrapper,
+    turing_graph::{
+        TuringGraph, TuringGraphError, TuringState, TuringStateType, TuringStateWrapper,
     },
+    turing_machine::{Mode, TuringExecutionSteps, TuringMachine},
+    turing_transition::{TuringTransition, TuringTransitionWrapper},
 };
 
 use crate::error::{GuiError, RitmError};
@@ -90,9 +90,22 @@ impl Turing {
         self.next_step();
     }
 
-    /// The state is saved with the core assigned id
+    /// If the state was not already added, adds it to the graph with the core assigned id
     pub fn add_state(&mut self, name: String) -> usize {
-        self.tm.graph_mut().add_state(name, TuringStateType::Normal)
+        match self
+            .tm
+            .graph_mut()
+            .try_add_state(name, TuringStateType::Normal)
+        {
+            Ok(id) => id,
+            Err(e) => match e {
+                TuringGraphError::AlreadyPresentNameError { name: _, state } => state.get_id(),
+                TuringGraphError::EmptyNameError => {
+                    self.tm.graph_mut().add_next_state(TuringStateType::Normal)
+                }
+                _ => unreachable!("The other graph erros can never be reached"),
+            },
+        }
     }
 
     /// The state is saved with the core assigned id
@@ -590,9 +603,9 @@ impl StateEdit {
         }
     }
 
-    pub fn empty() -> Self {
+    pub fn empty(next_id: usize) -> Self {
         let state_wrapper = StateWrapperCopy {
-            name: "".to_string(),
+            name: next_id.to_string(),
             state_type: TuringStateType::Normal,
             state: State {
                 position: Pos2::ZERO,
