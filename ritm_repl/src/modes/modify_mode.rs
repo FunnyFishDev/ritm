@@ -86,10 +86,17 @@ impl ModeEvent for ModifyTuringMode {
                     print_error_help(e);
                 } else {
                     let name = &res.unwrap();
-                    tm.add_state(name, TuringStateType::Normal);
                     println!(
                         "{}",
-                        format!("Successfully added the state \'q_{}\'.", name.yellow()).green()
+                        match tm.try_add_state(name, TuringStateType::Normal) {
+                            Ok(_) => {
+                                format!("Successfully added the state \'q_{}\'.", name.yellow())
+                                    .green()
+                            }
+                            Err(err) => {
+                                format!("Ran into an error : {err}").red()
+                            }
+                        }
                     )
                 }
             }
