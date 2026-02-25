@@ -623,10 +623,27 @@ fn get_valid_transitions() {
 }
 
 #[test]
+fn add_empty_state_name() {
+    let mut g = SimpleTuringGraph::new(2, false).expect("correct");
+
+    assert!(matches!(
+        g.try_add_state("", TuringStateType::Normal),
+        Err(TuringGraphError::EmptyNameError)
+    ));
+
+    assert!(matches!(
+        g.try_add_state("1", TuringStateType::Normal),
+        Ok(1)
+    ))
+}
+
+#[test]
 fn is_deterministic_test_mult_rib() {
     // Deterministic graph :
     let mut deter_g = SimpleTuringGraph::new(1, false).expect("correct");
-    deter_g.add_state("1", TuringStateType::Normal);
+    deter_g
+        .try_add_state("1", TuringStateType::Normal)
+        .expect("valid name");
 
     deter_g
         .append_default_transition(0, None, 0)
@@ -658,7 +675,9 @@ fn is_deterministic_test_mult_rib() {
 fn is_deterministic_test_one_rib() {
     // Deterministic graph :
     let mut deter_g = SimpleTuringGraph::new(0, false).expect("correct");
-    deter_g.add_state("1", TuringStateType::Normal);
+    deter_g
+        .try_add_state("1", TuringStateType::Normal)
+        .expect("valid name");
 
     deter_g
         .append_default_transition(0, None, 0)

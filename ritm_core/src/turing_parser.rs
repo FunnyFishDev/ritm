@@ -248,8 +248,13 @@ where
                 // When leaving this condition we are at the right bracket token.
                 let to = parse_str_token(transition_rules.next().expect("contains ending state"));
 
-                let to = graph.add_state(to, TuringStateType::Normal);
-                let from = graph.add_state(from, TuringStateType::Normal);
+                let to =
+                    unwrap_index(graph.try_add_state(to, TuringStateType::Normal), &rule_copy)?;
+                let from = unwrap_index(
+                    graph.try_add_state(from, TuringStateType::Normal),
+                    &rule_copy,
+                )?;
+
                 for transition in contents {
                     if let Err(e) = graph.append_transition(
                         from,
@@ -326,8 +331,14 @@ where
 
                 // Add the states to the mt (if they didn't already exists)
                 // and get their index
-                let var1 = graph.add_state(&from_var, TuringStateType::Normal);
-                let var2 = graph.add_state(&to_var, TuringStateType::Normal);
+                let var1 = unwrap_index(
+                    graph.try_add_state(&from_var, TuringStateType::Normal),
+                    &rule_copy,
+                )?;
+                let var2 = unwrap_index(
+                    graph.try_add_state(&to_var, TuringStateType::Normal),
+                    &rule_copy,
+                )?;
                 // Adds all the collected transitions for these states
                 for transition in transitions {
                     if let Err(e) = graph.append_transition(var1, transition, var2) {
@@ -562,13 +573,22 @@ fn get_line_col(error: &Error<Rule>) -> Option<(usize, usize)> {
     }
 }
 
-/*
-initial = qinit;
-accepting = q_1, q_2;
-q_init {ç, ç -> R, ç, R} q_1;
-q1 {  0, _ -> R, a, R
-   |  1, _ -> R, a, R} q3;
-*/
+fn unwrap_index(
+    res: Result<usize, TuringGraphError>,
+    rule: &Pair<'_, Rule>,
+) -> Result<usize, TuringParserError> {
+    res.or_else(|err| {
+        if let TuringGraphError::AlreadyPresentNameError { name: _, state } = &err {
+            Ok(state.get_id())
+        } else {
+            Err(TuringParserError::TuringError {
+                line_col_pos: Some(rule.line_col()),
+                turing_error: Box::new(err.into()),
+                value: rule.as_str().to_string(),
+            })
+        }
+    })
+}
 
 /// Turns the given [`TuringGraph`] into its equivalent [String] value.
 /// The returned value can then be parsed by the parser to return the same graph.

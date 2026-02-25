@@ -25,6 +25,8 @@ pub enum TuringGraphError {
         name: String,
         state: TuringStateInfo,
     },
+    #[error("Tried to add/rename a state with no name")]
+    EmptyNameError,
     #[error(
         "Tried to add the transition \"{transition}\" between \"{from}\" and \"{to}\" but it was already present"
     )]
@@ -346,6 +348,9 @@ where
         state_type: TuringStateType,
     ) -> Result<usize, TuringGraphError> {
         let name = name.to_string();
+        if name.is_empty() {
+            return Err(TuringGraphError::EmptyNameError);
+        }
         match self.get_state_index(&name) {
             Some(index) => Err(TuringGraphError::AlreadyPresentNameError {
                 name,
@@ -356,7 +361,7 @@ where
     }
 
     /// Adds a new state to the turing machine graph and returns its index. And if the state was already present then its index nor is type will be affected.
-    pub fn add_state(&mut self, name: impl ToString, state_type: TuringStateType) -> usize {
+    fn add_state(&mut self, name: impl ToString, state_type: TuringStateType) -> usize {
         let name = name.to_string();
         match self.get_state_index(&name) {
             Some(index) => index,

@@ -21,7 +21,9 @@ fn test_parse_mt_valid() {
     let mut graph = SimpleTuringGraph::default();
 
     let q1 = &String::from("1");
-    graph.add_state(q1, TuringStateType::Normal);
+    graph
+        .try_add_state(q1, TuringStateType::Normal)
+        .expect("valid name");
 
     // q_i -> {ç, ç, => R, ç, R} -> q_1
     let mut transition = TransitionMultRibbonInfo::create(

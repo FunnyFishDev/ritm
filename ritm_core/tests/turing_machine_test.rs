@@ -177,7 +177,9 @@ fn _get_smaller_non_deter_graph() -> SimpleTuringGraph {
     let q2 = &String::from("q2");
     let mut graph = SimpleTuringGraph::new(1, true).unwrap();
 
-    graph.add_state(q2, TuringStateType::Normal);
+    graph
+        .try_add_state(q2, TuringStateType::Normal)
+        .expect("valid name");
 
     let mut transition = TransitionMultRibbonInfo::create(
         vec!['ç', 'ç'],
@@ -217,8 +219,12 @@ fn get_test_non_deter_graph() -> SimpleTuringGraph {
     let q2 = &String::from("q2");
     let mut graph = SimpleTuringGraph::new(1, true).unwrap();
 
-    graph.add_state(q1, TuringStateType::Normal);
-    graph.add_state(q2, TuringStateType::Normal);
+    graph
+        .try_add_state(q1, TuringStateType::Normal)
+        .expect("valid name");
+    graph
+        .try_add_state(q2, TuringStateType::Normal)
+        .expect("valid name");
 
     // q_0 -> {ç, ç, => R, ç, R} -> q_1
     let mut transition = TransitionMultRibbonInfo::create(
@@ -293,7 +299,9 @@ fn get_small_inf_machine(mode: Mode) -> SimpleTuringMachine {
     let q1 = &String::from("q1");
 
     let mut graph = SimpleTuringGraph::new(1, true).unwrap();
-    graph.add_state(q1, TuringStateType::Normal);
+    graph
+        .try_add_state(q1, TuringStateType::Normal)
+        .expect("valid name");
 
     // q_0 -> {ç, ç, => R, ç, R} -> q_1
     let transition = TransitionMultRibbonInfo::create(
