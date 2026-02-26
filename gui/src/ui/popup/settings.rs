@@ -329,7 +329,7 @@ fn tape_count(ui: &mut Ui, app: &mut App) {
         .changed()
     {
         // TODO: add error here
-        app.update_k(k);
+        let _ = app.update_k(k);
     }
     ui.end_row();
 }

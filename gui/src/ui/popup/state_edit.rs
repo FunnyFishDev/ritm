@@ -48,7 +48,7 @@ pub fn show(ui: &mut Ui, app: &mut App) -> Result<(), RitmError> {
             let edit = TextEdit::singleline(&mut state.get_edit().name)
                 .font(Font::default_big())
                 .background_color(Color32::from_black_alpha(20))
-                .char_limit(5);
+                .char_limit(10);
 
             ui.add(edit);
         });
@@ -78,7 +78,7 @@ pub fn show(ui: &mut Ui, app: &mut App) -> Result<(), RitmError> {
 
             let state_name = state.to().name.clone();
 
-            if ui[0]
+            if (ui[0]
                 .add(
                     Button::new(
                         RichText::new("Save")
@@ -95,13 +95,21 @@ pub fn show(ui: &mut Ui, app: &mut App) -> Result<(), RitmError> {
                     .corner_radius(10.0),
                 )
                 .clicked()
+                || app.popup.is_confirm())
                 && !state_name.is_empty()
             {
-                let state_id = app.turing.apply_state_change()?;
+                let state_id = app.turing.apply_state_change();
 
-                app.turing.state_edit = None;
-                app.graph.select_state(state_id);
-                app.popup.close();
+                match state_id {
+                    Ok(state_id) => {
+                        app.turing.state_edit = None;
+                        app.graph.select_state(state_id);
+                        app.popup.close();
+                    }
+                    Err(error) => {
+                        app.error = Some(error);
+                    }
+                }
             };
             Ok::<(), RitmError>(())
         })

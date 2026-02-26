@@ -49,10 +49,10 @@ impl Font {
     }
 
     /// bold version of the default font used in the application
-    pub fn bold() -> FontId {
+    pub fn bold(size: f32) -> FontId {
         FontId {
             family: FontFamily::Name("RobotoMono-Bold".into()),
-            size: Self::MEDIUM_SIZE,
+            size,
         }
     }
 
@@ -84,6 +84,12 @@ impl Font {
                 .size()
                 .x
         })
+    }
+
+    pub fn fit_width(ui: &Ui, size: Vec2, word: &String) -> f32 {
+        let h = Font::get_heigth(ui, &Font::default(12.0));
+        let w = Font::get_width_word(ui, &Font::default(12.0), word);
+        12.0 * (size.x/w).min(size.y/h)
     }
 }
 

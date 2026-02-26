@@ -132,7 +132,7 @@ pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
         } else {
             Sense::click_and_drag()
         })
-        .zoom_range(0.0..=1.5)
+        .zoom_range(0.0..=1.0)
         .show(ui, &mut scene_rect, |ui| {
             // Draw the transitions of the turing machine
             transition::show(app, ui)?;

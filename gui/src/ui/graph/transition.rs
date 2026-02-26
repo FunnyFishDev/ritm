@@ -304,9 +304,9 @@ fn draw_labels(
             text,
             TextFormat {
                 font_id: if *is_previous {
-                    Font::bold()
+                    Font::bold(Font::MEDIUM_SIZE * 2.0)
                 } else {
-                    Font::default_medium()
+                    Font::default(Font::MEDIUM_SIZE * 2.0)
                 },
                 color: if selected {
                     app.theme.selection

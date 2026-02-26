@@ -24,6 +24,7 @@ pub enum RitmPopupEnum {
 #[derive(Debug, Default)]
 pub struct RitmPopup {
     current_popup: Option<RitmPopupEnum>,
+    confirm: bool,
 }
 
 impl RitmPopup {
@@ -37,6 +38,16 @@ impl RitmPopup {
 
     pub fn close(&mut self) {
         self.current_popup = None
+    }
+
+    pub fn confirm(&mut self) {
+        self.confirm = true
+    }
+
+    pub fn is_confirm(&mut self) -> bool {
+        let temp = self.confirm;
+        self.confirm = false;
+        temp
     }
 }
 

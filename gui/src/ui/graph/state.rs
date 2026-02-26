@@ -1,9 +1,9 @@
-use egui::{Align, Label, Rect, RichText, Sense, Stroke, Ui, vec2};
+use egui::{Align, Label, Rect, Sense, Stroke, Ui, text::{LayoutJob, TextWrapping}, vec2};
 
 use crate::{
     App,
     error::RitmError,
-    ui::{constant::Constant, font::Font, theme::Theme},
+    ui::{constant::Constant, font::Font},
 };
 
 /// Display every state of the turing machine
@@ -53,11 +53,17 @@ pub fn draw_node(app: &mut App, ui: &mut Ui, state_id: usize) -> Result<(), Ritm
         },
     );
 
-    let name = RichText::new(state.get_name())
-        .font(Font::default_big())
-        .color(Theme::constrast_color(state.inner_state.color));
 
-    let label = Label::new(name).wrap().halign(Align::Center);
+    let name = state.get_name();
+    let size= Font::fit_width(ui, rect.size()*0.9, name).clamp(10.0, Font::BIG_SIZE) * 2.0;
+    let job = LayoutJob {
+        break_on_newline: false,
+        halign: Align::Center,
+        wrap: TextWrapping::truncate_at_width(rect.width()),
+        ..LayoutJob::simple_singleline(name.to_string(), Font::default(size), app.theme.text_primary)
+    };
+
+    let label = Label::new(job);
 
     // Draw the label inside the node, without overflow
     ui.put(rect, label);

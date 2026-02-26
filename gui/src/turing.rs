@@ -52,9 +52,7 @@ impl Turing {
         let step = tm
             .into_iter()
             .next()
-            .ok_or(RitmError::GuiError(GuiError::SyntaxError(
-                "temp".to_string(),
-            )))?;
+            .ok_or(RitmError::GuiError(GuiError::NoStep))?;
         Ok(Self {
             tm,
             accepted: None,
@@ -288,7 +286,7 @@ impl Turing {
     /// Apply transition changes if correct
     pub fn apply_transition_change(&mut self) -> Result<(), RitmError> {
         let Some(((source, target), transitions_edit)) = self.transition_edit.as_mut() else {
-            return Err(RitmError::GuiError(GuiError::InvalidState));
+            return Err(RitmError::GuiError(GuiError::InvalidApplicationState));
         };
 
         let mut new_transitions: Vec<Result<TuringTransitionWrapper<Transition>, RitmError>> =

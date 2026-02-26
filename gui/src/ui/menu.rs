@@ -208,7 +208,7 @@ fn machine_folder(app: &mut App, ui: &mut FlexInstance) -> Result<(), RitmError>
         app.transient.temp_code = Some(
             std::str::from_utf8(&file)
                 .map_err(|e| {
-                    RitmError::GuiError(GuiError::FileError(format!("Could not load file {e}",)))
+                    RitmError::GuiError(GuiError::FileError{ error: e.to_string()})
                 })?
                 .to_string(),
         );

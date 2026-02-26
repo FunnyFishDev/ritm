@@ -6,7 +6,6 @@ on:
     branches:
       - gui_rework
       - dev
-      - adrien_rush
   pull_request:
     branches:
       - gui_rework

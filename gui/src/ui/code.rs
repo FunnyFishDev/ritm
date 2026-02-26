@@ -68,7 +68,7 @@ impl Code {
         Ok(self
             .tabs
             .get(self.current_tab)
-            .ok_or(RitmError::GuiError(GuiError::InvalidState))?
+            .ok_or(RitmError::GuiError(GuiError::InvalidApplicationState))?
             .code
             .clone())
     }
@@ -77,7 +77,7 @@ impl Code {
         Ok(&mut self
             .tabs
             .get_mut(self.current_tab)
-            .ok_or(RitmError::GuiError(GuiError::InvalidState))?
+            .ok_or(RitmError::GuiError(GuiError::InvalidApplicationState))?
             .code)
     }
 

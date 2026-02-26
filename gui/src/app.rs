@@ -224,26 +224,33 @@ impl App {
 
 /// Update loop
 impl eframe::App for App {
+    /// Save the state of the application
     fn save(&mut self, storage: &mut dyn eframe::Storage) {
         eframe::set_value(storage, "ritm", self);
     }
 
+    /// Draw every frame the application
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         install_image_loaders(ctx);
         Constant::update_scale(ctx);
 
+        // Start the tutorial
         if let Some(tutorial) = self.transient.temp_tutorial {
             self.transient.temp_tutorial = None;
             self.tutorial.start(tutorial);
         }
-        if let Err(error) = ui::show(self, ctx)
-            && self.error.is_none()
-        {
-            self.error = Some(error)
+
+        // Draw the whole application and show any error
+        if let Err(error) = ui::show(self, ctx) {
+            self.error = Some(error);
         }
 
+        error::show(ctx, self);
+
+        // Draw the tutorial
         tutorial::show(ctx, self);
 
+        // End the tutorial
         if let Some(tutorial) = self.tutorial.has_finished {
             self.tutorial.has_finished = None;
             self.tutorial
@@ -252,8 +259,7 @@ impl eframe::App for App {
                 .and_modify(|b| *b = true);
         }
 
-        error::error(ctx.clone(), self);
-
+        // Force the Ui to update if the machine is running
         if self.control.is_running() && self.control.update_time(ctx.input(|r| r.time)) {
             self.turing.next_step();
             if self.turing.accepted.is_some() {
@@ -269,6 +275,7 @@ impl eframe::App for App {
             ));
         }
 
+        // control the input
         ctx.input(|r| {
             if r.key_pressed(Key::Escape) {
                 if self.popup.current().is_some() {
@@ -277,6 +284,15 @@ impl eframe::App for App {
                 } else {
                     // Unselect what is selected
                     self.graph.unselect()
+                }
+            }
+
+            if r.key_pressed(Key::Enter) {
+                if self.error.is_some() {
+                    self.error = None;
+                } else if self.popup.current().is_some() {
+                    // Request graceful exit of popup
+                    self.popup.confirm();
                 }
             }
         });
