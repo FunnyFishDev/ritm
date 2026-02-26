@@ -1,4 +1,4 @@
-use std::{collections::BTreeSet, process::exit};
+use std::collections::BTreeSet;
 
 use egui::{Color32, Pos2, Vec2, vec2};
 use rand::{random, random_range};
@@ -45,18 +45,23 @@ impl Default for Turing {
 /// Dedicated method
 impl Turing {
     /// Return a turing machine using the graph passed
-    pub fn new_graph(graph: TuringGraph<State, Transition>) -> Self {
+    pub fn new_graph(graph: TuringGraph<State, Transition>) -> Result<Self, RitmError> {
         let mode = Mode::SaveAll;
-        let mut tm =
-            TuringMachine::new(graph, "".to_string(), mode).expect("Turing machine creation fail");
-        let step = tm.into_iter().next().expect("Initial step creation fail");
-        Self {
+        let mut tm = TuringMachine::new(graph, "".to_string(), mode)
+            .map_err(|e| RitmError::CoreError(e.to_string()))?;
+        let step = tm
+            .into_iter()
+            .next()
+            .ok_or(RitmError::GuiError(GuiError::SyntaxError(
+                "temp".to_string(),
+            )))?;
+        Ok(Self {
             tm,
             accepted: None,
             current_step: step,
             state_edit: None,
             transition_edit: None,
-        }
+        })
     }
 
     /// Fetch the next step of the turing machine.
@@ -404,14 +409,15 @@ impl Turing {
             }
         }
 
-        println!("{:?} {:?}", state_list, layer_state);
-
         let mut j = 0.0;
         let mut state_list_size = 0;
         while !(state_list.is_empty() && layer_state.is_empty()) {
-
             if !state_list.is_empty() && state_list.len() == state_list_size {
-                layer_state.push(state_list.pop_first().expect("should have at least one element"));
+                layer_state.push(
+                    state_list
+                        .pop_first()
+                        .expect("should have at least one element"),
+                );
             }
 
             let layer_count = layer_state.len() as f32 - 1.0;
@@ -445,10 +451,6 @@ impl Turing {
             layer_state = next_layer_state;
 
             state_list_size = state_list.len();
-
-            if j > 5.0 {
-                exit(0)
-            }
 
             j += 1.0;
         }

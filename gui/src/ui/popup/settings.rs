@@ -1,9 +1,9 @@
 use std::path::Path;
 
 use egui::{
-    AtomExt, CentralPanel, Checkbox, ComboBox, Context, Grid, Id, Image, ImageSource, RichText,
-    Stroke, TextBuffer, Ui, UserData, ViewportBuilder, ViewportCommand, ViewportId, include_image,
-    style::WidgetVisuals, vec2,
+    AtomExt, CentralPanel, Checkbox, ComboBox, Context, DragValue, Grid, Id, Image, ImageSource,
+    RichText, Stroke, TextBuffer, Ui, UserData, ViewportBuilder, ViewportCommand, ViewportId,
+    include_image, style::WidgetVisuals, vec2,
 };
 use image::{ExtendedColorType, save_buffer};
 use include_directory::{Dir, include_directory};
@@ -23,6 +23,7 @@ pub struct Settings {
     pub turing_machine_mode: Mode,
     pub enable_debug: bool,
     pub theme_changer: bool,
+    pub edit_button_size: f32,
 }
 
 #[derive(serde::Deserialize, serde::Serialize)]
@@ -41,6 +42,7 @@ impl Default for Settings {
             convert_to_graph_on_load: false,
             enable_debug: false,
             theme_changer: false,
+            edit_button_size: 25.0,
         }
     }
 }
@@ -65,6 +67,8 @@ pub fn show(ui: &mut Ui, app: &mut App) -> Result<(), RitmError> {
                 load_setting(ui, app);
                 theme_choose(ui, app);
                 localisation_setting(ui, app);
+                edit_button_size(ui, app);
+                tape_count(ui, app);
                 // debug(ui, app);
                 // theme_changer(ui, app);
             });
@@ -280,6 +284,53 @@ fn theme_choose(ui: &mut Ui, app: &mut App) {
                 ui.selectable_value(&mut app.theme, Theme::monochrome(), "Monochrome");
             }
         });
+    ui.end_row();
+}
+
+fn edit_button_size(ui: &mut Ui, app: &mut App) {
+    ui.label(RichText::new(t!("edit_icon_size")).font(Font::default_medium()));
+    ComboBox::from_id_salt("edit_icon_size")
+        .selected_text(
+            RichText::new(match app.settings.edit_button_size {
+                25.0 => t!("small").to_string(),
+                35.0 => t!("medium").to_string(),
+                45.0 => t!("big").to_string(),
+                _ => "ERROR".to_string(),
+            })
+            .font(Font::default_medium()),
+        )
+        .width(20.0) // TODO change and think about this value, I hardcoded it
+        .show_ui(ui, |ui| {
+            if app.settings.edit_button_size != 25.0 {
+                ui.selectable_value(&mut app.settings.edit_button_size, 25.0, t!("small"));
+            }
+
+            if app.settings.edit_button_size != 35.0 {
+                ui.selectable_value(&mut app.settings.edit_button_size, 35.0, t!("medium"));
+            }
+
+            if app.settings.edit_button_size != 45.0 {
+                ui.selectable_value(&mut app.settings.edit_button_size, 45.0, t!("big"));
+            }
+        });
+    ui.end_row();
+}
+
+fn tape_count(ui: &mut Ui, app: &mut App) {
+    ui.label(RichText::new(t!("tape_count")).font(Font::default_medium()));
+    let mut k = app.turing.tm.graph_ref().get_k();
+    if ui
+        .add(
+            DragValue::new(&mut k)
+                .range(0..=4)
+                .clamp_existing_to_range(true)
+                .update_while_editing(false),
+        )
+        .changed()
+    {
+        // TODO: add error here
+        app.update_k(k);
+    }
     ui.end_row();
 }
 

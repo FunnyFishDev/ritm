@@ -1,39 +1,26 @@
 use egui::{
-    Align, Align2, DragValue, Frame, Id, Image, ImageButton, ImageSource, LayerId, Layout, Margin,
-    Pos2, Rect, Response, Sense, Stroke, Ui, UiBuilder, Vec2, include_image, vec2,
+    Align, Align2, Frame, Id, Image, ImageButton, ImageSource, LayerId, Layout, Margin, Pos2, Rect,
+    Response, Sense, Stroke, Ui, UiBuilder, Vec2, include_image, vec2,
 };
-use ritm_core::turing_graph::TuringGraph;
 
 use crate::{
     App,
     error::RitmError,
-    turing::Turing,
     ui::{
-        constant::Constant,
         popup::RitmPopupEnum,
         tutorial::{TutorialBox, TutorialEnum},
     },
 };
 
+#[derive(Default)]
 pub struct Edit {
-    icon_size: f32,
     pub is_adding_state: bool,
     pub is_adding_transition: bool,
 }
 
-impl Default for Edit {
-    fn default() -> Self {
-        Self {
-            icon_size: 25.0,
-            is_adding_state: false,
-            is_adding_transition: false,
-        }
-    }
-}
-
 /// Control of the graph
 pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
-    let icon_size = Constant::scale(ui, Constant::ICON_SIZE);
+    let icon_size = app.settings.edit_button_size;
 
     // The parent ui paint on the background layer, so we need to change it to a higher layer
     let layer = LayerId::new(egui::Order::Middle, Id::new("edit"));
@@ -211,13 +198,6 @@ pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
                             TutorialBox::new(unpin.rect).with_align(Align2::LEFT_TOP),
                         );
 
-                        let tape_counter = tape_dropdown(ui, app);
-
-                        app.tutorial.add_boxe(
-                            "tape_counter",
-                            TutorialBox::new(tape_counter.rect).with_align(Align2::LEFT_TOP),
-                        );
-
                         Ok::<(), RitmError>(())
                     },
                 )
@@ -239,14 +219,14 @@ fn button(ui: &mut Ui, app: &mut App, icon: ImageSource, selected: bool) -> Resp
     let margin = 5;
     Frame::new()
         .stroke(Stroke::new(1.0, app.theme.border))
-        .corner_radius(app.edit.icon_size / 2.0)
+        .corner_radius(app.settings.edit_button_size / 2.0)
         .fill(app.theme.surface)
         .inner_margin(Margin::same(margin))
         .show(ui, |ui| {
             ui.add(
                 ImageButton::new(
                     Image::new(icon)
-                        .fit_to_exact_size(Vec2::splat(app.edit.icon_size))
+                        .fit_to_exact_size(Vec2::splat(app.settings.edit_button_size))
                         .tint(if selected {
                             app.theme.active
                         } else {
@@ -254,38 +234,8 @@ fn button(ui: &mut Ui, app: &mut App, icon: ImageSource, selected: bool) -> Resp
                         }),
                 )
                 .frame(false)
-                .corner_radius(app.edit.icon_size / 2.0),
+                .corner_radius(app.settings.edit_button_size / 2.0),
             )
         })
         .inner
-}
-
-fn tape_dropdown(ui: &mut Ui, app: &mut App) -> Response {
-    let margin = 5;
-    Frame::new()
-        .stroke(Stroke::new(1.0, app.theme.border))
-        .corner_radius(app.edit.icon_size / 2.0)
-        .fill(app.theme.surface)
-        .inner_margin(Margin::same(margin))
-        .show(ui, |ui| {
-            let mut k = app.turing.tm.graph_ref().get_k();
-            ui.spacing_mut().interact_size.x = 0.0;
-            ui.spacing_mut().button_padding = vec2(0.0, 0.0);
-            ui.visuals_mut().selection.stroke = Stroke::new(1.0, app.theme.border);
-            if ui
-                .add_sized(
-                    vec2(ui.available_width(), 0.0),
-                    DragValue::new(&mut k)
-                        .range(0..=9)
-                        .clamp_existing_to_range(true)
-                        .update_while_editing(false),
-                )
-                .changed()
-            {
-                app.graph.reset();
-                app.turing = Turing::new_graph(TuringGraph::new(k, true).expect("should work"));
-                app.turing.layer_graph();
-            }
-        })
-        .response
 }

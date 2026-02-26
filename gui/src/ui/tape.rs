@@ -20,10 +20,10 @@ pub fn show(app: &mut App, ui: &mut Ui) {
     let tape_count = app.turing.tm.graph_ref().get_k() + 1;
 
     // Apply a scale correction to element for small screen
-    let square_size = Constant::scale(ui, Constant::SQUARE_SIZE);
-    let horizontal_space = Constant::scale(ui, Constant::HORIZONTAL_SPACING);
-    let vertical_space = Constant::scale(ui, Constant::VERTICAL_SPACING);
-    let scale = Constant::scale(ui, 1.0);
+    let square_size = Constant::SQUARE_SIZE;
+    let horizontal_space = Constant::HORIZONTAL_SPACING;
+    let vertical_space = Constant::VERTICAL_SPACING;
+    let scale = 1.0;
 
     // Tapes frame
     let res = Frame::new()
@@ -169,8 +169,8 @@ pub fn show(app: &mut App, ui: &mut Ui) {
 /// Draw a ribbon with the correct spacing and character
 fn tape(app: &mut App, ui: &mut Ui, width: f32, tape_id: usize) -> Response {
     // Apply a scale correction to element for small screen
-    let horizontal_space = Constant::scale(ui, Constant::HORIZONTAL_SPACING);
-    let square_size = Constant::scale(ui, Constant::SQUARE_SIZE);
+    let horizontal_space = Constant::HORIZONTAL_SPACING;
+    let square_size = Constant::SQUARE_SIZE;
 
     ui.allocate_ui_with_layout(
         vec2(0.0, square_size + 6.0),
@@ -214,7 +214,7 @@ fn tape(app: &mut App, ui: &mut Ui, width: f32, tape_id: usize) -> Response {
 /// Draw a single square with a character
 fn square(app: &mut App, ui: &mut Ui, character: char, is_current: bool) {
     // Apply a scale correction to element for small screen
-    let square_size = Constant::scale(ui, Constant::SQUARE_SIZE);
+    let square_size = Constant::SQUARE_SIZE;
 
     Frame::new().show(ui, |ui| {
         let size = square_size + if is_current { 6.0 } else { 0.0 };
@@ -223,10 +223,10 @@ fn square(app: &mut App, ui: &mut Ui, character: char, is_current: bool) {
         // Draw the square, with a border if center one
         ui.painter().rect(
             rect,
-            Constant::scale(ui, Constant::SQUARE_CORNER),
+            Constant::SQUARE_CORNER,
             app.theme.surface,
             if is_current {
-                Stroke::new(Constant::scale(ui, 3.0), app.theme.border)
+                Stroke::new(3.0, app.theme.border)
             } else {
                 Stroke::NONE
             },

@@ -65,7 +65,7 @@ impl Control {
 
 pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
     let res = Frame::new().show(ui, |ui| {
-        ui.set_height(Constant::scale(ui, 70.0));
+        ui.set_height(70.0);
         let grid = Grid::new(ui, 2, 3);
 
         let input = grid.place(ui, 1, 1, |ui| input(app, ui));
@@ -116,11 +116,8 @@ fn input(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
         |ui| {
             if ui
                 .add(
-                    Button::new(
-                        RichText::new("Submit")
-                            .font(Font::default(Constant::scale(ui, Font::MEDIUM_SIZE))),
-                    )
-                    .stroke(Stroke::new(1.0, app.theme.border)),
+                    Button::new(RichText::new("Submit").font(Font::default(Font::MEDIUM_SIZE)))
+                        .stroke(Stroke::new(1.0, app.theme.border)),
                 )
                 .clicked()
             {
@@ -131,16 +128,13 @@ fn input(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
                 .add_sized(
                     vec2(
                         ui.available_width(),
-                        4.0 + Font::get_heigth(
-                            ui,
-                            &Font::default(Constant::scale(ui, Font::MEDIUM_SIZE)),
-                        ),
+                        4.0 + Font::get_heigth(ui, &Font::default(Font::MEDIUM_SIZE)),
                     ), // 4.0 is 2 times the hardcoded default vertical margin of textedit
                     TextEdit::singleline(&mut app.control.input)
-                        .font(Font::default(Constant::scale(ui, Font::MEDIUM_SIZE)))
+                        .font(Font::default(Font::MEDIUM_SIZE))
                         .hint_text(
                             RichText::new("Input...")
-                                .font(Font::default(Constant::scale(ui, Font::MEDIUM_SIZE)))
+                                .font(Font::default(Font::MEDIUM_SIZE))
                                 .color(app.theme.text_secondary),
                         )
                         .background_color(app.theme.surface),
@@ -164,7 +158,7 @@ fn control(app: &mut App, ui: &mut Ui) {
         .align_items(FlexAlign::Center)
         .align_content(FlexAlignContent::Center)
         .align_items_content(Align2::CENTER_CENTER)
-        .gap(vec2(Constant::scale(ui, 10.0), 0.0))
+        .gap(vec2(10.0, 0.0))
         .h_full()
         .w_full()
         .show(ui, |flex| {
@@ -252,7 +246,7 @@ fn speed_control(app: &mut App, ui: &mut Ui) {
                     item(),
                     ImageButton::new(
                         Image::new(include_image!("../../assets/icon/less.svg"))
-                            .fit_to_exact_size(Vec2::splat(Constant::scale(flex.ui(), 25.0)))
+                            .fit_to_exact_size(Vec2::splat(25.0))
                             .tint(if min {
                                 app.theme.disabled
                             } else {
@@ -270,7 +264,7 @@ fn speed_control(app: &mut App, ui: &mut Ui) {
                 item(),
                 Label::new(
                     RichText::new(format!("{}X", 1.0 / app.control.interval()))
-                        .font(Font::default(Constant::scale(flex.ui(), Font::MEDIUM_SIZE)))
+                        .font(Font::default(Font::MEDIUM_SIZE))
                         .color(app.theme.icon),
                 ),
             );
@@ -280,7 +274,7 @@ fn speed_control(app: &mut App, ui: &mut Ui) {
                     item(),
                     ImageButton::new(
                         Image::new(include_image!("../../assets/icon/add.svg"))
-                            .fit_to_exact_size(Vec2::splat(Constant::scale(flex.ui(), 25.0)))
+                            .fit_to_exact_size(Vec2::splat(25.0))
                             .tint(if max {
                                 app.theme.disabled
                             } else {
@@ -314,7 +308,7 @@ fn step(app: &mut App, ui: &mut Ui) {
                         "step",
                         "step" = app.turing.current_step.get_nb_iterations()
                     ))
-                    .font(Font::default(Constant::scale(flex.ui(), Font::MEDIUM_SIZE)))
+                    .font(Font::default(Font::MEDIUM_SIZE))
                     .color(app.theme.text_primary),
                 ),
             );
@@ -371,7 +365,7 @@ fn state(app: &mut App, ui: &mut Ui) {
                 Label::new(
                     RichText::new(text)
                         .color(color)
-                        .font(Font::default(Constant::scale(flex.ui(), Font::MEDIUM_SIZE))),
+                        .font(Font::default(Font::MEDIUM_SIZE)),
                 ),
             );
             flex.grow();
@@ -379,7 +373,7 @@ fn state(app: &mut App, ui: &mut Ui) {
 }
 
 fn button(flex: &mut FlexInstance, app: &mut App, icon: ImageSource, disabled: bool) -> Response {
-    let icon_size = Vec2::splat(Constant::scale(flex.ui(), Constant::CONTROL_ICON_SIZE));
+    let icon_size = Vec2::splat(Constant::CONTROL_ICON_SIZE);
     flex.add(
         item(),
         ImageButton::new(

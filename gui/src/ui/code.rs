@@ -1,6 +1,6 @@
 use egui::{
-    Align, Align2, Atom, Button, Color32, Frame, Id, Image, ImageButton, Label, Layout, Margin,
-    RichText, ScrollArea, Stroke, TextEdit, TextFormat, Ui, Vec2, include_image,
+    Align, Align2, Atom, AtomExt, Button, Color32, Frame, Id, Image, ImageButton, Label, Layout,
+    Margin, RichText, ScrollArea, Stroke, TextEdit, TextFormat, Ui, Vec2, include_image,
     scroll_area::ScrollBarVisibility, text::LayoutJob, vec2,
 };
 
@@ -18,6 +18,7 @@ pub struct Code {
     tabs: Vec<Tab>,
     code_closed: bool,
     current_tab: usize,
+    #[serde(skip)]
     editing_name: bool,
     auto_scroll: bool,
 }
@@ -81,6 +82,12 @@ impl Code {
     }
 
     pub fn tab_name_check(&mut self) {
+        // If empty then default name
+        if self.tabs[self.current_tab].name.is_empty() {
+            self.tabs[self.current_tab].name = self.tab_name();
+            return;
+        }
+
         let mut flag = 1;
         while flag > 0 && self.tabs.len() > 1 {
             flag -= 1;
@@ -105,7 +112,6 @@ impl Code {
 
         self.auto_scroll = true;
         self.switch_to(self.tabs.len() - 1);
-        self.editing_name = true;
         self.tab_name_check();
     }
 
@@ -161,6 +167,8 @@ pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
                         // Iterate over the tabs
                         for i in 0..app.code.tabs.len() {
                             let is_current_tab = app.code.current_tab == i;
+
+                            // Tab frame
                             let frame = Frame::new()
                                 .fill(if !is_current_tab {
                                     Color32::from_gray(128)
@@ -168,12 +176,22 @@ pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
                                 } else {
                                     app.theme.code_background
                                 })
-                                .inner_margin(vec2(8.0, 0.0))
+                                .inner_margin(Margin {
+                                    left: 8,
+                                    right: 2,
+                                    ..Default::default()
+                                })
                                 .show(ui, |ui| {
+                                    // Define the id for the sub button
                                     let text_edit_id = Id::new("text_edit");
                                     let delete_button_id = Id::new("delete_button");
+
+                                    // Get the tab data
                                     let tab = &mut app.code.tabs[i];
+
+                                    // Layout the button
                                     ui.spacing_mut().icon_spacing = 4.0;
+                                    ui.spacing_mut().button_padding = vec2(0.0, 0.0);
                                     let button = Button::new((
                                         if is_current_tab && app.code.editing_name {
                                             Atom::custom(
@@ -195,12 +213,14 @@ pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
                                                 .font(Font::default_big())
                                                 .into()
                                         },
-                                        Atom::custom(delete_button_id, Vec2::splat(Font::BIG_SIZE)),
+                                        Atom::custom(delete_button_id, Vec2::splat(Font::BIG_SIZE))
+                                            .atom_size(vec2(25.0, 25.0)),
                                     ))
                                     .frame(false)
                                     .fill(app.theme.code_background)
                                     .atom_ui(ui);
 
+                                    // Textedit
                                     // TODO: change text_edit color
                                     if let Some(rect) = button.rect(text_edit_id) {
                                         let text_edit = TextEdit::singleline(
@@ -217,12 +237,20 @@ pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
                                         .background_color(app.theme.code_background)
                                         .frame(false)
                                         .text_color(app.theme.code);
+
                                         let response = ui.put(rect, text_edit);
+
                                         if response.lost_focus() {
                                             app.code.tab_name_check();
                                             app.code.editing_name = false;
                                         }
+
+                                        if app.code.editing_name {
+                                            response.request_focus();
+                                        }
+
                                         // TODO: maybe reenable this ?
+                                        // no (i mean put a setting at least)
                                         // response.request_focus();
                                     }
 
@@ -254,7 +282,6 @@ pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
                                     ui.spacing_mut().button_padding.x = 0.0;
 
                                     if !(app.code.editing_name)
-                                        && app.code.tabs.len() > 1
                                         && ui.rect_contains_pointer(button.response.rect)
                                         && let Some(rect) = button.rect(delete_button_id)
                                         && ui
@@ -262,7 +289,7 @@ pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
                                                 rect,
                                                 ImageButton::new(
                                                     Image::new(include_image!(
-                                                        "../../assets/icon/close.svg"
+                                                        "../../assets/icon/close_small.svg"
                                                     ))
                                                     .shrink_to_fit()
                                                     .tint(app.theme.code),
@@ -281,6 +308,7 @@ pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
                                 })
                                 .response;
 
+                            // Only add tutorial if this is the first tab
                             if i == 0 {
                                 app.tutorial.add_boxe(
                                     "tab_rename",
@@ -334,14 +362,18 @@ pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
                             app.code.auto_scroll = false
                         }
 
-                        // Add a state
+                        // Add a tab
                         if plus.inner.clicked() {
-                            app.code.new_tab(app.code.tab_name(), "".to_string());
+                            app.code.new_tab("".to_string(), "".to_string());
                         }
 
                         // Remove the tabs closed
                         for i in marked_to_delete.iter().rev() {
                             app.code.tabs.remove(*i);
+                        }
+
+                        if app.code.tabs.is_empty() {
+                            app.code.new_tab(app.code.tab_name(), "".to_string());
                         }
 
                         if app.code.current_tab > app.code.tabs.len() - 1 {

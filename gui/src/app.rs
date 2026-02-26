@@ -2,7 +2,10 @@ use std::time::Duration;
 
 use egui::{Context, Key, Pos2};
 use egui_extras::install_image_loaders;
-use ritm_core::turing_parser::{graph_to_string, parse_turing_graph_string};
+use ritm_core::{
+    turing_graph::TuringGraph,
+    turing_parser::{graph_to_string, parse_turing_graph_string},
+};
 
 use crate::{
     error::{self, RitmError},
@@ -10,6 +13,7 @@ use crate::{
     ui::{
         self,
         code::Code,
+        constant::Constant,
         control::Control,
         edit::Edit,
         font::load_font,
@@ -163,7 +167,7 @@ impl App {
     pub fn code_to_graph(&mut self) -> Result<(), RitmError> {
         match parse_turing_graph_string(self.code.current_code()?) {
             Ok(graph) => {
-                self.turing = Turing::new_graph(graph);
+                self.turing = Turing::new_graph(graph)?;
                 self.turing.layer_graph();
             }
             Err(e) => {
@@ -171,6 +175,17 @@ impl App {
             }
         }
         self.graph.recenter();
+        Ok(())
+    }
+
+    /// Change the number of tapes in the graph
+    pub fn update_k(&mut self, k: usize) -> Result<(), RitmError> {
+        self.graph.reset();
+        let new_turing = Turing::new_graph(
+            TuringGraph::new(k, true).map_err(|e| RitmError::CoreError(e.to_string()))?,
+        )?;
+        self.turing = new_turing;
+        self.turing.layer_graph();
         Ok(())
     }
 
@@ -215,6 +230,7 @@ impl eframe::App for App {
 
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         install_image_loaders(ctx);
+        Constant::update_scale(ctx);
 
         if let Some(tutorial) = self.transient.temp_tutorial {
             self.transient.temp_tutorial = None;

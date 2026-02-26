@@ -1,4 +1,4 @@
-use egui::{Ui, Vec2, vec2};
+use egui::{Context, Vec2, vec2};
 
 /// Constant used in the application
 pub struct Constant {}
@@ -29,15 +29,38 @@ impl Constant {
 
     pub const ICON_SIZE: f32 = 35.0;
 
-    /// Scale down the value passed when the application is smaller than default
-    pub fn scale<T: From<f32> + Into<f32>>(ui: &Ui, value: T) -> T {
-        let size = ui.ctx().screen_rect().size();
+    // /// Scale down the value passed when the application is smaller than default
+    // pub fn scale<T: From<f32> + Into<f32>>(ui: &Ui, value: T) -> T {
+    //     let size = ui.ctx().screen_rect().size();
+    //     if Self::DEFAULT_SIZE.x <= size.x && Self::DEFAULT_SIZE.y <= size.y {
+    //         value
+    //     } else {
+    //         T::from(
+    //             (size.x / Self::DEFAULT_SIZE.x).min(size.y / Self::DEFAULT_SIZE.y) * value.into(),
+    //         )
+    //     }
+    // }
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn update_scale(ctx: &Context) {
+        let size = ctx.screen_rect().size() * ctx.pixels_per_point();
         if Self::DEFAULT_SIZE.x <= size.x && Self::DEFAULT_SIZE.y <= size.y {
-            value
+            ctx.set_pixels_per_point(1.0);
         } else {
-            T::from(
-                (size.x / Self::DEFAULT_SIZE.x).min(size.y / Self::DEFAULT_SIZE.y) * value.into(),
-            )
+            ctx.set_pixels_per_point(
+                (size.x / Self::DEFAULT_SIZE.x).min(size.y / Self::DEFAULT_SIZE.y),
+            );
+        }
+    }
+
+    #[cfg(target_arch = "wasm32")]
+    pub fn update_scale(ctx: &Context) {
+        let size = ctx.screen_rect().size() * ctx.pixels_per_point();
+        if Self::DEFAULT_SIZE.x <= size.x && Self::DEFAULT_SIZE.y <= size.y {
+            ctx.set_pixels_per_point(1.0);
+        } else {
+            ctx.set_pixels_per_point(
+                (size.x / Self::DEFAULT_SIZE.x).min(size.y / Self::DEFAULT_SIZE.y),
+            );
         }
     }
 }
