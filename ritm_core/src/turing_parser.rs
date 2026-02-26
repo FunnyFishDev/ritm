@@ -256,11 +256,22 @@ where
                 )?;
 
                 for transition in contents {
-                    if let Err(e) = graph.append_transition(
-                        from,
-                        TransitionOneRibbonInfo::new(transition.0, transition.2, transition.1),
-                        to,
+                    let transition_res = match TransitionOneRibbonInfo::new(
+                        transition.0,
+                        transition.2,
+                        transition.1,
                     ) {
+                        Ok(trans) => trans,
+                        Err(e) => {
+                            return Err(TuringParserError::TuringError {
+                                line_col_pos: Some(rule_copy.line_col()),
+                                turing_error: Box::new(e.into()),
+                                value: rule_copy.as_str().to_string(),
+                            });
+                        }
+                    };
+
+                    if let Err(e) = graph.append_transition(from, transition_res, to) {
                         return Err(TuringParserError::TuringError {
                             line_col_pos: Some(rule_copy.line_col()),
                             turing_error: Box::new(e.into()),

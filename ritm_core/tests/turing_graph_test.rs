@@ -161,7 +161,8 @@ fn add_transitions_one() {
     graph
         .append_transition(
             "i",
-            TransitionOneRibbonInfo::new('ç', TuringDirection::Right, 'ç'),
+            TransitionOneRibbonInfo::new('ç', TuringDirection::Right, 'ç')
+                .expect("valid transition"),
             "a",
         )
         .expect("no problem");
@@ -688,7 +689,8 @@ fn is_deterministic_test_one_rib() {
     deter_g
         .append_transition(
             0,
-            TransitionOneRibbonInfo::new('ç', TuringDirection::Right, 'ç'),
+            TransitionOneRibbonInfo::new('ç', TuringDirection::Right, 'ç')
+                .expect("valid transition"),
             "1",
         )
         .expect("correct");
