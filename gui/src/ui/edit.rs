@@ -20,7 +20,7 @@ pub struct Edit {
 
 /// Control of the graph
 pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
-    let icon_size = app.settings.edit_button_size;
+    let icon_size = app.settings.edit_button_size+10.0;
 
     // The parent ui paint on the background layer, so we need to change it to a higher layer
     let layer = LayerId::new(egui::Order::Middle, Id::new("edit"));

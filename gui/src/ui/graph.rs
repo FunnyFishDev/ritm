@@ -1,9 +1,10 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, io::Cursor};
 
 use egui::{
-    Align2, Id, Image, ImageButton, LayerId, Pos2, Rect, Scene, Sense, Ui, UiBuilder, Vec2,
-    include_image, vec2,
+    Align2, Event, Id, Image, ImageButton, LayerId, Pos2, Rect, Scene, Sense, Ui, UiBuilder,
+    UserData, Vec2, ViewportCommand, include_image, vec2,
 };
+use image::{ImageBuffer, Rgba};
 use ritm_core::turing_graph::TuringStateWrapper;
 
 use crate::{
@@ -151,6 +152,27 @@ pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
         })
         .response;
 
+    ui.input(|i| {
+        for e in &i.raw.events {
+            if let Event::Screenshot { image, .. } = e {
+                let ppp = i.pixels_per_point();
+                let region = graph_rect;
+                let image = image.region(&region, Some(ppp));
+                let img2: ImageBuffer<Rgba<u8>, &[u8]> = ImageBuffer::from_raw(
+                    image.width() as u32,
+                    image.height() as u32,
+                    image.as_raw(),
+                )
+                .unwrap();
+                let mut bytes: Vec<u8> = Vec::new();
+                img2.write_to(&mut Cursor::new(&mut bytes), image::ImageFormat::Png)
+                    .unwrap();
+                app.transient.temp_screenshot = Some(bytes);
+                app.transient.taking_screenshot = false
+            }
+        }
+    });
+
     if let Some(initial_state) = app.turing.tm.graph_ref().get_state(0) {
         app.tutorial.add_boxe(
             "initial_state",
@@ -206,7 +228,9 @@ pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
     let layer = LayerId::new(egui::Order::Middle, Id::new("graph-button"));
 
     // Convert the graph to code
-    to_code_button(ui, app, layer);
+    if !app.transient.taking_screenshot {
+        to_code_button(ui, app, layer);
+    }
 
     // Save scene border and recenter if asked
     // TODO better way to recenter, avoid sticking to top
@@ -218,7 +242,9 @@ pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
     };
 
     // Reset the graph (after recenter because need to redraw the states)
-    reset_button(ui, app, layer);
+    if !app.transient.taking_screenshot {
+        reset_button(ui, app, layer);
+    }
 
     // If the graph scene is clicked
     // TODO: need to rework state adding flow
@@ -236,7 +262,14 @@ pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
         app.graph.unselect();
     }
 
-    edit::show(app, ui)?;
+    if !app.transient.taking_screenshot {
+        edit::show(app, ui)?;
+    }
+
+    // Take a screenshot of the machine
+    if !app.transient.taking_screenshot {
+        take_screenshot_button(ui, app, layer);
+    }
 
     // Repaint the canvas
     if !app.graph.is_stable {
@@ -379,6 +412,41 @@ fn reset_button(ui: &mut Ui, app: &mut App, layer: LayerId) {
                 "erase",
                 TutorialBox::new(button.rect).with_align(Align2::LEFT_CENTER),
             );
+        },
+    );
+}
+
+/// Button to reset the graph to the initial and accepting state
+fn take_screenshot_button(ui: &mut Ui, app: &mut App, layer: LayerId) {
+    ui.scope_builder(
+        UiBuilder::new()
+            .layer_id(layer)
+            .max_rect(Rect::from_min_size(
+                ui.max_rect().left_bottom() - vec2(0.0, 35.0),
+                vec2(35.0, 35.0),
+            )),
+        |ui| {
+            let button = ui.put(
+                Rect::from_min_size(
+                    ui.max_rect().left_bottom() - vec2(0.0, 35.0),
+                    vec2(35.0, 35.0),
+                ),
+                ImageButton::new(
+                    Image::new(include_image!("../../assets/icon/screenshot.svg"))
+                        .fit_to_exact_size(vec2(35.0, 35.0))
+                        .tint(app.theme.overlay),
+                )
+                .frame(false),
+            );
+            if button.clicked() {
+                ui.ctx()
+                    .send_viewport_cmd(ViewportCommand::Screenshot(UserData::default()));
+                app.transient.taking_screenshot = true;
+            }
+            // app.tutorial.add_boxe(
+            //     "screenshot",
+            //     TutorialBox::new(button.rect).with_align(Align2::LEFT_CENTER),
+            // );
         },
     );
 }

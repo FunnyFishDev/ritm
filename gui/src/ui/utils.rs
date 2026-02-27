@@ -31,7 +31,7 @@ pub fn direction(p1: Pos2, p2: Pos2) -> Vec2 {
     Vec2::new(p2.x - p1.x, p2.y - p1.y).normalized()
 }
 
-type FileData = Vec<u8>;
+pub type FileData = Vec<u8>;
 
 // wasm
 #[cfg(target_arch = "wasm32")]

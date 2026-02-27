@@ -25,6 +25,7 @@ use crate::{
         },
         theme::{Theme, theme_changer},
         tutorial::{self, TutorialEnum, Tutorials},
+        utils::{FileData, FileDialog},
     },
 };
 
@@ -77,21 +78,19 @@ pub struct App {
 /// Used to check what the user see and/or can do
 pub struct Transient {
     /// Is the user moving as state around ?
-
-    /// Do we need to display the settings interface ?
-    pub are_settings_visible: bool,
-
     pub is_small_window: bool,
 
     pub listen_to_keybind: bool,
-
-    pub take_screenshot: bool,
 
     pub temp_code: Option<String>,
 
     pub temp_tutorial: Option<TutorialEnum>,
 
     pub add_transition: bool,
+
+    pub taking_screenshot: bool,
+
+    pub temp_screenshot: Option<FileData>,
 }
 
 impl Default for App {
@@ -117,13 +116,13 @@ impl Default for App {
 impl Default for Transient {
     fn default() -> Self {
         Self {
-            are_settings_visible: false,
             is_small_window: false,
             listen_to_keybind: true,
-            take_screenshot: false,
             temp_code: None,
             temp_tutorial: None,
             add_transition: false,
+            taking_screenshot: false,
+            temp_screenshot: None,
         }
     }
 }
@@ -233,6 +232,8 @@ impl eframe::App for App {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         install_image_loaders(ctx);
         Constant::update_scale(ctx);
+        #[cfg(feature = "profiling")]
+        puffin::profile_scope!("root");
 
         // Start the tutorial
         if let Some(tutorial) = self.transient.temp_tutorial {
@@ -275,28 +276,6 @@ impl eframe::App for App {
             ));
         }
 
-        // control the input
-        ctx.input(|r| {
-            if r.key_pressed(Key::Escape) {
-                if self.popup.current().is_some() {
-                    // Request graceful exit of popup
-                    self.popup.close();
-                } else {
-                    // Unselect what is selected
-                    self.graph.unselect()
-                }
-            }
-
-            if r.key_pressed(Key::Enter) {
-                if self.error.is_some() {
-                    self.error = None;
-                } else if self.popup.current().is_some() {
-                    // Request graceful exit of popup
-                    self.popup.confirm();
-                }
-            }
-        });
-
         keybind(ctx, self);
 
         if self.settings.theme_changer {
@@ -306,83 +285,106 @@ impl eframe::App for App {
         if self.settings.enable_debug {
             debug_show(ctx, self);
         }
+
+        if let Some(screenshot) = &self.transient.temp_screenshot {
+            FileDialog::default().save("test.png", screenshot.to_vec());
+            self.transient.temp_screenshot = None;
+        }
     }
 }
 
 fn keybind(ctx: &Context, app: &mut App) {
-    if app.transient.listen_to_keybind && app.popup.current().is_none() {
+    if app.transient.listen_to_keybind {
+        let popup_displayed = app.popup.current().is_some();
+
         ctx.input(|r| {
-            if app.tutorial.in_tutorial() {
-                if r.key_pressed(Key::Enter) {
+            if r.key_pressed(Key::Escape) {
+                if app.popup.current().is_some() {
+                    // Request graceful exit of popup
+                    app.popup.close();
+                } else {
+                    // Unselect what is selected
+                    app.graph.unselect()
+                }
+            }
+
+            if r.key_pressed(Key::Enter) {
+                if app.error.is_some() {
+                    app.error = None;
+                } else if app.popup.current().is_some() {
+                    // Request graceful exit of popup
+                    app.popup.confirm();
+                } else if !popup_displayed && app.tutorial.in_tutorial() {
                     app.tutorial.next();
                 }
-                return;
             }
 
-            // Press A to create a state
-            if r.key_pressed(Key::S) {
-                app.edit.is_adding_state ^= true;
-            }
-
-            // Press T to create a transition
-            if app.graph.selected_state().is_some() && r.key_pressed(Key::T) {
-                app.edit.is_adding_transition ^= true;
-            }
-
-            // Press U to unpin all state
-            if r.key_pressed(Key::U) {
-                app.turing.unpin_all();
-            }
-
-            // Press C to open and close code section
-            if r.key_pressed(Key::C) {
-                app.code.toggle();
-            }
-
-            // Press R to recenter
-            if r.key_pressed(Key::R) {
-                app.graph.recenter();
-            }
-
-            // Press Space to make 1 iteration
-            if app.turing.accepted.is_none() && r.key_pressed(Key::Space) {
-                app.turing.next_step();
-            }
-
-            // Press P to autoplay the machine
-            if r.key_pressed(Key::P) {
-                if app.control.is_running() {
-                    app.control.run();
-                } else {
-                    app.control.pause();
-                }
-            }
-
-            if r.key_pressed(Key::Plus) {
-                app.control.speed_down();
-            }
-
-            if r.key_pressed(Key::Minus) {
-                app.control.speed_up();
-            }
-
-            // Press Backspace to reset the machine
-            if r.key_pressed(Key::Backspace) {
-                app.reset();
-            }
-
-            // Press Backspace to reset the machine
-            if r.key_pressed(Key::Delete) {
-                if let Some(state_id) = app.graph.selected_state()
-                    && state_id > 1
-                {
-                    let _ = app.turing.remove_state(state_id);
+            if !popup_displayed && !app.tutorial.in_tutorial() {
+                // Press S to create a state
+                if r.key_pressed(Key::S) {
+                    app.edit.is_adding_state ^= true;
                 }
 
-                if let Some(transition_id) = app.graph.selected_transitions() {
-                    let _ = app
-                        .turing
-                        .remove_transitions(transition_id.source_id, transition_id.target_id);
+                // Press T to create a transition
+                if app.graph.selected_state().is_some() && r.key_pressed(Key::T) {
+                    app.edit.is_adding_transition ^= true;
+                }
+
+                // Press U to unpin all state
+                if r.key_pressed(Key::U) {
+                    app.turing.unpin_all();
+                }
+
+                // Press C to open and close code section
+                if r.key_pressed(Key::C) {
+                    app.code.toggle();
+                }
+
+                // Press R to recenter
+                if r.key_pressed(Key::R) {
+                    app.graph.recenter();
+                }
+
+                // Press Space to make 1 iteration
+                if app.turing.accepted.is_none() && r.key_pressed(Key::Space) {
+                    app.turing.next_step();
+                }
+
+                // Press P to autoplay the machine
+                if r.key_pressed(Key::P) {
+                    if app.control.is_running() {
+                        app.control.run();
+                    } else {
+                        app.control.pause();
+                    }
+                }
+
+                if r.key_pressed(Key::Plus) {
+                    app.control.speed_down();
+                }
+
+                if r.key_pressed(Key::Minus) {
+                    app.control.speed_up();
+                }
+
+                // Press Backspace to reset the machine
+                if r.key_pressed(Key::Backspace) {
+                    app.reset();
+                }
+
+                // Press Backspace to reset the machine
+                if r.key_pressed(Key::Delete) {
+                    if let Some(state_id) = app.graph.selected_state()
+                        && state_id > 1
+                    {
+                        let _ = app.turing.remove_state(state_id);
+                    }
+
+                    if let Some(transition_id) = app.graph.selected_transitions() {
+                        let _ = app
+                            .turing
+                            .remove_transitions(transition_id.source_id, transition_id.target_id);
+                    }
                 }
             }
         });

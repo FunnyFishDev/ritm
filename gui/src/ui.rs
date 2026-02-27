@@ -1,6 +1,5 @@
 use egui::{
-    Align, CentralPanel, CornerRadius, Frame, Layout, Margin, Sense, SidePanel, TopBottomPanel,
-    UiBuilder, vec2,
+    Align, CentralPanel, CornerRadius, Frame, Layout, Margin, Sense, SidePanel, TopBottomPanel, UiBuilder, vec2
 };
 
 pub mod code;

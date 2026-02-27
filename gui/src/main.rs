@@ -12,6 +12,9 @@ fn main() {
 
     env_logger::init(); // Log to stderr (if you run with `RUST_LOG=debug`).
 
+    #[cfg(feature = "profiling")]
+    start_puffin_server();
+
     let native_options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
             .with_inner_size([1400.0, 800.0])
@@ -76,4 +79,24 @@ fn main() {
             }
         }
     });
+}
+
+
+#[cfg(feature = "profiling")]
+fn start_puffin_server() {
+    puffin::set_scopes_on(true); // tell puffin to collect data
+
+    match puffin_http::Server::new("127.0.0.1:8585") {
+        Ok(puffin_server) => {
+            log::info!("Run:  cargo install puffin_viewer && puffin_viewer --url 127.0.0.1:8585");
+
+            // We can store the server if we want, but in this case we just want
+            // it to keep running. Dropping it closes the server, so let's not drop it!
+            #[expect(clippy::mem_forget)]
+            std::mem::forget(puffin_server);
+        }
+        Err(err) => {
+            log::error!("Failed to start puffin server: {err}");
+        }
+    }
 }
