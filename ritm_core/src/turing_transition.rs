@@ -1,7 +1,7 @@
 use std::fmt::{Debug, Display};
 use thiserror::Error;
 
-use crate::turing_tape;
+use crate::turing_tape::{self, INIT_CHAR};
 
 #[derive(Debug, Error)]
 pub enum TuringTransitionError {
@@ -152,12 +152,19 @@ pub struct TransitionOneRibbonInfo {
 }
 
 impl TransitionOneRibbonInfo {
-    pub fn new(chars_read: char, move_pointer: TuringDirection, replace_with: char) -> Self {
-        Self {
+    pub fn new(
+        chars_read: char,
+        move_pointer: TuringDirection,
+        replace_with: char,
+    ) -> Result<Self, TuringTransitionError> {
+        check_ill_directions(chars_read, INIT_CHAR, &move_pointer, &TuringDirection::Left)?;
+        check_ill_replacement(chars_read, replace_with, 0)?;
+
+        Ok(Self {
             chars_read,
             replace_with,
             move_pointer,
-        }
+        })
     }
 }
 
@@ -238,7 +245,7 @@ impl TransitionMultRibbonInfo {
                 "At least one direction must be given".to_string(),
             ));
         }
-        let move_read = move_read.unwrap().clone();
+        let move_read = move_read.expect("Value present").clone();
 
         if chars_write.len() + 1 != directions.len() {
             return Err(TuringTransitionError::TransitionArgsError("The number of character to write must be equal to the number of directions minus one (for the reading tape)".to_string()));
@@ -251,30 +258,15 @@ impl TransitionMultRibbonInfo {
         }
         for i in 1..directions.len() {
             chars_write_dir.push((
-                *chars_write.get(i - 1).unwrap(),
-                directions.get(i).unwrap().clone(),
+                *chars_write.get(i - 1).expect("Value present"),
+                directions.get(i).expect("Value present").clone(),
             ));
         }
 
         // Check for illegal actions
-        let ill_act_error = |c: char,
-                             inc_char: char,
-                             d: &TuringDirection,
-                             inc_dir: &TuringDirection|
-         -> Result<(), TuringTransitionError> {
-            if inc_char == c && inc_dir == d {
-                Err(TuringTransitionError::IllegalActionError(format!(
-                    "Detected the couple : (\"{}\", \"{}\"), this could result in going out of bounds of the tape. Change the given direction to None for example.",
-                    c, d
-                )))
-            } else {
-                Ok(())
-            }
-        };
-
         //  Only applies to the reading tape
-        ill_act_error(
-            *chars_read.first().unwrap(),
+        check_ill_directions(
+            *chars_read.first().expect("Value present"),
             turing_tape::END_CHAR,
             &move_read,
             &TuringDirection::Right,
@@ -283,42 +275,26 @@ impl TransitionMultRibbonInfo {
         //  Applies to all tapes, therefore we need to iterate over all of them
 
         // check for reading first
-        ill_act_error(
-            *chars_read.first().unwrap(),
+        check_ill_directions(
+            *chars_read.first().expect("Value present"),
             turing_tape::INIT_CHAR,
             &move_read,
             &TuringDirection::Left,
         )?;
         // then for writting tapes
         for i in 1..chars_read.len() {
-            let char_read = chars_read.get(i).unwrap();
+            let char_read = chars_read.get(i).expect("Value present");
 
-            let (char_relacement, char_dir) = chars_write_dir.get(i - 1).unwrap();
+            let (char_relacement, char_dir) = chars_write_dir.get(i - 1).expect("value present");
 
-            ill_act_error(
+            check_ill_directions(
                 *char_read,
                 turing_tape::INIT_CHAR,
                 char_dir,
                 &TuringDirection::Left,
             )?;
 
-            if *char_read == turing_tape::INIT_CHAR {
-                if *char_read != *char_relacement {
-                    return Err(TuringTransitionError::IllegalActionError(format!(
-                        "Tried to replace a special character ('{}') with another character ('{}') for the writing tape {}",
-                        char_read,
-                        char_relacement,
-                        i - 1
-                    )));
-                }
-            } else if *char_relacement == turing_tape::INIT_CHAR {
-                return Err(TuringTransitionError::IllegalActionError(format!(
-                    "Tried to replace a normal character ('{}') with a special character ('{}') for the writing tape {}",
-                    char_read,
-                    char_relacement,
-                    i - 1
-                )));
-            }
+            check_ill_replacement(*char_read, *char_relacement, i)?;
         }
 
         Ok(Self {
@@ -353,6 +329,40 @@ impl TransitionMultRibbonInfo {
     pub fn get_number_of_affected_tapes(&self) -> usize {
         self.chars_write.len() + 1
     }
+}
+
+fn check_ill_directions(
+    curr_char: char,
+    cond_char: char,
+    curr_dir: &TuringDirection,
+    forbidden_dir: &TuringDirection,
+) -> Result<(), TuringTransitionError> {
+    if curr_char == cond_char && curr_dir == forbidden_dir {
+        Err(TuringTransitionError::IllegalActionError(format!(
+            "Detected the couple : (\"{curr_char}\", \"{curr_dir}\"), this could result in going out of bounds of the tape. Change the given direction to None for example."
+        )))
+    } else {
+        Ok(())
+    }
+}
+
+fn check_ill_replacement(
+    curr_char: char,
+    char_replacement: char,
+    tape_id: usize,
+) -> Result<(), TuringTransitionError> {
+    if curr_char == turing_tape::INIT_CHAR {
+        if curr_char != char_replacement {
+            return Err(TuringTransitionError::IllegalActionError(format!(
+                "Tried to replace a special character ('{curr_char}') with another character ('{char_replacement}') for the tape {tape_id}",
+            )));
+        }
+    } else if char_replacement == turing_tape::INIT_CHAR {
+        return Err(TuringTransitionError::IllegalActionError(format!(
+            "Tried to replace a normal character ('{curr_char}') with a special character ('{char_replacement}') for the tape {tape_id}",
+        )));
+    };
+    Ok(())
 }
 
 impl Display for TransitionsInfo {

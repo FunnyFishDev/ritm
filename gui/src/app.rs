@@ -168,9 +168,10 @@ impl App {
             Ok(graph) => {
                 self.turing = Turing::new_graph(graph)?;
                 self.turing.layer_graph();
+                self.code.set_curr_parsing_error(None);
             }
             Err(e) => {
-                println!("{:?}", e);
+                self.code.set_curr_parsing_error(Some(e));
             }
         }
         self.graph.recenter();
@@ -207,7 +208,7 @@ impl App {
     }
 
     pub fn new_state_at_pos(&mut self, pos: Pos2) {
-        let mut state_edit = StateEdit::empty();
+        let mut state_edit = StateEdit::empty(self.turing.tm.graph_ref().get_next_id());
 
         state_edit.get_edit().state.position = pos;
         state_edit.get_edit().name = format!(

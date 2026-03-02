@@ -41,7 +41,6 @@ pub enum TuringTapeError {
 
 #[derive(Debug, Clone)]
 pub struct TuringTape {
-    is_reading_tape: bool,
     chars_vec: Vec<char>,
     pointer: usize,
 }
@@ -55,7 +54,6 @@ impl TuringTape {
             BLANK_CHAR
         };
         Self {
-            is_reading_tape,
             chars_vec: vec![INIT_CHAR, last_char],
             pointer: 0,
         }
@@ -87,9 +85,11 @@ impl TuringTape {
                     tape_size: self.chars_vec.len(),
                 });
             }
+
             // In a writing tape, we have an *infinite size*, so we can simulate this by adding, when needed, a new empty char
             if new_pointer + 1 >= self.chars_vec.len() as isize
-                && *self.chars_vec.last().expect("one present") != END_CHAR
+                && let Some(last) = self.chars_vec.last()
+                && *last != END_CHAR
             {
                 self.chars_vec.push('_');
             }
@@ -98,6 +98,16 @@ impl TuringTape {
 
             // Replace the current char read
             self.chars_vec[self.pointer] = replace_by;
+
+            // If we have two blank characters following each other, we can remove one
+            if self.chars_vec.len() >= 2
+                && let Some(last) = self.chars_vec.last()
+                && let Some(prev_last) = self.chars_vec.get(self.chars_vec.len() - 2)
+                && *last == *prev_last
+                && *last == BLANK_CHAR
+            {
+                self.chars_vec.pop();
+            }
 
             // Move to the new position
             self.pointer = new_pointer as usize;
@@ -136,7 +146,9 @@ impl TuringTape {
         }
         if add_end_char {
             self.chars_vec.push(END_CHAR);
-        } else {
+        } else if let Some(last_char) = self.chars_vec.last()
+            && *last_char != BLANK_CHAR
+        {
             self.chars_vec.push(BLANK_CHAR);
         }
         self.pointer = 0;

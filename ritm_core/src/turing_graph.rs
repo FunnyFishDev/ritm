@@ -10,7 +10,7 @@ use crate::{
     },
 };
 use std::{
-    collections::VecDeque,
+    collections::{HashMap, VecDeque},
     fmt::{Debug, Display},
 };
 
@@ -25,6 +25,8 @@ pub enum TuringGraphError {
         name: String,
         state: TuringStateInfo,
     },
+    #[error("Tried to add/rename a state with no name")]
+    EmptyNameError,
     #[error(
         "Tried to add the transition \"{transition}\" between \"{from}\" and \"{to}\" but it was already present"
     )]
@@ -61,8 +63,6 @@ pub enum TuringStateType {
     Normal,
     /// Accepts the given input.
     Accepting,
-    /// Immediatly rejects the given input.
-    Rejecting,
 }
 
 impl Display for TuringStateType {
@@ -73,7 +73,6 @@ impl Display for TuringStateType {
             match self {
                 TuringStateType::Normal => "Normal",
                 TuringStateType::Accepting => "Accepting",
-                TuringStateType::Rejecting => "Rejecting",
             }
         )
     }
@@ -349,18 +348,36 @@ where
         state_type: TuringStateType,
     ) -> Result<usize, TuringGraphError> {
         let name = name.to_string();
+        if name.is_empty() {
+            return Err(TuringGraphError::EmptyNameError);
+        }
         match self.get_state_index(&name) {
             Some(index) => Err(TuringGraphError::AlreadyPresentNameError {
                 name,
                 state: self.get_state(index).expect("is present").info.clone(),
             }),
-            None => Ok(self.add_state(name, state_type)),
+            None => Ok(self.add_state(Some(name), state_type)),
+        }
+    }
+
+    /// Adds a state and gives it the name of the next available state index which is also returned.
+    /// This method can never fail.
+    pub fn add_next_state(&mut self, state_type: TuringStateType) -> usize {
+        self.add_state(None, state_type)
+    }
+
+    /// Gets the id that will be given to the next state.
+    pub fn get_next_id(&self) -> usize {
+        match self.available_state_id.front() {
+            Some(id) => *id,
+            None => self.next_state_id,
         }
     }
 
     /// Adds a new state to the turing machine graph and returns its index. And if the state was already present then its index nor is type will be affected.
-    pub fn add_state(&mut self, name: impl ToString, state_type: TuringStateType) -> usize {
-        let name = name.to_string();
+    fn add_state(&mut self, name: Option<String>, state_type: TuringStateType) -> usize {
+        let name = name.unwrap_or(self.get_next_id().to_string());
+
         match self.get_state_index(&name) {
             Some(index) => index,
             None => {
@@ -748,6 +765,25 @@ where
             }
         }
         Ok(is_end)
+    }
+
+    /// Checks wether the current graph is deterministic or not
+    /// by comparing all transitions of each states.
+    pub fn is_deterministic(&self) -> bool {
+        let mut char_read = HashMap::new();
+
+        for ((from, _), transitions) in &self.transition_hasmap {
+            let transition_from = char_read.entry(*from).or_insert(Vec::new());
+
+            for transition in transitions {
+                let chars_read = transition.info.get_chars_read().clone();
+                if transition_from.contains(&chars_read) {
+                    return false;
+                }
+                transition_from.push(chars_read);
+            }
+        }
+        true
     }
 
     /// Checks that the given state has some ingoing transitions.

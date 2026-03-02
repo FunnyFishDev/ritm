@@ -31,12 +31,7 @@ pub fn show(ui: &mut Ui, app: &mut App) -> Result<(), RitmError> {
                 {
                     Some(StateEdit::from(state))
                 } else {
-                    let mut edit = StateEdit::empty();
-                    edit.get_edit().name = format!(
-                        "q_{}",
-                        app.turing.tm.graph_ref().get_state_hashmap().iter().count() + 1
-                    );
-                    Some(edit)
+                    Some(StateEdit::empty(app.turing.tm.graph_ref().get_next_id()))
                 }
             }
 

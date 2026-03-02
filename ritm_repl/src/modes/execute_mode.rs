@@ -378,7 +378,6 @@ fn print_step(
 fn color_state(state: &TuringStateInfo) -> ColoredString {
     format!("q_{}", state.get_name()).color(match state.get_type() {
         TuringStateType::Accepting => Color::Green,
-        TuringStateType::Rejecting => Color::Red,
         _ => Color::White,
     })
 }

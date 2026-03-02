@@ -1,10 +1,10 @@
 use ritm_core::turing_transition::{
-    TransitionMultRibbonInfo, TuringDirection, TuringTransitionError,
+    TransitionMultRibbonInfo, TransitionOneRibbonInfo, TuringDirection, TuringTransitionError,
 };
 
 // ________________________________________ Transitions tests ______________________________
 #[test]
-fn transition_creation_test() {
+fn transition_creation_mult_test() {
     let t1 = TransitionMultRibbonInfo::create(
         vec!['ç', 'ç'],
         vec!['ç'],
@@ -32,6 +32,28 @@ fn transition_creation_test() {
     assert_eq!(t1.chars_write, vec!(('ç', TuringDirection::None)));
 
     assert_eq!(t1.get_number_of_affected_tapes(), 2)
+}
+
+#[test]
+fn transition_creation_one_test() {
+    assert!(TransitionOneRibbonInfo::new('ç', TuringDirection::Right, 'ç').is_ok());
+
+    assert!(matches!(
+        TransitionOneRibbonInfo::new('ç', TuringDirection::Right, 'a'),
+        Err(TuringTransitionError::IllegalActionError(_))
+    ));
+
+    assert!(matches!(
+        TransitionOneRibbonInfo::new('ç', TuringDirection::Left, 'ç'),
+        Err(TuringTransitionError::IllegalActionError(_))
+    ));
+
+    assert!(matches!(
+        TransitionOneRibbonInfo::new('a', TuringDirection::Left, 'ç'),
+        Err(TuringTransitionError::IllegalActionError(_))
+    ));
+
+    assert!(TransitionOneRibbonInfo::new('a', TuringDirection::Right, '_').is_ok());
 }
 
 #[test]
