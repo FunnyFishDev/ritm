@@ -161,9 +161,10 @@ impl App {
             Ok(graph) => {
                 self.turing = Turing::new_graph(graph);
                 self.turing.layer_graph();
+                self.code.set_curr_parsing_error(None);
             }
             Err(e) => {
-                println!("{:?}", e);
+                self.code.set_curr_parsing_error(Some(e));
             }
         }
         self.graph.recenter();

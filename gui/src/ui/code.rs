@@ -1,8 +1,9 @@
 use egui::{
     Align, Align2, Atom, Button, Color32, Frame, Id, Image, ImageButton, Label, Layout, Margin,
-    RichText, ScrollArea, TextEdit, TextFormat, Ui, Vec2, include_image,
+    RichText, ScrollArea, Stroke, TextEdit, TextFormat, Ui, Vec2, include_image,
     scroll_area::ScrollBarVisibility, text::LayoutJob, vec2,
 };
+use ritm_core::turing_parser::TuringParserError;
 
 use crate::{
     App,
@@ -20,6 +21,9 @@ pub struct Code {
     current_tab: usize,
     editing_name: bool,
     auto_scroll: bool,
+    // The current parsing error
+    #[serde(skip)]
+    curr_parsing_error: Option<TuringParserError>,
 }
 
 #[derive(serde::Deserialize, serde::Serialize)]
@@ -58,6 +62,7 @@ q_check {$, ç -> N, ç, N} q_a;"
             current_tab: 0,
             editing_name: false,
             auto_scroll: false,
+            curr_parsing_error: None,
         }
     }
 }
@@ -136,6 +141,11 @@ impl Code {
 
         self.editing_name = false;
         self.current_tab = id;
+        self.curr_parsing_error = None;
+    }
+
+    pub(crate) fn set_curr_parsing_error(&mut self, error: Option<TuringParserError>) {
+        self.curr_parsing_error = error;
     }
 }
 
@@ -375,6 +385,8 @@ pub fn code(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
                             ) + format!("{}\n", i).as_str()),
                         );
                     }
+                    let mut line = 1;
+                    let mut col = 1;
 
                     let mut layouter = |ui: &Ui, buf: &dyn egui::TextBuffer, wrap_width: f32| {
                         let mut layout_job = LayoutJob::default();
@@ -395,10 +407,46 @@ pub fn code(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
                                 let mut it = code.char_indices();
                                 it.next();
                                 let end = it.next().map_or(code.len(), |(idx, _chr)| idx);
+                                let mut format =
+                                    TextFormat::simple(Font::default_medium(), app.theme.code);
+                                if &code[..end] == "\n" {
+                                    line += 1;
+                                    col = 0;
+                                } else {
+                                    col += 1;
+                                }
+                                if let Some(err) = &app.code.curr_parsing_error {
+                                    match err {
+                                        TuringParserError::FileError {
+                                            given_path: _,
+                                            error: _,
+                                        } => (),
+                                        TuringParserError::ParsingError {
+                                            line_col_pos,
+                                            value: _,
+                                            missing_value: _,
+                                        }
+                                        | TuringParserError::TuringError {
+                                            line_col_pos,
+                                            turing_error: _,
+                                            value: _,
+                                        } => {
+                                            if let Some(line_col) = line_col_pos
+                                                && line_col.0 == line
+                                            {
+                                                format.underline = if line_col.1 == col {
+                                                    Stroke::new(3.5, Color32::LIGHT_RED)
+                                                } else {
+                                                    Stroke::new(2.5, Color32::DARK_RED)
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
                                 layout_job.append(
                                     &code[..end],
                                     0.0,
-                                    TextFormat::simple(Font::default_medium(), app.theme.code),
+                                    format, // HERE ! # TODO: Change format if the error is present to underline error
                                 );
                                 code = &code[end..];
                             }
@@ -435,11 +483,40 @@ pub fn code(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
                     );
                     ui.add_space(20.0);
 
-                    if ui
-                        .add_sized(ui.available_size() - vec2(5.0, 0.0), code)
-                        .has_focus()
-                    {
+                    let resp = ui.add_sized(ui.available_size() - vec2(5.0, 0.0), code);
+
+                    // When the code changes, we can assume the error is irrelevant :
+                    if resp.changed() {
+                        app.code.curr_parsing_error = None;
+                    }
+
+                    if resp.has_focus() {
                         app.transient.listen_to_keybind = false;
+                    }
+                    if let Some(error) = &app.code.curr_parsing_error {
+                        resp.on_hover_text_at_pointer(match error {
+                            TuringParserError::FileError {
+                                given_path: _,
+                                error,
+                            } => error.to_string(),
+                            TuringParserError::ParsingError {
+                                line_col_pos: _,
+                                value: _,
+                                missing_value,
+                            } => format!(
+                                "Parsing failed due to a missing value{}",
+                                if let Some(val) = missing_value {
+                                    format!(", try adding the following : \"{val}\".")
+                                } else {
+                                    ".".to_string()
+                                }
+                            ),
+                            TuringParserError::TuringError {
+                                line_col_pos: _,
+                                turing_error,
+                                value: _,
+                            } => format!("Ran into an error while parsing a line : {turing_error}"),
+                        });
                     }
 
                     ui.add_space(5.0);
