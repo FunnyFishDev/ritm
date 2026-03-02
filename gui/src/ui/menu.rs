@@ -13,7 +13,7 @@ use crate::{
         font::Font,
         popup::{RitmPopupEnum, boolean_popup},
         tutorial::{TutorialBox, TutorialEnum},
-        utils::{FileDialog, FileType},
+        utils::{FileDialog},
     },
 };
 
@@ -122,7 +122,6 @@ fn save(app: &mut App, ui: &mut FlexInstance) -> Result<(), RitmError> {
         app.menu.file.save(
             "new.tm",
             app.code.current_code()?.as_bytes().to_vec(),
-            FileType::Code,
         )
     };
 

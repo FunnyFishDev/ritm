@@ -33,20 +33,21 @@ pub fn direction(p1: Pos2, p2: Pos2) -> Vec2 {
 
 pub type FileData = Vec<u8>;
 
-pub enum FileType {
-    Code,
-    Image
-}
-
 // wasm
 #[cfg(target_arch = "wasm32")]
 use js_sys::{Array, ArrayBuffer, Uint8Array};
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::JsCast;
 #[cfg(target_arch = "wasm32")]
+use wasm_bindgen::JsValue;
+#[cfg(target_arch = "wasm32")]
 use wasm_bindgen::prelude::*;
 #[cfg(target_arch = "wasm32")]
-use web_sys::{File, FileReader, HtmlInputElement, Url, window};
+use web_sys::Document;
+#[cfg(target_arch = "wasm32")]
+use web_sys::Event;
+#[cfg(target_arch = "wasm32")]
+use web_sys::{File, FileReader, HtmlInputElement, Url, window, console::log, PointerEvent};
 
 #[cfg(target_arch = "wasm32")]
 pub struct FileDialog {
@@ -139,7 +140,7 @@ impl FileDialog {
         }
     }
 
-    pub fn save(&self, filename: &str, filedata: FileData, filetype: FileType) {
+    pub fn save(&self, filename: &str, filedata: FileData) {
         let array = Uint8Array::from(filedata.as_slice());
         let blob_parts = Array::new();
         blob_parts.push(&array.buffer());
@@ -147,15 +148,23 @@ impl FileDialog {
         let file = File::new_with_blob_sequence_and_options(
             &blob_parts.into(),
             filename,
-            web_sys::FilePropertyBag::new().type_(match filetype {
-                FileType::Code => "text/plain",
-                FileType::Image => "image/png",
-            }),
+            web_sys::FilePropertyBag::new().type_("application/octet-stream"),
         )
         .unwrap();
-        let url = Url::create_object_url_with_blob(&file);
+        let url = Url::create_object_url_with_blob(&file).unwrap();
+
+        let x = Array::new();
+        x.push(&JsValue::from_str("test"));
         if let Some(window) = web_sys::window() {
-            window.location().set_href(&url.unwrap()).ok();
+            if let Some(document) = window.document() {
+                let a = document.create_element("a").expect("should work");
+                a.set_attribute("href", url.as_str());
+                a.set_attribute("download", filename);
+                document.body().unwrap().append_child(a.as_ref()).ok();
+                a.dispatch_event(&Event::from(PointerEvent::new("click").unwrap()));
+                document.body().unwrap().remove_child(a.as_ref()).ok();
+            }
+            // window.location().set_href(&url.unwrap()).ok();
         }
     }
 }
@@ -184,7 +193,7 @@ impl FileDialog {
         self.file.take()
     }
 
-    pub fn save(&self, filename: &str, file: FileData, filetype: FileType) {
+    pub fn save(&self, filename: &str, file: FileData) {
         let path = rfd::FileDialog::new().set_file_name(filename).save_file();
 
         if let Some(path) = path {

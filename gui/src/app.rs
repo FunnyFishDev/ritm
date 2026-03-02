@@ -25,7 +25,7 @@ use crate::{
         },
         theme::{Theme, theme_changer},
         tutorial::{self, TutorialEnum, Tutorials},
-        utils::{FileData, FileDialog, FileType},
+        utils::{FileData, FileDialog},
     },
 };
 
@@ -288,7 +288,7 @@ impl eframe::App for App {
         }
 
         if let Some(screenshot) = &self.transient.temp_screenshot {
-            FileDialog::default().save("test.png", screenshot.to_vec(), FileType::Image);
+            FileDialog::default().save("test.png", screenshot.to_vec());
             self.transient.temp_screenshot = None;
         }
     }
