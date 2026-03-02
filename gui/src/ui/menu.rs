@@ -13,7 +13,7 @@ use crate::{
         font::Font,
         popup::{RitmPopupEnum, boolean_popup},
         tutorial::{TutorialBox, TutorialEnum},
-        utils::FileDialog,
+        utils::{FileDialog, FileType},
     },
 };
 
@@ -119,9 +119,11 @@ fn save(app: &mut App, ui: &mut FlexInstance) -> Result<(), RitmError> {
         .frame(false),
     );
     if button.clicked() && !app.code.current_code()?.is_empty() {
-        app.menu
-            .file
-            .save("new.tm", app.code.current_code()?.as_bytes().to_vec())
+        app.menu.file.save(
+            "new.tm",
+            app.code.current_code()?.as_bytes().to_vec(),
+            FileType::Code,
+        )
     };
 
     app.tutorial.add_boxe(
@@ -208,7 +210,9 @@ fn machine_folder(app: &mut App, ui: &mut FlexInstance) -> Result<(), RitmError>
         app.transient.temp_code = Some(
             std::str::from_utf8(&file)
                 .map_err(|e| {
-                    RitmError::GuiError(GuiError::FileError{ error: e.to_string()})
+                    RitmError::GuiError(GuiError::FileError {
+                        error: e.to_string(),
+                    })
                 })?
                 .to_string(),
         );

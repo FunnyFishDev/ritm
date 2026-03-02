@@ -25,7 +25,7 @@ use crate::{
         },
         theme::{Theme, theme_changer},
         tutorial::{self, TutorialEnum, Tutorials},
-        utils::{FileData, FileDialog},
+        utils::{FileData, FileDialog, FileType},
     },
 };
 
@@ -288,7 +288,7 @@ impl eframe::App for App {
         }
 
         if let Some(screenshot) = &self.transient.temp_screenshot {
-            FileDialog::default().save("test.png", screenshot.to_vec());
+            FileDialog::default().save("test.png", screenshot.to_vec(), FileType::Image);
             self.transient.temp_screenshot = None;
         }
     }
@@ -313,7 +313,6 @@ fn keybind(ctx: &Context, app: &mut App) {
                 if !app.error.is_empty() {
                     app.error.pop_front();
                 } else if app.popup.current().is_some() {
-                    // Request graceful exit of popup
                     app.popup.confirm();
                 } else if !popup_displayed && app.tutorial.in_tutorial() {
                     app.tutorial.next();

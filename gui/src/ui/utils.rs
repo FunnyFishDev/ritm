@@ -33,6 +33,11 @@ pub fn direction(p1: Pos2, p2: Pos2) -> Vec2 {
 
 pub type FileData = Vec<u8>;
 
+pub enum FileType {
+    Code,
+    Image
+}
+
 // wasm
 #[cfg(target_arch = "wasm32")]
 use js_sys::{Array, ArrayBuffer, Uint8Array};
@@ -134,7 +139,7 @@ impl FileDialog {
         }
     }
 
-    pub fn save(&self, filename: &str, filedata: FileData) {
+    pub fn save(&self, filename: &str, filedata: FileData, filetype: FileType) {
         let array = Uint8Array::from(filedata.as_slice());
         let blob_parts = Array::new();
         blob_parts.push(&array.buffer());
@@ -142,7 +147,10 @@ impl FileDialog {
         let file = File::new_with_blob_sequence_and_options(
             &blob_parts.into(),
             filename,
-            web_sys::FilePropertyBag::new().type_("application/octet-stream"),
+            web_sys::FilePropertyBag::new().type_(match filetype {
+                FileType::Code => "text/plain",
+                FileType::Image => "image/png",
+            }),
         )
         .unwrap();
         let url = Url::create_object_url_with_blob(&file);
@@ -176,7 +184,7 @@ impl FileDialog {
         self.file.take()
     }
 
-    pub fn save(&self, filename: &str, file: FileData) {
+    pub fn save(&self, filename: &str, file: FileData, filetype: FileType) {
         let path = rfd::FileDialog::new().set_file_name(filename).save_file();
 
         if let Some(path) = path {
