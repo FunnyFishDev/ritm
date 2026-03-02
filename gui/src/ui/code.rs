@@ -446,7 +446,7 @@ pub fn code(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
                                 layout_job.append(
                                     &code[..end],
                                     0.0,
-                                    format, // HERE ! # TODO: Change format if the error is present to underline error
+                                    format,
                                 );
                                 code = &code[end..];
                             }
