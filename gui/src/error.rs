@@ -68,7 +68,7 @@ impl Display for GuiError {
 }
 
 pub fn show(ctx: &Context, app: &mut App) {
-    let Some(error) = &app.error else {
+    let Some(error) = app.error.front() else {
         return;
     };
 
@@ -89,7 +89,7 @@ pub fn show(ctx: &Context, app: &mut App) {
                 .button(RichText::new("close").font(Font::default_medium()))
                 .clicked()
             {
-                app.error = None;
+                app.error.pop_front();
             }
         });
     });

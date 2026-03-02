@@ -142,7 +142,7 @@ pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
             state::show(app, ui)?;
 
             if let Err(x) = transition_dragging(ui, app, graph_rect) {
-                println!("{x}");
+                app.error.push_back(x);
             }
 
             // This Rect can be used to "Reset" the view of the graph

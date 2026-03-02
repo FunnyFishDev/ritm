@@ -102,7 +102,7 @@ pub fn show(ui: &mut Ui, app: &mut App) -> Result<(), RitmError> {
                         app.popup.close();
                     }
                     Err(error) => {
-                        app.error = Some(error);
+                        app.error.push_back(error);
                     }
                 }
             };

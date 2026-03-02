@@ -137,7 +137,8 @@ fn input(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
                                 .font(Font::default(Font::MEDIUM_SIZE))
                                 .color(app.theme.text_secondary),
                         )
-                        .background_color(app.theme.surface),
+                        .background_color(app.theme.surface)
+                        .char_limit(10000),
                 )
                 .has_focus()
             {

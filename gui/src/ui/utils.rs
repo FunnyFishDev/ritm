@@ -313,8 +313,7 @@ pub(crate) mod fade {
             mesh.add_colored_rect(r, color.0.color.lerp_to_gamma(color.1.color, t));
 
             if x >= color.1.key {
-                println!("skipping !");
-                color = colors.pop().expect("lol");
+                color = colors.pop().expect("color should exist");
             }
             i += 1;
         }

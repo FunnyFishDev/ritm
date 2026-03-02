@@ -216,31 +216,33 @@ fn square(app: &mut App, ui: &mut Ui, character: char, is_current: bool) {
     // Apply a scale correction to element for small screen
     let square_size = Constant::SQUARE_SIZE;
 
-    Frame::new().show(ui, |ui| {
-        let size = square_size + if is_current { 6.0 } else { 0.0 };
-        let (rect, _res) = ui.allocate_exact_size(Vec2::splat(size), Sense::empty());
+    let size = square_size + if is_current { 6.0 } else { 0.0 };
+    let (rect, _res) = ui.allocate_exact_size(Vec2::splat(size), Sense::empty());
 
-        // Draw the square, with a border if center one
-        ui.painter().rect(
-            rect,
-            Constant::SQUARE_CORNER,
-            app.theme.surface,
-            if is_current {
-                Stroke::new(3.0, app.theme.border)
-            } else {
-                Stroke::NONE
-            },
-            StrokeKind::Inside,
-        );
+    // Draw the square, with a border if center one
+    ui.painter().rect(
+        rect,
+        Constant::SQUARE_CORNER,
+        if character == ' ' {
+            app.theme.disabled
+        } else {
+            app.theme.surface
+        },
+        if is_current {
+            Stroke::new(3.0, app.theme.border)
+        } else {
+            Stroke::NONE
+        },
+        StrokeKind::Inside,
+    );
 
-        // Add the character into the frame
-        ui.put(
-            rect,
-            Label::new(
-                RichText::new(character)
-                    .size(square_size / 2.0)
-                    .color(app.theme.text_primary),
-            ),
-        );
-    });
+    // Add the character into the frame
+    ui.put(
+        rect,
+        Label::new(
+            RichText::new(character)
+                .size(square_size / 2.0)
+                .color(app.theme.text_primary),
+        ),
+    );
 }

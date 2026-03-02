@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::{collections::VecDeque, time::Duration};
 
 use egui::{Context, Key, Pos2};
 use egui_extras::install_image_loaders;
@@ -58,7 +58,7 @@ pub struct App {
     pub code: Code,
 
     #[serde(skip)]
-    pub error: Option<RitmError>,
+    pub error: VecDeque<RitmError>,
 
     /// The event/state of the application
     #[serde(skip)]
@@ -107,7 +107,7 @@ impl Default for App {
             help_slide_index: 0,
             control: Control::default(),
             settings: Settings::default(),
-            error: None,
+            error: VecDeque::new(),
             tutorial: Tutorials::default(),
         }
     }
@@ -244,7 +244,7 @@ impl eframe::App for App {
 
         // Draw the whole application and show any error
         if let Err(error) = ui::show(self, ctx) {
-            self.error = Some(error);
+            self.error.push_back(error);
         }
 
         error::show(ctx, self);
@@ -310,8 +310,8 @@ fn keybind(ctx: &Context, app: &mut App) {
             }
 
             if r.key_pressed(Key::Enter) {
-                if app.error.is_some() {
-                    app.error = None;
+                if !app.error.is_empty() {
+                    app.error.pop_front();
                 } else if app.popup.current().is_some() {
                     // Request graceful exit of popup
                     app.popup.confirm();

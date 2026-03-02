@@ -441,8 +441,8 @@ impl Turing {
                     .expect("state shoud exist")
                     .inner_state
                     .position = Pos2::new(
-                    (j - (layer_count / 2.0 - i as f32)) * -200.0,
-                    (j + (layer_count / 2.0 - i as f32)) * -200.0,
+                    (j - (layer_count / 2.0 - i as f32)) * -400.0,
+                    (j + (layer_count / 2.0 - i as f32)) * -400.0,
                 ) + vec2(random(), random());
             }
 

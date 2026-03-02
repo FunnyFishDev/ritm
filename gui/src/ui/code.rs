@@ -509,8 +509,10 @@ pub fn code(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
                         ui.fonts(|f| f.layout_job(layout_job))
                     };
 
+                    let salt = app.code.tabs[app.code.current_tab].name.clone();
                     let code = TextEdit::multiline(&mut app.code.tabs[app.code.current_tab].code)
                         .code_editor()
+                        .id_salt(salt)
                         .font(Font::default_medium())
                         .frame(false)
                         .margin(Margin::same(0))
