@@ -34,7 +34,7 @@ dir_left  =  { "L" }
 dir_right =  { "R" }
 dir_none  =  { "N" }
 
-state_name = { "q" ~ ("_")? ~ (str) }
+state_name = { ("q" ~ ("_")?)? ~ (str) }
 
 str = { (char)+ }
 
