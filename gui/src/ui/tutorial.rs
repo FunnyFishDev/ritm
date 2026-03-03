@@ -87,7 +87,7 @@ impl TutorialEnum {
                 "recenter",
                 "add_state",
                 "edit",
-                "delete",
+                // "delete",
                 "add_transition",
             ]),
         };
@@ -114,10 +114,14 @@ impl Display for TutorialEnum {
 
 #[derive(serde::Deserialize, serde::Serialize, Debug)]
 pub struct Tutorials {
+    #[serde(skip)]
     tutorial_boxs: Vec<TutorialBox>,
+    #[serde(skip)]
     current_tutorial: Option<TutorialEnum>,
+    #[serde(skip)]
     current_step: usize,
     pub already_played: HashMap<TutorialEnum, bool>,
+    #[serde(skip)]
     pub has_finished: Option<TutorialEnum>,
 }
 
@@ -228,7 +232,7 @@ impl Tutorials {
             "recenter" => (TutorialEnum::Edit, t!("tutorial.recenter")),
             "add_state" => (TutorialEnum::Edit, t!("tutorial.add_state")),
             "edit" => (TutorialEnum::Edit, t!("tutorial.edit")),
-            "delete" => (TutorialEnum::Edit, t!("tutorial.delete")),
+            // "delete" => (TutorialEnum::Edit, t!("tutorial.delete")),
             "add_transition" => (TutorialEnum::Edit, t!("tutorial.add_transition")),
             // "keybind" => (TutorialEnum::Misc, ""),
             _ => (TutorialEnum::Code, t!("tutorial.default")),
@@ -312,7 +316,7 @@ pub fn show(ctx: &Context, app: &mut App) {
 
             let triangulation = main.triangulate().to_triangulation::<u32>();
 
-            let color = Color32::from_black_alpha(100);
+            let color = Color32::from_black_alpha(150);
 
             triangulation.points.iter().for_each(|i| {
                 mesh.colored_vertex((*i).into(), color);

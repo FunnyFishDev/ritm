@@ -36,9 +36,8 @@ pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
             .layout(Layout::bottom_up(Align::Center).with_cross_align(Align::Center))
             .layer_id(layer),
         |ui| {
-            if let Some(tutorial) = app.tutorial.current_tutorial()
-                && tutorial == TutorialEnum::Edit
-                && app.tutorial.current_step() == 5
+            if app.tutorial.current_tutorial().is_some_and(|t| t == TutorialEnum::Edit)
+                && app.tutorial.current_step() >= 4
             {
                 app.graph.select_state(0);
             }
@@ -125,11 +124,11 @@ pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
                                     )?;
                                 }
                             }
-                            app.tutorial.add_boxe(
-                                "delete",
-                                TutorialBox::new(delete.rect.expand(6.0))
-                                    .with_align(Align2::LEFT_TOP),
-                            );
+                            // app.tutorial.add_boxe(
+                            //     "delete",
+                            //     TutorialBox::new(delete.rect.expand(6.0))
+                            //         .with_align(Align2::LEFT_TOP),
+                            // );
                         }
 
                         // Edit the selected transitions or state

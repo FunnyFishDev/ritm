@@ -105,14 +105,14 @@ pub fn show(app: &mut App, ui: &mut Ui) -> Result<(), RitmError> {
     app.tutorial.add_boxe(
         "graph_section",
         TutorialBox::new(graph_rect)
-            .with_align(Align2::LEFT_CENTER)
+            .with_align(Align2::CENTER_CENTER)
             .with_text_size(vec2(400.0, 500.0)),
     );
 
     app.tutorial.add_boxe(
         "by_touch",
         TutorialBox::new(graph_rect)
-            .with_align(Align2::LEFT_CENTER)
+            .with_align(Align2::CENTER_CENTER)
             .with_text_size(vec2(400.0, 500.0)),
     );
 
@@ -355,17 +355,18 @@ fn apply_force(app: &mut App) {
 
 /// Button to convert the current displayed graph into code
 fn to_code_button(ui: &mut Ui, app: &mut App, layer: LayerId) {
+    let icon_size = Vec2::splat(app.settings.edit_button_size + 10.0);
     if !app.transient.is_small_window {
         ui.scope_builder(
             UiBuilder::new()
                 .layer_id(layer)
-                .max_rect(Rect::from_min_size(ui.min_rect().min, vec2(35.0, 35.0))),
+                .max_rect(Rect::from_min_size(ui.min_rect().min, icon_size)),
             |ui| {
                 let button = ui.put(
-                    Rect::from_min_size(ui.min_rect().min, vec2(35.0, 35.0)),
+                    Rect::from_min_size(ui.min_rect().min, icon_size),
                     ImageButton::new(
                         Image::new(include_image!("../../assets/icon/code.svg"))
-                            .fit_to_exact_size(vec2(35.0, 35.0))
+                            .fit_to_exact_size(icon_size)
                             .tint(app.theme.overlay),
                     )
                     .frame(false),
@@ -376,7 +377,7 @@ fn to_code_button(ui: &mut Ui, app: &mut App, layer: LayerId) {
 
                 app.tutorial.add_boxe(
                     "to_code",
-                    TutorialBox::new(button.rect).with_align(Align2::RIGHT_CENTER),
+                    TutorialBox::new(button.rect).with_align(Align2::RIGHT_BOTTOM),
                 );
             },
         );
@@ -385,22 +386,23 @@ fn to_code_button(ui: &mut Ui, app: &mut App, layer: LayerId) {
 
 /// Button to reset the graph to the initial and accepting state
 fn reset_button(ui: &mut Ui, app: &mut App, layer: LayerId) {
+    let icon_size = Vec2::splat(app.settings.edit_button_size + 10.0);
     ui.scope_builder(
         UiBuilder::new()
             .layer_id(layer)
             .max_rect(Rect::from_min_size(
-                ui.max_rect().right_top() - vec2(35.0, 0.0),
-                vec2(35.0, 35.0),
+                ui.max_rect().right_top() - vec2(icon_size.x, 0.0),
+                icon_size,
             )),
         |ui| {
             let button = ui.put(
                 Rect::from_min_size(
-                    ui.max_rect().right_top() - vec2(45.0, 0.0),
-                    vec2(35.0, 35.0),
+                    ui.max_rect().right_top() - vec2(icon_size.x + 10.0, 0.0),
+                    icon_size,
                 ),
                 ImageButton::new(
                     Image::new(include_image!("../../assets/icon/erase.svg"))
-                        .fit_to_exact_size(vec2(35.0, 35.0))
+                        .fit_to_exact_size(icon_size)
                         .tint(app.theme.overlay),
                 )
                 .frame(false),
@@ -410,7 +412,7 @@ fn reset_button(ui: &mut Ui, app: &mut App, layer: LayerId) {
             }
             app.tutorial.add_boxe(
                 "erase",
-                TutorialBox::new(button.rect).with_align(Align2::LEFT_CENTER),
+                TutorialBox::new(button.rect).with_align(Align2::LEFT_BOTTOM),
             );
         },
     );
@@ -418,22 +420,23 @@ fn reset_button(ui: &mut Ui, app: &mut App, layer: LayerId) {
 
 /// Button to reset the graph to the initial and accepting state
 fn take_screenshot_button(ui: &mut Ui, app: &mut App, layer: LayerId) {
+    let icon_size = Vec2::splat(app.settings.edit_button_size + 10.0);
     ui.scope_builder(
         UiBuilder::new()
             .layer_id(layer)
             .max_rect(Rect::from_min_size(
-                ui.max_rect().left_bottom() - vec2(0.0, 35.0),
-                vec2(35.0, 35.0),
+                ui.max_rect().left_bottom() - vec2(0.0, icon_size.y),
+                icon_size,
             )),
         |ui| {
             let button = ui.put(
                 Rect::from_min_size(
-                    ui.max_rect().left_bottom() - vec2(0.0, 35.0),
-                    vec2(35.0, 35.0),
+                    ui.max_rect().left_bottom() - vec2(0.0, icon_size.y),
+                    icon_size,
                 ),
                 ImageButton::new(
                     Image::new(include_image!("../../assets/icon/screenshot.svg"))
-                        .fit_to_exact_size(vec2(35.0, 35.0))
+                        .fit_to_exact_size(icon_size)
                         .tint(app.theme.overlay),
                 )
                 .frame(false),
@@ -443,10 +446,10 @@ fn take_screenshot_button(ui: &mut Ui, app: &mut App, layer: LayerId) {
                     .send_viewport_cmd(ViewportCommand::Screenshot(UserData::default()));
                 app.transient.taking_screenshot = true;
             }
-            // app.tutorial.add_boxe(
-            //     "screenshot",
-            //     TutorialBox::new(button.rect).with_align(Align2::LEFT_CENTER),
-            // );
+            app.tutorial.add_boxe(
+                "screenshot",
+                TutorialBox::new(button.rect).with_align(Align2::RIGHT_TOP),
+            );
         },
     );
 }
