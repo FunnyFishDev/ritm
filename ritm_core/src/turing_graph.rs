@@ -776,7 +776,7 @@ where
             let transition_from = char_read.entry(*from).or_insert(Vec::new());
 
             for transition in transitions {
-                let chars_read = transition.info.get_chars_read().clone();
+                let chars_read = transition.info.get_match_symbols().clone();
                 if transition_from.contains(&chars_read) {
                     return false;
                 }

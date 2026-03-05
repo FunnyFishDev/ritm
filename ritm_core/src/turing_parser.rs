@@ -13,7 +13,8 @@ use crate::{
     },
     turing_machine::TuringMachineError,
     turing_transition::{
-        TransitionMultRibbonInfo, TransitionOneRibbonInfo, TuringDirection, TuringTransition,
+        MatchSymbol, TransitionMultRibbonInfo, TransitionOneRibbonInfo, TuringDirection,
+        TuringTransition,
     },
 };
 
@@ -257,7 +258,7 @@ where
 
                 for transition in contents {
                     let transition_res = match TransitionOneRibbonInfo::new(
-                        transition.0,
+                        MatchSymbol::Char(transition.0),
                         transition.2,
                         transition.1,
                     ) {
@@ -519,7 +520,7 @@ fn parse_char_token(rule: Pair<Rule>) -> char {
 fn parse_transition_content(
     rule: Pair<Rule>,
 ) -> Result<TransitionMultRibbonInfo, TuringMachineError> {
-    let mut chars_read: Vec<char> = vec![];
+    let mut symbols_to_match: Vec<MatchSymbol> = vec![];
     let mut directions: Vec<TuringDirection> = vec![];
     let mut chars_written: Vec<char> = vec![];
 
@@ -530,7 +531,13 @@ fn parse_transition_content(
                 // Parse all the characters to read
                 for chars_rule in transition_rule.into_inner() {
                     // turns the rule into a string, then gets the first (and only) char
-                    chars_read.push(chars_rule.as_str().chars().next().unwrap());
+                    symbols_to_match.push(MatchSymbol::Char(
+                        chars_rule
+                            .as_str()
+                            .chars()
+                            .next()
+                            .expect("one char present"),
+                    ));
                 }
             }
             Rule::to_write_move_k => {
@@ -548,7 +555,7 @@ fn parse_transition_content(
     }
 
     Ok(TransitionMultRibbonInfo::create(
-        chars_read,
+        symbols_to_match,
         chars_written,
         directions,
     )?)

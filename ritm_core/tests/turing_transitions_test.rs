@@ -27,7 +27,7 @@ fn transition_creation_mult_test() {
         Err(TuringTransitionError::TransitionArgsError(_val))
     ));
 
-    assert_eq!(t1.chars_read, vec!('ç', 'ç'));
+    assert_eq!(t1.match_symbols, vec!('ç', 'ç'));
     assert_eq!(t1.move_read, TuringDirection::Right);
     assert_eq!(t1.chars_write, vec!(('ç', TuringDirection::None)));
 

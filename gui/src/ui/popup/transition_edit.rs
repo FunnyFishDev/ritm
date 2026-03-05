@@ -268,10 +268,10 @@ fn transition(
                             }
                             TransitionsInfo::MultipleTapes(transition) => {
                                 // Textedit for each reading character
-                                for i in 0..transition.chars_read.len() {
+                                for i in 0..transition.match_symbols.len() {
                                     read_edit(
                                         ui,
-                                        &mut transition.chars_read[i],
+                                        &mut transition.match_symbols[i],
                                         &mut transition.move_read,
                                         WidgetVisuals {
                                             bg_stroke: Stroke::new(1.0, app.theme.error),
@@ -280,7 +280,7 @@ fn transition(
                                     );
 
                                     // Aesthetic purpose, add a colon between each reading char
-                                    if i != transition.chars_read.len() - 1 {
+                                    if i != transition.match_symbols.len() - 1 {
                                         ui.add(Label::new(","));
                                     }
                                 }
@@ -315,7 +315,7 @@ fn transition(
                             TransitionsInfo::MultipleTapes(transition) => {
                                 move_read(
                                     ui,
-                                    &mut transition.chars_read[0],
+                                    &mut transition.match_symbols[0],
                                     &mut transition.move_read,
                                     format!("{transition_index}-{}", transition.chars_write.len()),
                                 );

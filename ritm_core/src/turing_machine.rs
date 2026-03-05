@@ -591,7 +591,7 @@ where
                 .first_mut()
                 .expect("always one tape present")
                 .try_apply_transition(
-                    transition.chars_read,
+                    &transition.chars_read,
                     transition.replace_with,
                     &transition.move_pointer,
                 )
@@ -599,13 +599,12 @@ where
         }
         // Else the reading tape can only move and the writing tapes are modified
         TransitionsInfo::MultipleTapes(transition) => {
-            tm.data
-                .tapes
-                .first_mut()
-                .expect("one present")
+            let first_tape = tm.data.tapes.first_mut().expect("one tape present");
+            let curr_char = first_tape.read_curr_char();
+            first_tape
                 .try_apply_transition(
-                    transition.chars_read[0],
-                    transition.chars_read[0], // Replace by self
+                    &transition.match_symbols[0],
+                    curr_char, // Replace by self
                     &transition.move_read,
                 )
                 .expect("no issues with graph transition");
@@ -613,7 +612,7 @@ where
             for i in 0..tm.graph_ref().get_k() {
                 tm.data.tapes[i + 1]
                     .try_apply_transition(
-                        transition.chars_read[i + 1],
+                        &transition.match_symbols[i + 1],
                         transition.chars_write[i].0,
                         &transition.chars_write[i].1,
                     )

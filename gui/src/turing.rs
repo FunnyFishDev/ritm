@@ -614,7 +614,7 @@ impl TransitionEdit {
     }
 
     pub fn to(&self) -> Result<TransitionWrapper, RitmError> {
-        if self.edit.info.get_chars_read().contains(&'\0') {
+        if self.edit.info.get_match_symbols().contains(&'\0') {
             return Err(RitmError::GuiError(GuiError::InvalidTransition {
                 reason: "Empty char present in the transition".to_string(),
             }));

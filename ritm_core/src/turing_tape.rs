@@ -2,7 +2,7 @@ use std::fmt::{Debug, Display};
 
 use thiserror::Error;
 
-use crate::turing_transition::TuringDirection;
+use crate::turing_transition::{MatchSymbol, TuringDirection};
 
 /// Represents the initial character stored at the start of every tape
 pub const INIT_CHAR: char = 'ç';
@@ -71,12 +71,12 @@ impl TuringTape {
     /// A [TuringError] if an error happened, like for example, it was not possible to move at the given direction. Or if a special character (like [INIT_CHAR], [END_CHAR]) is used to replace a *non* special one.
     pub fn try_apply_transition(
         &mut self,
-        if_read: char,
+        symbol_match: &MatchSymbol,
         replace_by: char,
         move_to: &TuringDirection,
     ) -> Result<bool, TuringTapeError> {
         // if the correct symbol was read
-        if self.chars_vec[self.pointer] == if_read {
+        if symbol_match.matches(self.chars_vec[self.pointer]) {
             let new_pointer = (self.pointer as isize) + (move_to.get_value() as isize);
 
             if new_pointer < 0 {
@@ -299,14 +299,22 @@ mod tests {
 
         tape.feed_word("test".to_string(), true).unwrap();
 
-        tape.try_apply_transition(INIT_CHAR, INIT_CHAR, &TuringDirection::Right)
-            .unwrap();
+        tape.try_apply_transition(
+            &MatchSymbol::Char(INIT_CHAR),
+            INIT_CHAR,
+            &TuringDirection::Right,
+        )
+        .unwrap();
         assert_eq!(tape.pointer, 1);
-        tape.try_apply_transition('t', 'p', &TuringDirection::Left)
+        tape.try_apply_transition(&MatchSymbol::Char('t'), 'p', &TuringDirection::Left)
             .unwrap();
         assert_eq!(tape.pointer, 0);
-        tape.try_apply_transition(INIT_CHAR, INIT_CHAR, &TuringDirection::None)
-            .unwrap();
+        tape.try_apply_transition(
+            &MatchSymbol::Char(INIT_CHAR),
+            INIT_CHAR,
+            &TuringDirection::None,
+        )
+        .unwrap();
         assert_eq!(tape.pointer, 0);
 
         assert_eq!(
@@ -315,27 +323,27 @@ mod tests {
         );
 
         assert!(matches!(
-            tape.try_apply_transition(INIT_CHAR, '_', &TuringDirection::Right),
+            tape.try_apply_transition(&MatchSymbol::Char(INIT_CHAR), '_', &TuringDirection::Right),
             Err(TuringTapeError::SpecialCharReplacementError {
                 special_char,
                 replacement_char
             }) if special_char == INIT_CHAR && replacement_char == '_'
         ));
 
-        tape.try_apply_transition('ç', 'ç', &TuringDirection::Right)
+        tape.try_apply_transition(&MatchSymbol::Char('ç'), 'ç', &TuringDirection::Right)
             .unwrap();
 
-        tape.try_apply_transition('p', '_', &TuringDirection::Right)
+        tape.try_apply_transition(&MatchSymbol::Char('p'), '_', &TuringDirection::Right)
             .unwrap();
-        tape.try_apply_transition('e', '_', &TuringDirection::Right)
+        tape.try_apply_transition(&MatchSymbol::Char('e'), '_', &TuringDirection::Right)
             .unwrap();
-        tape.try_apply_transition('s', '_', &TuringDirection::Right)
+        tape.try_apply_transition(&MatchSymbol::Char('s'), '_', &TuringDirection::Right)
             .unwrap();
-        tape.try_apply_transition('t', '_', &TuringDirection::Right)
+        tape.try_apply_transition(&MatchSymbol::Char('t'), '_', &TuringDirection::Right)
             .unwrap();
 
         assert!(matches!(
-            tape.try_apply_transition(END_CHAR, '_', &TuringDirection::Right),
+            tape.try_apply_transition(&MatchSymbol::Char(END_CHAR), '_', &TuringDirection::Right),
             Err(TuringTapeError::SpecialCharReplacementError {
                 special_char,
                 replacement_char
@@ -347,33 +355,58 @@ mod tests {
     fn test_illegal_replacement() {
         let mut tape = TuringTape::new(false);
 
-        tape.try_apply_transition(INIT_CHAR, INIT_CHAR, &TuringDirection::Right)
-            .unwrap();
+        tape.try_apply_transition(
+            &MatchSymbol::Char(INIT_CHAR),
+            INIT_CHAR,
+            &TuringDirection::Right,
+        )
+        .unwrap();
         assert_eq!(tape.pointer, 1);
 
         if tape
-            .try_apply_transition(BLANK_CHAR, INIT_CHAR, &TuringDirection::Right)
+            .try_apply_transition(
+                &MatchSymbol::Char(BLANK_CHAR),
+                INIT_CHAR,
+                &TuringDirection::Right,
+            )
             .is_ok()
         {
             panic!("An error should have been returned");
         }
 
-        tape.try_apply_transition(BLANK_CHAR, BLANK_CHAR, &TuringDirection::Left)
-            .unwrap();
-        tape.try_apply_transition(BLANK_CHAR, BLANK_CHAR, &TuringDirection::Left)
-            .unwrap();
+        tape.try_apply_transition(
+            &MatchSymbol::Char(BLANK_CHAR),
+            BLANK_CHAR,
+            &TuringDirection::Left,
+        )
+        .unwrap();
+        tape.try_apply_transition(
+            &MatchSymbol::Char(BLANK_CHAR),
+            BLANK_CHAR,
+            &TuringDirection::Left,
+        )
+        .unwrap();
 
-        match tape.try_apply_transition(INIT_CHAR, 'p', &TuringDirection::Right) {
+        match tape.try_apply_transition(&MatchSymbol::Char(INIT_CHAR), 'p', &TuringDirection::Right)
+        {
             Ok(_) => panic!("Exected an error"),
             Err(te) => expect_ill_action_error(te),
         }
 
-        match tape.try_apply_transition(INIT_CHAR, END_CHAR, &TuringDirection::Right) {
+        match tape.try_apply_transition(
+            &MatchSymbol::Char(INIT_CHAR),
+            END_CHAR,
+            &TuringDirection::Right,
+        ) {
             Ok(_) => panic!("Exected an error"),
             Err(te) => expect_ill_action_error(te),
         }
 
-        match tape.try_apply_transition(INIT_CHAR, BLANK_CHAR, &TuringDirection::Right) {
+        match tape.try_apply_transition(
+            &MatchSymbol::Char(INIT_CHAR),
+            BLANK_CHAR,
+            &TuringDirection::Right,
+        ) {
             Ok(_) => panic!("Exected an error"),
             Err(te) => expect_ill_action_error(te),
         }

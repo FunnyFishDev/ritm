@@ -369,8 +369,8 @@ fn get_path_to_accept_test() {
                     assert!(
                         tapes[0]
                             .try_apply_transition(
-                                transition_taken.chars_read[0],
-                                transition_taken.chars_read[0],
+                                transition_taken.match_symbols[0],
+                                transition_taken.match_symbols[0],
                                 &transition_taken.move_read
                             )
                             .unwrap()
@@ -380,7 +380,7 @@ fn get_path_to_accept_test() {
                         assert!(
                             tapes[i]
                                 .try_apply_transition(
-                                    transition_taken.chars_read[i + 1],
+                                    transition_taken.match_symbols[i + 1],
                                     transition_taken.chars_write[i].0,
                                     &transition_taken.chars_write[i].1
                                 )
