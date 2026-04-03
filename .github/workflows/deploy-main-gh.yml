@@ -47,7 +47,7 @@ jobs:
         uses: actions/upload-pages-artifact@v4
         with:
           # upload entire directory
-          path: '.'
+          path: './gui/docs/'
 
   deploy:
     environment:
