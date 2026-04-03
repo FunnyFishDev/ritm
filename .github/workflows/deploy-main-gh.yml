@@ -3,8 +3,6 @@ name: Deploy, Main
 on:
   push:
     branches: [ main ]
-  pull_request:
-    branches: [ main ]
     
   workflow_dispatch:
 
@@ -49,7 +47,7 @@ jobs:
         uses: actions/upload-pages-artifact@v4
         with:
           # upload entire directory
-          path: 'docs/'
+          path: '.'
 
   deploy:
     environment:
