@@ -1,0 +1,62 @@
+name: Deploy, Main
+
+on:
+  push:
+    branches: [ main ]
+    
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+   
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    environment: 'deploy-home' 
+    defaults:
+      run:
+        working-directory: ./gui
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: actions-use/setup-rust@stable
+        with:
+          toolchain: stable
+          components: rustfmt, clippy
+
+      - run: rustup --version
+      - run: cargo --version
+
+      - name: install architecture wasm32
+        run: rustup target add wasm32-unknown-unknown
+
+      - name: Install TRUNK
+        uses: jetli/trunk-action@v0.5.1
+        with:
+          # Optional version of trunk to install(eg. 'v0.21.14', 'latest')
+          version: 'latest'
+      
+      - name: Build the webapp
+        run: RUSTFLAGS='--cfg getrandom_backend="wasm_js"' trunk build --release
+
+      - name: Upload Artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          # upload entire directory
+          path: '.'
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{steps.deployment.outputs.page_url}}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5
+
